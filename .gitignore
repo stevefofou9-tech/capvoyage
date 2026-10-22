@@ -1,0 +1,37 @@
+# Dépendances Node
+node_modules/
+package-lock.json
+
+# Données locales et bases de données
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.tmp
+data/test_*
+
+# Variables d'environnement secrètes
+.env
+.env.local
+.env.production
+
+# Données utilisateurs et voyages en environnement local
+data/users.json
+data/trips/
+
+# Logs et diagnostics
+*.log
+npm-debug.log*
+tmp_chrome*/
+screenshots/
+check_*.js
+diagnose_*.js
+take_screenshots.js
+test_*.js
+
+# IDE & Assistant
+.agent/
+.gemini/
+
+# Système d'exploitation
+.DS_Store
+Thumbs.db

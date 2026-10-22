@@ -1,0 +1,23 @@
+services:
+  capvoyage:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: capvoyage-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_PATH=/app/data/capvoyage.db
+      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN:-*}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-CapVoyage <auth@capvoyage.com>}
+    volumes:
+      # Montage persistant des données (Base SQLite WAL & sauvegardes)
+      - capvoyage_data:/app/data
+
+volumes:
+  capvoyage_data:
+    driver: local

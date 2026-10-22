@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CapVoyage - Planification Jour par Jour & Préparation de Séjours</title>
+  <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f5132">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ======================================================== -->
+  <!-- VUE 1 : LANDING PAGE D'ACCUEIL & AUTHENTIFICATION -->
+  <!-- ======================================================== -->
+  <section id="view-landing" class="view-screen active">
+    <div class="landing-hero">
+      <header class="landing-header">
+        <div class="brand-logo">
+          <span class="brand-compass">🧭</span>
+          <span class="brand-name">CapVoyage</span>
+        </div>
+        <div class="landing-nav-actions">
+          <button class="btn btn-secondary" id="btn-landing-open-login">Se Connecter</button>
+          <button class="btn btn-primary" id="btn-landing-demo">Explorer la Démo 🇨🇲</button>
+        </div>
+      </header>
+
+      <div class="hero-content">
+        <div class="hero-tagline">Voyagez l'esprit libre</div>
+        <h1 class="hero-title">Planification jour par jour & préparation sereine de vos séjours à l'étranger.</h1>
+        <p class="hero-desc">
+          Fini les tableurs rigides et les notes éparpillées. CapVoyage structure vos journées en douceur avec 
+          <strong>l'enregistrement progressif d'activités</strong>, la gestion du budget <strong>multi-devises en temps réel</strong> 
+          et la sécurisation de vos <strong>formalités critiques</strong> (visas, vaccins, contacts sur place).
+        </p>
+
+        <div class="hero-cta-group">
+          <button class="btn btn-primary btn-lg" id="btn-hero-start">Commencer mon Voyage ✈️</button>
+          <button class="btn btn-secondary btn-lg" id="btn-hero-demo">Voir le voyage démo (Cameroun)</button>
+        </div>
+        <p class="hero-subtext">✨ Accessible 100% hors-ligne une fois validé sur votre appareil. Zéro mot de passe à retenir.</p>
+      </div>
+
+      <!-- 3 Piliers de valeur -->
+      <section class="landing-features-section" aria-labelledby="landing-features-heading">
+        <h2 id="landing-features-heading" class="landing-section-heading">L'essentiel pour voyager l'esprit serein</h2>
+        <div class="landing-features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🗓️</div>
+            <h3>Programme Jour par Jour Souple</h3>
+            <p>Notez une idée d'activité en 2 secondes chrono. Enrichissez-la le soir quand les détails se confirment (heure, lieu, contacts).</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">💰</div>
+            <h3>Budget & Devises en Direct</h3>
+            <p>Saisissez vos dépenses en monnaie locale (FCFA, etc.) avec conversion instantanée en Euros et suivi du solde restant.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📋</div>
+            <h3>Rappels & Formalités</h3>
+            <p>Alertes automatiques avant le départ pour le vaccin fièvre jaune obligatoire, les démarches visa et la valise.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ======================================================== -->
+  <!-- VUE 2 : ONBOARDING EXPRESS (< 3 MINUTES) -->
+  <!-- ======================================================== -->
+  <section id="view-wizard" class="view-screen">
+    <div class="wizard-container">
+      <div class="wizard-header">
+        <div class="brand-logo sm">
+          <span class="brand-compass">🧭</span>
+          <span class="brand-name">CapVoyage</span>
+        </div>
+        <div class="wizard-steps-indicator">
+          <span class="step-dot active" id="dot-step-1">1</span>
+          <span class="step-line"></span>
+          <span class="step-dot" id="dot-step-2">2</span>
+          <span class="step-line"></span>
+          <span class="step-dot" id="dot-step-3">3</span>
+        </div>
+        <button class="btn-link" id="btn-wizard-cancel">Annuler</button>
+      </div>
+
+      <!-- Étape 1 : Les 4 Immanquables -->
+      <div class="wizard-step-pane active" id="wizard-step-1">
+        <h2>1. Les Immanquables de votre Séjour</h2>
+        <p class="subtitle">4 informations essentielles pour bâtir automatiquement votre calendrier.</p>
+
+        <!-- Sélecteur à 2 onglets : Destinations Populaires / Saisie Libre -->
+        <div class="destination-tabs">
+          <button type="button" class="dest-tab-btn active" id="tab-btn-popular" data-dest-tab="popular">
+            🌍 Destinations Populaires (1 clic)
+          </button>
+          <button type="button" class="dest-tab-btn" id="tab-btn-custom" data-dest-tab="custom">
+            ✍️ Saisie Libre
+          </button>
+        </div>
+
+        <form id="form-wizard-step-1" class="wizard-form">
+          <!-- Panneau 1 : Destinations populaires en cartes cliquables -->
+          <div id="dest-popular-pane" class="dest-tab-content active">
+            <label class="dest-section-label">Choisissez un pays de destination :</label>
+            <div class="destination-cards-grid" id="dest-popular-cards">
+              <!-- Injecté dynamiquement par app.js depuis COUNTRIES_CATALOG -->
+            </div>
+
+            <!-- Cascade animée des villes majeures -->
+            <div class="cascading-cities-wrapper" id="wiz-cascading-cities-wrapper" style="display: none;">
+              <label class="dest-section-label">Sélectionnez la ville principale / d'arrivée :</label>
+              <div class="cascading-cities-list" id="wiz-cascading-cities">
+                <!-- Puces animées injectées dynamiquement -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Panneau 2 : Saisie Libre -->
+          <div id="dest-custom-pane" class="dest-tab-content" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="wiz-country-input">Pays de destination *</label>
+                <input type="text" id="wiz-country-input" placeholder="Ex: Cameroun, Sénégal, Japon, Canada..." />
+              </div>
+              <div class="form-group">
+                <label for="wiz-city-input">Ville principale d'arrivée *</label>
+                <input type="text" id="wiz-city-input" placeholder="Ex: Douala, Dakar, Montréal, Tokyo..." />
+              </div>
+            </div>
+          </div>
+
+          <!-- Champs techniques synchronisés pour la validation standard -->
+          <input type="hidden" id="wiz-country" />
+          <input type="hidden" id="wiz-city" />
+
+          <!-- Dates -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="wiz-start-date">Date de départ *</label>
+              <input type="date" id="wiz-start-date" required />
+            </div>
+
+            <div class="form-group">
+              <label for="wiz-end-date">Date de retour *</label>
+              <input type="date" id="wiz-end-date" required />
+            </div>
+          </div>
+
+          <!-- Budget & Devises étendues V3 -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="wiz-budget">Budget prévisionnel global (€) *</label>
+              <input type="number" id="wiz-budget" placeholder="Ex: 2500" min="1" step="any" required />
+            </div>
+
+            <div class="form-group">
+              <label for="wiz-currency">Monnaie de destination / référence</label>
+              <select id="wiz-currency">
+                <option value="EUR">Euros (€ - EUR)</option>
+                <option value="XAF" selected>Franc CFA (FCFA - XAF / XOF)</option>
+                <option value="CAD">Dollar Canadien ($ CA - CAD)</option>
+                <option value="CNY">Yuan Chinois (¥ - CNY)</option>
+                <option value="USD">Dollars Américains ($ - USD)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="wizard-actions">
+            <button type="submit" class="btn btn-primary btn-lg">Continuer vers l'Étape 2 ➔</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Étape 2 : Choix des Catégories & Scope -->
+      <div class="wizard-step-pane" id="wizard-step-2">
+        <h2>2. Quel est le profil de ce voyage ?</h2>
+        <p class="subtitle">Sélectionnez les grandes catégories pour personnaliser vos activités et cercles de contacts.</p>
+
+        <div class="purposes-selection-grid" id="wiz-purposes-grid">
+          <label class="purpose-card checked">
+            <input type="checkbox" name="wiz-purpose" value="Famille" checked />
+            <div class="purpose-icon">👨‍👩‍👦</div>
+            <div class="purpose-title">Famille</div>
+            <div class="purpose-desc">Retrouvailles, repas de famille, visites de proches.</div>
+          </label>
+
+          <label class="purpose-card checked">
+            <input type="checkbox" name="wiz-purpose" value="Amis" checked />
+            <div class="purpose-icon">🎉</div>
+            <div class="purpose-title">Amis & Sorties</div>
+            <div class="purpose-desc">Fêtes, déjeuners, soirées et retrouvailles amicales.</div>
+          </label>
+
+          <label class="purpose-card checked">
+            <input type="checkbox" name="wiz-purpose" value="Loisirs / Découverte" checked />
+            <div class="purpose-icon">🏖️</div>
+            <div class="purpose-title">Loisirs & Tourisme</div>
+            <div class="purpose-desc">Plages, excursions, marchés, musées et visites culturelles.</div>
+          </label>
+
+          <label class="purpose-card">
+            <input type="checkbox" name="wiz-purpose" value="Pro / Affaires" />
+            <div class="purpose-icon">💼</div>
+            <div class="purpose-title">Pro & Affaires</div>
+            <div class="purpose-desc">Rendez-vous professionnels, réunions, conférences.</div>
+          </label>
+        </div>
+
+        <div class="wizard-actions space-between">
+          <button type="button" class="btn btn-secondary" id="btn-wiz-back-1">⬅️ Retour</button>
+          <button type="button" class="btn btn-primary btn-lg" id="btn-wiz-to-3">Continuer ➔</button>
+        </div>
+      </div>
+
+      <!-- Étape 3 : Contacts initiaux (Unitaires & Illimités) -->
+      <div class="wizard-step-pane" id="wizard-step-3">
+        <h2>3. Personnes clés sur place</h2>
+        <p class="subtitle">Ajoutez les contacts importants sur place (famille, amis, guide, collègues). Vous pouvez en ajouter plusieurs ou passer.</p>
+
+        <div class="wizard-contacts-card">
+          <div class="form-row align-end">
+            <div class="form-group flex-2">
+              <label for="wiz-contact-name">Nom complet ou surnom</label>
+              <input type="text" id="wiz-contact-name" placeholder="Ex: Tante Marie, Oncle Paul, Mamadou..." />
+            </div>
+            <div class="form-group flex-1">
+              <label for="wiz-contact-rel">Relation</label>
+              <select id="wiz-contact-rel">
+                <option value="Famille">Famille</option>
+                <option value="Amis">Amis</option>
+                <option value="Pro / Affaires">Pro / Affaires</option>
+                <option value="Guide / Chauffeur">Guide / Chauffeur</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="wiz-contact-city">Ville</label>
+              <input type="text" id="wiz-contact-city" placeholder="Ex: Douala" />
+            </div>
+            <div class="form-group flex-auto">
+              <button type="button" class="btn btn-secondary" id="btn-wiz-add-contact">➕ Ajouter</button>
+            </div>
+          </div>
+
+          <!-- Liste des contacts ajoutés avec badges et croix de suppression -->
+          <div class="wiz-added-contacts-wrapper">
+            <label class="dest-section-label">Contacts prêts pour ce voyage :</label>
+            <div class="wiz-contacts-chips" id="wiz-added-contacts-list">
+              <span class="empty-hint" id="wiz-no-contacts-hint">Aucun contact ajouté pour l'instant (optionnel).</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-actions space-between">
+          <button type="button" class="btn btn-secondary" id="btn-wiz-back-2">⬅️ Retour</button>
+          <div class="cta-right">
+            <button type="button" class="btn btn-secondary" id="btn-wiz-skip-3">Passer sans contact ⏩</button>
+            <button type="button" class="btn btn-primary btn-lg" id="btn-wiz-finish" style="white-space: nowrap;">
+              Valider (<span id="wiz-contacts-count">0</span>) contacts & Lancer mon Voyage 🚀
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== -->
+  <!-- VUE 3 : APPLICATION PRINCIPALE CAPVOYAGE -->
+  <!-- ======================================================== -->
+  <div id="view-app" class="view-screen">
+
+    <!-- En-tête de l'application -->
+    <header class="app-header">
+      <div class="header-container">
+        <div class="brand-zone">
+          <div class="brand-logo sm" id="btn-header-home" title="Retourner à l'accueil">
+            <span class="brand-compass">🧭</span>
+            <span class="brand-name">CapVoyage</span>
+          </div>
+          <div class="country-badge" id="trip-country-badge">🇨🇲 Cameroun</div>
+          <div>
+            <h1 id="trip-main-title">Mon Voyage au Cameroun 2026</h1>
+            <p class="trip-meta" id="trip-meta-dates">Du 01/11/2026 au 21/11/2026 • 21 jours</p>
+          </div>
+        </div>
+
+        <!-- Navigation par onglets -->
+        <nav class="nav-tabs" role="tablist">
+          <button class="tab-btn active" data-tab="tab-planning" role="tab" aria-selected="true">
+            🗓️ <span>Programme</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-todos" role="tab" aria-selected="false">
+            📋 <span>Préparatifs</span>
+            <span class="badge" id="todo-badge-count">0</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-budget" role="tab" aria-selected="false">
+            💰 <span>Budget</span>
+            <span class="badge-solde" id="header-remaining-badge">...</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-contacts" role="tab" aria-selected="false">
+            👥 <span>Contacts</span>
+            <span class="badge" id="contacts-badge-count">0</span>
+          </button>
+        </nav>
+
+        <!-- Menu session utilisateur & déconnexion -->
+        <div class="user-session-zone">
+          <div class="user-pill" id="user-display-pill" title="Compte connecté">
+            <span class="user-icon">👤</span>
+            <span class="user-email-text" id="user-email-text">Mode Démo</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-header-share" title="Générer et copier le lien magique de partage en lecture seule">
+            🔗 Partager
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-header-new-trip" title="Configurer un nouveau voyage avec l'assistant">
+            ✈️ Configurer Voyage
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-logout-header" title="Se déconnecter ou retourner à l'accueil">
+            🚪 Déconnexion
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Bandeau Mode Lecture Seule (Partage Lien Magique) -->
+    <div id="readonly-banner" class="readonly-banner" style="display: none;">
+      <span class="readonly-icon">👁️</span>
+      <span class="readonly-text"><strong>Mode Consultation Partagée</strong> — Ce planning est en lecture seule. Les modifications et ajouts sont verrouillés.</span>
+    </div>
+
+    <!-- Bandeau de Rappels Prioritaires & Alertes -->
+    <aside class="reminders-banner-zone" id="reminders-banner-zone">
+      <div class="reminders-banner-container" id="reminders-container">
+        <!-- Alertes injectées dynamiquement (Vaccins, Visas, Activités du jour) -->
+      </div>
+    </aside>
+
+    <!-- Conteneur principal des onglets -->
+    <main class="app-content">
+
+      <!-- ========================================== -->
+      <!-- ONGLET 1 : PROGRAMME JOUR PAR JOUR -->
+      <!-- ========================================== -->
+      <section id="tab-planning" class="tab-pane active" role="tabpanel">
+        
+        <!-- Barre de filtres par catégorie d'activité -->
+        <div class="activity-filter-bar">
+          <span class="filter-label">Filtrer par type :</span>
+          <div class="filter-pills-row" id="planning-category-filters">
+            <button class="cat-pill active" data-cat="Tous">Tous</button>
+            <button class="cat-pill" data-cat="Famille">Famille</button>
+            <button class="cat-pill" data-cat="Amis">Amis & Sorties</button>
+            <button class="cat-pill" data-cat="Loisir">Loisirs / Découverte</button>
+            <button class="cat-pill" data-cat="Travail">Pro / Affaires</button>
+            <button class="cat-pill" data-cat="Logistique">Logistique</button>
+          </div>
+          <span id="filter-active-indicator" class="filter-hint"></span>
+          <button class="btn btn-secondary btn-sm" id="btn-export-ics" title="Télécharger le calendrier complet (.ics) pour Google/Apple Calendar" style="margin-left: auto;">
+            📅 Exporter Calendrier (.ics)
+          </button>
+        </div>
+
+        <!-- Sélecteur horizontal de journées (Timeline) -->
+        <div class="day-selector-wrapper">
+          <div class="day-selector" id="day-selector-track">
+            <!-- Injecté dynamiquement par app.js -->
+          </div>
+        </div>
+
+        <!-- En-tête de la journée active (Cliquable pour plier/déplier) -->
+        <div class="day-active-banner" id="day-banner-accordion" title="Cliquer pour plier / déplier les tuiles du jour">
+          <div class="day-banner-left">
+            <h2 id="active-day-title">Jour 1 • 01 Novembre 2026</h2>
+            <div class="city-step-tag" id="active-day-city-wrapper">
+              📍 Étape : <span id="active-day-city-name">Douala</span>
+              <button class="btn-link" id="btn-edit-city" title="Changer l'étape">Modifier étape</button>
+            </div>
+          </div>
+          <div class="day-banner-right">
+            <span class="day-banner-stats" id="active-day-activity-count">0 activité(s)</span>
+            <span class="accordion-arrow" id="day-accordion-arrow">▼</span>
+          </div>
+        </div>
+
+        <!-- Formulaire d'ajout express en 2 secondes & Templates intelligents -->
+        <div class="quick-add-bar-wrapper">
+          <div class="quick-add-bar">
+            <form id="form-quick-add-activity" class="quick-add-form">
+              <span class="quick-add-icon" aria-hidden="true">⚡</span>
+              <label for="input-quick-activity-title" class="sr-only">Ajouter une idée d'activité</label>
+              <input 
+                type="text" 
+                id="input-quick-activity-title" 
+                placeholder="Ajouter une idée en 2 sec (ex: Dîner avec, Rdv pro, Plage, Marché...)" 
+                required 
+                autocomplete="off"
+                aria-label="Ajouter une idée d'activité"
+              />
+              <button type="button" class="btn btn-secondary btn-mention-contact" id="btn-quick-mention-contact" title="Mentionner ou associer un contact">
+                👤 @Contact
+              </button>
+              <button type="submit" class="btn btn-primary">Ajouter</button>
+            </form>
+
+            <!-- Menu déroulant des suggestions rapides de contacts (@Contact ou champ libre) -->
+            <div class="quick-contact-dropdown" id="quick-contact-dropdown" style="display: none;"></div>
+
+            <!-- Menu déroulant des suggestions en cours de frappe -->
+            <div class="template-autocomplete-dropdown" id="activity-template-autocomplete" style="display: none;"></div>
+          </div>
+
+          <!-- Ruban horizontal de modèles au repos -->
+          <div class="activity-template-ribbon" id="activity-template-ribbon">
+            <span class="ribbon-label">💡 Modèles rapides :</span>
+            <div class="ribbon-items-scroll" id="ribbon-items-container">
+              <!-- Injecté dynamiquement par app.js (Dîner avec..., Rdv pro, Plage, etc.) -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Les 4 Blocs Temporels de la journée -->
+        <div class="temporal-blocks-grid" id="temporal-grid-wrapper">
+          
+          <!-- Bloc 1 : À caler aujourd'hui -->
+          <div class="temporal-block block-unassigned">
+            <div class="block-header">
+              <h3>📌 À caler aujourd'hui</h3>
+              <span class="block-count" id="count-block-unassigned">0</span>
+            </div>
+            <div class="block-activities" id="list-block-unassigned">
+              <!-- Tuiles entièrement cliquables -->
+            </div>
+          </div>
+
+          <!-- Bloc 2 : Matin -->
+          <div class="temporal-block block-morning">
+            <div class="block-header">
+              <h3>🌅 Matin <span class="time-hint">(06h - 12h)</span></h3>
+              <span class="block-count" id="count-block-morning">0</span>
+            </div>
+            <div class="block-activities" id="list-block-morning"></div>
+          </div>
+
+          <!-- Bloc 3 : Après-midi -->
+          <div class="temporal-block block-afternoon">
+            <div class="block-header">
+              <h3>☀️ Après-midi <span class="time-hint">(12h - 18h)</span></h3>
+              <span class="block-count" id="count-block-afternoon">0</span>
+            </div>
+            <div class="block-activities" id="list-block-afternoon"></div>
+          </div>
+
+          <!-- Bloc 4 : Soirée -->
+          <div class="temporal-block block-evening">
+            <div class="block-header">
+              <h3>🌙 Soirée <span class="time-hint">(18h+)</span></h3>
+              <span class="block-count" id="count-block-evening">0</span>
+            </div>
+            <div class="block-activities" id="list-block-evening"></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- ONGLET 2 : TO-DO PRÉ-VOYAGE -->
+      <!-- ========================================== -->
+      <section id="tab-todos" class="tab-pane" role="tabpanel">
+        <div class="section-header-row">
+          <div>
+            <h2>📋 Préparatifs & To-Do Pré-Voyage</h2>
+            <p class="subtitle">Sécurisez vos vaccins, visas et bagages avant de décoller.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-open-add-todo">+ Nouvelle Tâche</button>
+        </div>
+
+        <!-- Jauge de progression globale -->
+        <div class="progress-card">
+          <div class="progress-info">
+            <span>Taux de préparation avant le départ :</span>
+            <strong id="todo-progress-percent">0%</strong>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="todo-progress-bar" style="width: 0%;"></div>
+          </div>
+          <div class="progress-stats" id="todo-progress-details">0 fait / 0 total</div>
+        </div>
+
+        <!-- Filtres par catégorie -->
+        <div class="filter-pills" id="todo-category-filters">
+          <button class="filter-pill active" data-cat="Tous">Tous</button>
+          <button class="filter-pill" data-cat="Formalités">Formalités (Visa/Passeport)</button>
+          <button class="filter-pill" data-cat="Santé">Santé (Fièvre Jaune & Palu)</button>
+          <button class="filter-pill" data-cat="Bagages">Bagages & Valise</button>
+          <button class="filter-pill" data-cat="Finances">Finances & SIM</button>
+        </div>
+
+        <!-- Liste des tâches -->
+        <div class="todos-list-grid" id="todos-container"></div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- ONGLET 3 : BUDGET & DEVISES -->
+      <!-- ========================================== -->
+      <section id="tab-budget" class="tab-pane" role="tabpanel">
+        <div class="section-header-row">
+          <div>
+            <h2>💰 Budget & Dépenses Multi-Devises</h2>
+            <p class="subtitle">Cliquez sur le budget pour le modifier. Conversion automatique en temps réel.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-open-add-expense">+ Enregistrer une Dépense</button>
+        </div>
+
+        <!-- Cartes d'indicateurs financiers (Budget cliquable) -->
+        <div class="kpi-grid">
+          <div class="kpi-card clickable" id="kpi-budget-card" title="Cliquer pour modifier le budget">
+            <div class="kpi-label">Budget Prévisionnel ✏️</div>
+            <div class="kpi-value" id="kpi-total-budget">2 500 €</div>
+            <div class="kpi-sub" id="kpi-total-budget-xaf">~1 639 893 FCFA</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Total Dépensé</div>
+            <div class="kpi-value spent" id="kpi-total-spent">0.00 €</div>
+            <div class="kpi-sub" id="kpi-total-spent-xaf">0 FCFA</div>
+          </div>
+
+          <div class="kpi-card highlight" id="kpi-remaining-card">
+            <div class="kpi-label">Solde Restant</div>
+            <div class="kpi-value" id="kpi-remaining">2 500 €</div>
+            <div class="kpi-sub" id="kpi-remaining-xaf">~1 639 893 FCFA</div>
+          </div>
+        </div>
+
+        <!-- Convertisseur Rapide de Poche -->
+        <div class="converter-box">
+          <div class="converter-header">
+            <h3>🔄 Convertisseur Rapide de Poche</h3>
+            <div class="rate-indicator">
+              Taux officiel : <strong>1 EUR = <span id="current-rate-display">655.957</span> XAF</strong>
+              <button class="btn-link" id="btn-edit-rate">Modifier manuellement</button>
+              <button class="btn-link" id="btn-sync-rates" style="margin-left: 0.5rem; font-weight: 600;">🔄 Actualiser devises en direct</button>
+              <span id="sync-rates-badge" class="sync-status-badge" style="display: none;"></span>
+            </div>
+          </div>
+          <div class="converter-fields">
+            <div class="converter-input-group">
+              <label for="conv-eur">Montant en Euros (€)</label>
+              <input type="number" id="conv-eur" placeholder="Ex: 50" step="any" />
+            </div>
+            <div class="converter-arrow">⇄</div>
+            <div class="converter-input-group">
+              <label for="conv-xaf">Montant en FCFA (XAF)</label>
+              <input type="number" id="conv-xaf" placeholder="Ex: 32798" step="any" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Répartition & Dépenses -->
+        <div class="budget-split-layout">
+          <div class="card budget-breakdown-card">
+            <h3>📊 Répartition par Catégorie</h3>
+            <div id="budget-breakdown-list" class="breakdown-list"></div>
+          </div>
+
+          <div class="card budget-expenses-card">
+            <h3>🧾 Journal des Dépenses Récentes</h3>
+            <div id="expenses-table-wrapper" class="expenses-table-wrapper"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- ONGLET 4 : CONTACTS ("AVEC QUI") -->
+      <!-- ========================================== -->
+      <section id="tab-contacts" class="tab-pane" role="tabpanel">
+        <div class="section-header-row">
+          <div>
+            <h2>👥 Carnet de Contacts de Voyage</h2>
+            <p class="subtitle">Famille, amis, chauffeurs et guides à retrouver sur place.</p>
+          </div>
+          <div class="contacts-cta-group">
+            <button class="btn btn-secondary" id="btn-import-native-contacts" title="Importer depuis les contacts du téléphone">
+              📱 Importer du téléphone
+            </button>
+            <button class="btn btn-primary" id="btn-open-add-contact">+ Nouveau Contact</button>
+          </div>
+        </div>
+
+        <div class="contacts-grid" id="contacts-container"></div>
+      </section>
+
+    </main>
+
+    <!-- Barre de Navigation Inférieure Mobile (Fixe sous <= 768px) -->
+    <nav class="mobile-bottom-nav" role="tablist" aria-label="Navigation principale mobile">
+      <button class="mobile-nav-btn active" data-tab="tab-planning" role="tab" aria-selected="true">
+        <span class="mobile-nav-icon">🗓️</span>
+        <span class="mobile-nav-label">Programme</span>
+      </button>
+      <button class="mobile-nav-btn" data-tab="tab-todos" role="tab" aria-selected="false">
+        <span class="mobile-nav-icon">📋</span>
+        <span class="mobile-nav-label">Préparatifs</span>
+        <span class="mobile-nav-badge" id="mobile-badge-todos" style="display:none;">0</span>
+      </button>
+      <button class="mobile-nav-btn" data-tab="tab-budget" role="tab" aria-selected="false">
+        <span class="mobile-nav-icon">💰</span>
+        <span class="mobile-nav-label">Budget</span>
+      </button>
+      <button class="mobile-nav-btn" data-tab="tab-contacts" role="tab" aria-selected="false">
+        <span class="mobile-nav-icon">👥</span>
+        <span class="mobile-nav-label">Contacts</span>
+        <span class="mobile-nav-badge" id="mobile-badge-contacts" style="display:none;">0</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODALES DE DIALOGUE (<dialog>) -->
+  <!-- ======================================================== -->
+
+  <!-- Modale Connexion / Inscription par Email -->
+  <dialog id="dialog-login" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3>Connexion / Inscription CapVoyage</h3>
+        <button class="dialog-close" id="btn-close-login-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+
+      <div id="login-step-email">
+        <p class="subtitle" style="margin-bottom:1rem;">Entrez votre adresse email pour recevoir un code d'accès sécurisé à 6 chiffres.</p>
+        <form id="form-request-code" class="dialog-form">
+          <div class="form-group">
+            <label for="login-email-input">Adresse Email *</label>
+            <input type="email" id="login-email-input" placeholder="nom@exemple.com" required autocomplete="email" />
+          </div>
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-login">Annuler</button>
+            <button type="submit" class="btn btn-primary">Envoyer le code ➔</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="login-step-code" style="display:none;">
+        <p class="subtitle" style="margin-bottom:1rem;">Un code à 6 chiffres a été généré pour <strong id="sent-code-target-email"></strong>.</p>
+        <div class="dev-code-banner" id="dev-code-banner" style="display:none;"></div>
+        <form id="form-verify-code" class="dialog-form">
+          <div class="form-group">
+            <label for="login-code-input">Code de vérification (6 chiffres) *</label>
+            <input type="text" id="login-code-input" maxlength="6" placeholder="Ex: 123456" required autocomplete="one-time-code" style="font-size:1.5rem; letter-spacing:0.3em; text-align:center;" />
+          </div>
+          <div class="dialog-actions space-between">
+            <button type="button" class="btn btn-secondary" id="btn-back-to-email">⬅️ Changer d'email</button>
+            <button type="submit" class="btn btn-primary">Valider & Accéder à CapVoyage 🚀</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modale Modification du Budget Global -->
+  <dialog id="dialog-edit-budget" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3>Modifier le Budget Prévisionnel</h3>
+        <button class="dialog-close" id="btn-close-budget-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <form id="form-update-budget" class="dialog-form">
+        <div class="form-group">
+          <label for="edit-budget-amount">Montant du Budget (€) *</label>
+          <input type="number" id="edit-budget-amount" step="any" min="1" required />
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-budget-edit">Annuler</button>
+          <button type="submit" class="btn btn-primary">Mettre à jour le Budget</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modale Détail & Enrichissement de l'Activité (Ouverte au clic sur la tuile) -->
+  <dialog id="dialog-activity-enrich" class="app-dialog">
+    <div class="dialog-content modal-enrich">
+      <div class="dialog-header">
+        <h3 id="dialog-activity-title">Détail de l'activité</h3>
+        <button class="dialog-close" id="btn-close-activity-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+
+      <form id="form-enrich-activity" class="dialog-form">
+        <input type="hidden" id="edit-activity-id" />
+
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="edit-activity-day">📅 Jour du séjour *</label>
+            <select id="edit-activity-day" required>
+              <!-- Rempli dynamiquement : Jour 1 • 01 Nov (Douala), etc. -->
+            </select>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="edit-activity-status">Statut</label>
+            <select id="edit-activity-status">
+              <option value="À planifier">À planifier</option>
+              <option value="Confirmé">Confirmé</option>
+              <option value="Effectué">Effectué</option>
+              <option value="Annulé">Annulé</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-activity-title">Intitulé de l'activité *</label>
+          <input type="text" id="edit-activity-title" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-activity-category">Catégorie</label>
+            <select id="edit-activity-category">
+              <option value="Famille">Famille</option>
+              <option value="Amis">Amis & Sorties</option>
+              <option value="Loisir">Loisir / Découverte</option>
+              <option value="Travail">Pro / Affaires</option>
+              <option value="Logistique">Logistique</option>
+              <option value="Santé">Santé</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-activity-location">Lieu / Ville / Quartier</label>
+            <input type="text" id="edit-activity-location" placeholder="Ex: Quartier Bonapriso, Douala" />
+          </div>
+        </div>
+
+        <!-- Horaires & Créneaux rapides V3 -->
+        <div class="form-group">
+          <label for="edit-activity-time">Horaire ou créneau</label>
+          <div class="time-slots-quick-bar" id="activity-quick-time-pills">
+            <button type="button" class="time-slot-btn" data-time="08:00">🌅 08:00 (Matin)</button>
+            <button type="button" class="time-slot-btn" data-time="10:00">☀️ 10:00 (Matin)</button>
+            <button type="button" class="time-slot-btn" data-time="12:30">🍽️ 12:30 (Midi)</button>
+            <button type="button" class="time-slot-btn" data-time="15:30">☕ 15:30 (Aprem)</button>
+            <button type="button" class="time-slot-btn" data-time="19:30">🌙 19:30 (Soirée)</button>
+            <button type="button" class="time-slot-btn" data-time="21:00">🎉 21:00 (Soirée)</button>
+          </div>
+          <input type="text" id="edit-activity-time" placeholder="Ex: 15:30 ou Matin ou Soirée" />
+        </div>
+
+        <!-- Section Contacts & Création express V3 -->
+        <div class="form-group">
+          <div class="contacts-header-flex">
+            <label>Avec qui ? (Contacts associés)</label>
+            <button type="button" class="btn-link-action" id="btn-inline-contact-toggle">
+              ➕ Créer un contact express
+            </button>
+          </div>
+
+          <!-- Mini-formulaire inline de contact -->
+          <div class="inline-contact-box" id="inline-contact-box" style="display: none;">
+            <div class="form-row align-end">
+              <div class="form-group flex-2">
+                <label for="inline-contact-name">Nom de la personne *</label>
+                <input type="text" id="inline-contact-name" placeholder="Ex: Cousin Fabrice, Dr. Njoya..." />
+              </div>
+              <div class="form-group flex-1">
+                <label for="inline-contact-relation">Relation</label>
+                <select id="inline-contact-relation">
+                  <option value="Famille">Famille</option>
+                  <option value="Amis">Amis</option>
+                  <option value="Pro / Affaires">Pro / Affaires</option>
+                  <option value="Guide / Prestataire">Guide / Prestataire</option>
+                  <option value="Autre">Autre</option>
+                </select>
+              </div>
+              <div class="form-group flex-auto">
+                <button type="button" class="btn btn-sm btn-primary" id="btn-save-inline-contact">
+                  Ajouter & Cocher ✓
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="edit-activity-contacts-list" class="checkbox-tag-cloud"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-activity-notes">Notes libres & informations pratiques</label>
+          <textarea id="edit-activity-notes" rows="3" placeholder="Numéros, adresses, ce qu'il faut apporter..."></textarea>
+        </div>
+
+        <div class="dialog-actions space-between">
+          <span class="dialog-hint">💡 Le jour se déplace directement via le menu déroulant en haut.</span>
+          <div class="cta-right">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-activity">Annuler</button>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modale Déplacement d'Activité -->
+  <dialog id="dialog-move-activity" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3>Déplacer l'activité</h3>
+        <button class="dialog-close" id="btn-close-move-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <form id="form-move-activity" class="dialog-form">
+        <input type="hidden" id="move-activity-id" />
+        <p id="move-activity-name" class="highlight-text"></p>
+        <div class="form-group">
+          <label for="select-target-day">Choisir le jour de destination :</label>
+          <select id="select-target-day" required></select>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-move">Annuler</button>
+          <button type="submit" class="btn btn-primary">Valider le déplacement</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modale Ajouter une Dépense -->
+  <dialog id="dialog-add-expense" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3>Enregistrer une dépense</h3>
+        <button class="dialog-close" id="btn-close-expense-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <form id="form-add-expense" class="dialog-form">
+        <div class="form-group">
+          <label for="expense-label">Libellé de la dépense *</label>
+          <input type="text" id="expense-label" placeholder="Ex: Restaurant Youpwé poissons braisés" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="expense-amount">Montant *</label>
+            <input type="number" id="expense-amount" placeholder="Ex: 15000" step="any" min="0.01" required />
+          </div>
+          <div class="form-group">
+            <label for="expense-currency">Devise</label>
+            <select id="expense-currency">
+              <option value="XAF" selected>FCFA (XAF / XOF)</option>
+              <option value="EUR">Euros (€)</option>
+              <option value="CAD">Dollar Canadien ($ CA)</option>
+              <option value="CNY">Yuan Chinois (¥)</option>
+              <option value="USD">Dollar Américain ($)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="expense-category">Catégorie</label>
+            <select id="expense-category">
+              <option value="Nourriture/Resto">Nourriture & Restaurants</option>
+              <option value="Transport">Transport (Train, Taxi, Vol)</option>
+              <option value="Hébergement">Hébergement / Hôtels</option>
+              <option value="Activités/Sorties">Activités & Sorties</option>
+              <option value="Achats/Cadeaux">Achats & Cadeaux</option>
+              <option value="Santé/Formalités">Santé & Formalités</option>
+              <option value="Frais bancaires & Change">Frais bancaires & Change</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="expense-date">Date de paiement réelle</label>
+            <input type="date" id="expense-date" required />
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-expense">Annuler</button>
+          <button type="submit" class="btn btn-primary">Ajouter la dépense</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modale Ajouter / Modifier un Contact -->
+  <dialog id="dialog-add-contact" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="dialog-contact-modal-title">Ajouter une personne au carnet</h3>
+        <button class="dialog-close" id="btn-close-contact-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <form id="form-add-contact" class="dialog-form">
+        <input type="hidden" id="contact-id" />
+        <div class="form-group">
+          <label for="contact-name">Nom complet *</label>
+          <input type="text" id="contact-name" placeholder="Ex: Oncle Paul" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="contact-relation">Relation</label>
+            <select id="contact-relation">
+              <option value="Famille">Famille</option>
+              <option value="Amis">Amis</option>
+              <option value="Pro / Affaires">Pro / Affaires</option>
+              <option value="Guide / Prestataire">Guide / Prestataire</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="contact-city">Ville / Résidence</label>
+            <div class="contact-city-pills-wrapper" id="contact-city-pills">
+              <!-- Pastilles de villes générées dynamiquement -->
+            </div>
+            <input type="text" id="contact-city" placeholder="Ou saisie libre d'une autre ville..." />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="contact-phone">Téléphone / WhatsApp</label>
+          <input type="tel" id="contact-phone" placeholder="Ex: +237 6 99 00 11 22" />
+        </div>
+        <div class="form-group">
+          <label for="contact-notes">Notes / Détails</label>
+          <input type="text" id="contact-notes" placeholder="Ex: Quartier Bonapriso, joignable le soir" />
+        </div>
+        <div class="dialog-actions space-between">
+          <button type="button" class="btn btn-outline-danger btn-sm" id="btn-delete-contact-in-modal" style="display: none;">
+            🗑️ Supprimer
+          </button>
+          <div class="cta-right">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-contact">Annuler</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-contact">Enregistrer le contact</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modale Ajouter une Tâche To-Do -->
+  <dialog id="dialog-add-todo" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3>Nouvelle tâche pré-voyage</h3>
+        <button class="dialog-close" id="btn-close-todo-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <form id="form-add-todo" class="dialog-form">
+        <div class="form-group">
+          <label for="todo-title">Intitulé de la tâche *</label>
+          <input type="text" id="todo-title" placeholder="Ex: Acheter adaptateur prise de courant" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="todo-category">Catégorie</label>
+            <select id="todo-category">
+              <option value="Formalités">Formalités (Visa/Passeport)</option>
+              <option value="Santé">Santé (Vaccin/Palu)</option>
+              <option value="Bagages">Bagages & Valise</option>
+              <option value="Finances">Finances & SIM</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="todo-priority">Priorité</label>
+            <select id="todo-priority">
+              <option value="Haute">Haute</option>
+              <option value="Moyenne" selected>Moyenne</option>
+              <option value="Basse">Basse</option>
+            </select>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-todo">Annuler</button>
+          <button type="submit" class="btn btn-primary">Ajouter</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modale Édition d'une Tâche To-Do (V4) -->
+  <dialog id="dialog-edit-todo" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3>Modifier la tâche pré-voyage</h3>
+        <button class="dialog-close" id="btn-close-edit-todo-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <form id="form-edit-todo" class="dialog-form">
+        <input type="hidden" id="edit-todo-id" />
+        <div class="form-group">
+          <label for="edit-todo-title">Intitulé de la tâche *</label>
+          <input type="text" id="edit-todo-title" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="edit-todo-category">Catégorie</label>
+            <select id="edit-todo-category">
+              <option value="Formalités">Formalités (Visa/Passeport)</option>
+              <option value="Santé">Santé (Vaccin/Palu)</option>
+              <option value="Bagages">Bagages & Valise</option>
+              <option value="Finances">Finances & SIM</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="edit-todo-priority">Priorité</label>
+            <select id="edit-todo-priority">
+              <option value="Haute">Haute</option>
+              <option value="Moyenne">Moyenne</option>
+              <option value="Basse">Basse</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="edit-todo-status">Statut de la préparation *</label>
+          <select id="edit-todo-status" class="status-select">
+            <option value="À faire">⚪ À faire</option>
+            <option value="En cours">🟡 En cours</option>
+            <option value="Fait">✅ Fait</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="edit-todo-notes">Notes & Informations complémentaires</label>
+          <textarea id="edit-todo-notes" rows="2" placeholder="Numéros, liens, rendez-vous..."></textarea>
+        </div>
+        <div class="dialog-actions space-between">
+          <button type="button" class="btn btn-outline-danger btn-sm" id="btn-delete-edit-todo">
+            🗑️ Supprimer
+          </button>
+          <div class="cta-right">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-edit-todo">Annuler</button>
+            <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modale Activités Associées à un Contact -->
+  <dialog id="dialog-contact-activities" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="contact-activities-modal-title">Activités avec ...</h3>
+        <button class="dialog-close" id="btn-close-contact-activities-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <div id="contact-activities-list" class="contact-activities-list"></div>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-primary" id="btn-close-contact-activities">Fermer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modale Profil Utilisateur & Multi-Voyages V3 -->
+  <dialog id="dialog-user-profile" class="app-dialog">
+    <div class="dialog-content modal-profile">
+      <div class="dialog-header">
+        <h3>👤 Mon Profil & Mes Séjours</h3>
+        <button class="dialog-close" id="btn-close-profile-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+
+      <div class="profile-card">
+        <div class="profile-avatar">🧭</div>
+        <div class="profile-info">
+          <h4 id="profile-email-display">Mode Démo</h4>
+          <span class="user-role-badge" id="profile-status-badge">Hors-ligne / Démo</span>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="section-title-row">
+          <h4>✈️ Mes Voyages Enregistrés</h4>
+          <button type="button" class="btn btn-sm btn-primary" id="btn-profile-new-trip">
+            ➕ Nouveau Voyage
+          </button>
+        </div>
+        <div class="user-trips-list" id="user-trips-list">
+          <!-- Injecté dynamiquement par app.js -->
+        </div>
+      </div>
+
+      <div class="dialog-actions space-between">
+        <button type="button" class="btn btn-outline-danger" id="btn-profile-logout">
+          🚪 Déconnexion
+        </button>
+        <button type="button" class="btn btn-secondary" id="btn-close-profile">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modale Modification Étape de la Journée (remplace prompt()) -->
+  <dialog id="dialog-edit-city" class="app-dialog" aria-labelledby="dialog-edit-city-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="dialog-edit-city-title">📍 Modifier l'étape de la journée</h3>
+        <button class="dialog-close" id="btn-close-edit-city-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <form id="form-edit-city" class="dialog-form">
+        <p class="subtitle" style="margin-bottom:1rem;">Définissez la ville ou région étape pour cette journée de séjour.</p>
+        <div class="form-group">
+          <label for="input-edit-city-name">Nom de l'étape *</label>
+          <input type="text" id="input-edit-city-name" placeholder="Ex: Douala, Yaoundé, Kribi..." required />
+        </div>
+        <div class="dialog-actions space-between">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-edit-city">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer l'étape</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Modale Modification Taux de Change Manuel (remplace prompt()) -->
+  <dialog id="dialog-edit-rate" class="app-dialog" aria-labelledby="dialog-edit-rate-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="dialog-edit-rate-title">🔄 Ajuster le taux de change</h3>
+        <button class="dialog-close" id="btn-close-edit-rate-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <form id="form-edit-rate" class="dialog-form">
+        <p class="subtitle" style="margin-bottom:1rem;">Définissez la valeur exacte de 1 EUR dans la devise locale de référence.</p>
+        <div class="form-group">
+          <label for="input-edit-rate-value">1 EUR = [Montant en monnaie locale] *</label>
+          <input type="number" id="input-edit-rate-value" step="any" min="0.0001" placeholder="Ex: 655.957" required />
+        </div>
+        <div class="dialog-actions space-between">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-edit-rate">Annuler</button>
+          <button type="submit" class="btn btn-primary">Valider le taux</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Conteneur des Toasts de notifications & Undo non bloquants -->
+  <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
+
+  <!-- Script applicatif modulaire -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

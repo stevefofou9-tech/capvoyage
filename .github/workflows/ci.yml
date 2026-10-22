@@ -1,0 +1,53 @@
+name: CapVoyage CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # -----------------------------------------------------------
+  # Étape 1 : Validation automatisée des tests (89/89 Tests)
+  # -----------------------------------------------------------
+  test:
+    name: Test Suite (89 Tests Métier & Intégration)
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [ 22.x, 24.x ]
+
+    steps:
+      - name: Récupération du code source
+        uses: actions/checkout@v4
+
+      - name: Configuration de Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Exécution des tests automatisés
+        run: npm test
+
+  # -----------------------------------------------------------
+  # Étape 2 : Déploiement Continu Automatique vers Fly.io
+  # Conditionné au succès complet des tests unitaires et d'intégration
+  # -----------------------------------------------------------
+  deploy:
+    name: Déploiement Continu sur Fly.io
+    needs: test
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupération du code source
+        uses: actions/checkout@v4
+
+      - name: Configuration de l'outil CLI flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Déploiement vers Fly.io avec build distant
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

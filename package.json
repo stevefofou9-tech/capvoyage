@@ -1,0 +1,23 @@
+{
+  "name": "planning-voyage-pays",
+  "version": "1.0.0",
+  "description": "Application web de planification de voyages avec enregistrement progressif, carnet de contacts, gestion budget multi-devises et checklists pré-voyage.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "node --test tests/**/*.test.js",
+    "start": "node src/server.js",
+    "seed": "node src/seed.js"
+  },
+  "keywords": [
+    "travel-planner",
+    "cameroun",
+    "budget",
+    "multi-currency",
+    "offline-first",
+    "spec-driven-development"
+  ],
+  "author": "Steve & Antigravity",
+  "license": "MIT"
+}
+

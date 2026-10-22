@@ -1,0 +1,496 @@
+{
+  "id": "6012c677-d632-49c2-b039-e11e47616063",
+  "country": "Cameroun",
+  "title": "Mon Voyage au Cameroun 2026",
+  "startDate": "2026-11-01",
+  "endDate": "2026-11-21",
+  "baseCurrency": "EUR",
+  "totalBudget": 2500,
+  "days": [
+    {
+      "id": "day-1",
+      "dayNumber": 1,
+      "date": "2026-11-01",
+      "city": "Douala",
+      "notes": "",
+      "activities": [
+        {
+          "id": "75a7cd31-0f46-4817-a8c8-8489d29fd2fd",
+          "dayId": "day-1",
+          "title": "Arrivée vol à Douala Nsimalen/Douala et installation à l’hôtel",
+          "category": "Logistique",
+          "time": "18:30",
+          "location": "Aéroport International de Douala",
+          "contactIds": [
+            "26f7ba7f-b956-4426-90cc-9394b2948147"
+          ],
+          "status": "Confirmé",
+          "notes": "Jean vient me chercher à la sortie du terminal avec pancarte",
+          "createdAt": "2026-10-22T19:48:40.568Z"
+        }
+      ]
+    },
+    {
+      "id": "day-2",
+      "dayNumber": 2,
+      "date": "2026-11-02",
+      "city": "Douala",
+      "notes": "",
+      "activities": [
+        {
+          "id": "d96d40bf-416c-499c-85ef-94c6129f299b",
+          "dayId": "day-2",
+          "title": "Visite famille et retrouvailles chez Oncle Paul",
+          "category": "Famille",
+          "time": "15:30",
+          "location": "Quartier Bonapriso, Douala",
+          "contactIds": [
+            "58022324-bfd2-4b25-b712-a459186158cf"
+          ],
+          "status": "Confirmé",
+          "notes": "Remettre les cadeaux et chocolats",
+          "createdAt": "2026-10-22T19:48:40.568Z"
+        }
+      ]
+    },
+    {
+      "id": "day-3",
+      "dayNumber": 3,
+      "date": "2026-11-03",
+      "city": "Douala",
+      "notes": "",
+      "activities": [
+        {
+          "id": "c54e7d5b-8635-466c-a8d0-9bfbcf1d790b",
+          "dayId": "day-3",
+          "title": "Balade au marché aux fleurs et artisanat",
+          "category": "Loisir",
+          "time": "10:00",
+          "location": "Douala Bonanjo",
+          "contactIds": [],
+          "status": "À planifier",
+          "notes": "",
+          "createdAt": "2026-10-22T19:48:40.568Z"
+        }
+      ]
+    },
+    {
+      "id": "day-4",
+      "dayNumber": 4,
+      "date": "2026-11-04",
+      "city": "Douala",
+      "notes": "",
+      "activities": [
+        {
+          "id": "c37dc0a2-1391-485e-ac7d-ca3101998bd3",
+          "dayId": "day-4",
+          "title": "Dîner poissons braisés au bord de l’eau",
+          "category": "Sorties",
+          "time": "20:00",
+          "location": "Bonapriso / Youpwé",
+          "contactIds": [
+            "58022324-bfd2-4b25-b712-a459186158cf",
+            "f9240e27-58c2-4d6d-8aae-3a1c4690b431"
+          ],
+          "status": "Confirmé",
+          "notes": "",
+          "createdAt": "2026-10-22T19:48:40.568Z"
+        }
+      ]
+    },
+    {
+      "id": "day-5",
+      "dayNumber": 5,
+      "date": "2026-11-05",
+      "city": "Douala",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-6",
+      "dayNumber": 6,
+      "date": "2026-11-06",
+      "city": "Douala",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-7",
+      "dayNumber": 7,
+      "date": "2026-11-07",
+      "city": "Douala",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-8",
+      "dayNumber": 8,
+      "date": "2026-11-08",
+      "city": "Yaoundé",
+      "notes": "",
+      "activities": [
+        {
+          "id": "5a059ce6-883b-4e8a-b16e-8a176e4610d0",
+          "dayId": "day-8",
+          "title": "Départ en train Camrail Douala -> Yaoundé",
+          "category": "Logistique",
+          "time": "08:30",
+          "location": "Gare de Bessengue, Douala",
+          "contactIds": [],
+          "status": "Confirmé",
+          "notes": "Arriver 45 minutes avant le départ du train",
+          "createdAt": "2026-10-22T19:48:40.568Z"
+        }
+      ]
+    },
+    {
+      "id": "day-9",
+      "dayNumber": 9,
+      "date": "2026-11-09",
+      "city": "Yaoundé",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-10",
+      "dayNumber": 10,
+      "date": "2026-11-10",
+      "city": "Yaoundé",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-11",
+      "dayNumber": 11,
+      "date": "2026-11-11",
+      "city": "Yaoundé",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-12",
+      "dayNumber": 12,
+      "date": "2026-11-12",
+      "city": "Yaoundé",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-13",
+      "dayNumber": 13,
+      "date": "2026-11-13",
+      "city": "Yaoundé",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-14",
+      "dayNumber": 14,
+      "date": "2026-11-14",
+      "city": "Yaoundé",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-15",
+      "dayNumber": 15,
+      "date": "2026-11-15",
+      "city": "Kribi",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-16",
+      "dayNumber": 16,
+      "date": "2026-11-16",
+      "city": "Kribi",
+      "notes": "",
+      "activities": [
+        {
+          "id": "eadf83ef-df31-46f4-80e7-db96cd7e3bf7",
+          "dayId": "day-16",
+          "title": "Excursion chutes de la Lobé & remontée en pirogue",
+          "category": "Découverte",
+          "time": "10:00",
+          "location": "Chutes de la Lobé, Kribi",
+          "contactIds": [
+            "ebb2bbfc-2ad6-4b48-a6bf-4235eaf52a04"
+          ],
+          "status": "Confirmé",
+          "notes": "Prévoir maillot, chapeau et appareil photo étanche",
+          "createdAt": "2026-10-22T19:48:40.568Z"
+        }
+      ]
+    },
+    {
+      "id": "day-17",
+      "dayNumber": 17,
+      "date": "2026-11-17",
+      "city": "Kribi",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-18",
+      "dayNumber": 18,
+      "date": "2026-11-18",
+      "city": "Kribi",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-19",
+      "dayNumber": 19,
+      "date": "2026-11-19",
+      "city": "Kribi",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-20",
+      "dayNumber": 20,
+      "date": "2026-11-20",
+      "city": "Kribi",
+      "notes": "",
+      "activities": []
+    },
+    {
+      "id": "day-21",
+      "dayNumber": 21,
+      "date": "2026-11-21",
+      "city": "Douala",
+      "notes": "",
+      "activities": []
+    }
+  ],
+  "contacts": [
+    {
+      "id": "58022324-bfd2-4b25-b712-a459186158cf",
+      "name": "Oncle Paul",
+      "relationship": "Famille",
+      "phone": "+237 6 99 12 34 56",
+      "city": "Douala",
+      "notes": "Quartier Bonapriso, toujours joignable sur WhatsApp",
+      "archived": false,
+      "createdAt": "2026-10-22T19:48:40.568Z"
+    },
+    {
+      "id": "f9240e27-58c2-4d6d-8aae-3a1c4690b431",
+      "name": "Sophie M.",
+      "relationship": "Amie",
+      "phone": "+237 6 77 98 76 54",
+      "city": "Douala",
+      "notes": "Collègue promo, habite à Akwa",
+      "archived": false,
+      "createdAt": "2026-10-22T19:48:40.568Z"
+    },
+    {
+      "id": "ebb2bbfc-2ad6-4b48-a6bf-4235eaf52a04",
+      "name": "Emmanuel Guide Kribi",
+      "relationship": "Guide / Prestataire",
+      "phone": "+237 6 70 55 44 33",
+      "city": "Kribi",
+      "notes": "Spécialiste pirogue et chutes de la Lobé",
+      "archived": false,
+      "createdAt": "2026-10-22T19:48:40.568Z"
+    },
+    {
+      "id": "26f7ba7f-b956-4426-90cc-9394b2948147",
+      "name": "Jean Chauffeur",
+      "relationship": "Autre",
+      "phone": "+237 6 95 11 22 33",
+      "city": "Douala",
+      "notes": "Chauffeur fiable pour les trajets aéroport et inter-villes",
+      "archived": false,
+      "createdAt": "2026-10-22T19:48:40.568Z"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "abfd681d-95b9-4ab9-9da4-d2774cd7963a",
+      "label": "Demande officielle de Visa Cameroun",
+      "amount": 100,
+      "currency": "EUR",
+      "convertedBaseAmount": 100,
+      "category": "Santé/Formalités",
+      "date": "2026-10-15",
+      "activityId": null,
+      "createdAt": "2026-10-22T19:48:40.568Z"
+    },
+    {
+      "id": "1bd5e359-6fcb-438a-96f9-3bfb573da29c",
+      "label": "Vaccin Fièvre Jaune + Malarone pharmacie",
+      "amount": 75,
+      "currency": "EUR",
+      "convertedBaseAmount": 75,
+      "category": "Santé/Formalités",
+      "date": "2026-10-18",
+      "activityId": null,
+      "createdAt": "2026-10-22T19:48:40.568Z"
+    },
+    {
+      "id": "e9bc4a16-e079-4d83-b0f1-1b24f7da87a3",
+      "label": "Billets train Camrail première classe aller-retour",
+      "amount": 40000,
+      "currency": "XAF",
+      "convertedBaseAmount": 60.98,
+      "category": "Transport",
+      "date": "2026-11-02",
+      "activityId": null,
+      "createdAt": "2026-10-22T19:48:40.568Z"
+    },
+    {
+      "id": "c61b8834-b6fd-439f-a2cb-4237808a07fa",
+      "label": "Acompte réservation hôtel Kribi bord de mer",
+      "amount": 60000,
+      "currency": "XAF",
+      "convertedBaseAmount": 91.47,
+      "category": "Hébergement",
+      "date": "2026-11-03",
+      "activityId": null,
+      "createdAt": "2026-10-22T19:48:40.568Z"
+    },
+    {
+      "id": "c1990ad4-d4ed-43ae-8740-18e63ca2e9b1",
+      "label": "Dîner poissons braisés Youpwé avec proches",
+      "amount": 22000,
+      "currency": "XAF",
+      "convertedBaseAmount": 33.54,
+      "category": "Nourriture/Resto",
+      "date": "2026-11-04",
+      "activityId": "c37dc0a2-1391-485e-ac7d-ca3101998bd3",
+      "createdAt": "2026-10-22T19:48:40.568Z"
+    }
+  ],
+  "todos": [
+    {
+      "id": "c9d520bb-10b0-4a05-a210-7ee9c1072b75",
+      "title": "Vérifier la validité du passeport (> 6 mois après retour)",
+      "category": "Formalités",
+      "priority": "Haute",
+      "status": "Fait",
+      "notes": "Indispensable pour la délivrance du visa."
+    },
+    {
+      "id": "7c41524e-fc7d-4001-bd9d-1ff149638dbd",
+      "title": "Demande et obtention du Visa",
+      "category": "Formalités",
+      "priority": "Haute",
+      "status": "En cours",
+      "notes": "E-visa pour le Cameroun via evisacam.cm"
+    },
+    {
+      "id": "89daf93f-145d-49be-969a-cd6716aefaf3",
+      "title": "Billets d’avion aller-retour",
+      "category": "Formalités",
+      "priority": "Haute",
+      "status": "À faire",
+      "notes": "Imprimer ou sauvegarder le PDF sur smartphone"
+    },
+    {
+      "id": "38722695-6888-428b-9fc3-b0a57f24d123",
+      "title": "Assurance voyage & assistance rapatriement",
+      "category": "Formalités",
+      "priority": "Moyenne",
+      "status": "À faire",
+      "notes": "Attestation d’assurance obligatoire pour le visa"
+    },
+    {
+      "id": "9669b22c-b631-452e-a5cb-0278b8c955bc",
+      "title": "Vaccin Fièvre Jaune (carnet jaune obligatoire)",
+      "category": "Santé",
+      "priority": "Haute",
+      "status": "Fait",
+      "notes": "Exigé à l’arrivée à Douala / Yaoundé. Doit être fait au moins 10 jours avant."
+    },
+    {
+      "id": "257a810d-9458-4472-b704-64d935b1a830",
+      "title": "Traitement préventif Paludisme (Malarone/Doxycycline)",
+      "category": "Santé",
+      "priority": "Haute",
+      "status": "À faire",
+      "notes": "Consulter un médecin pour l’ordonnance et démarrer la veille du départ."
+    },
+    {
+      "id": "2a306508-c5f0-4905-8b2a-7ffffa54257f",
+      "title": "Répulsif moustiques zone tropicale 50% DEET",
+      "category": "Santé",
+      "priority": "Haute",
+      "status": "À faire",
+      "notes": "Format spray pour la peau et les vêtements"
+    },
+    {
+      "id": "108b3fad-4fd8-4c11-ab6e-c8d857b464f8",
+      "title": "Trousse de premiers secours & désinfectant",
+      "category": "Santé",
+      "priority": "Moyenne",
+      "status": "À faire",
+      "notes": "Pansements, antidiarrhéique, paracétamol, thermomètre"
+    },
+    {
+      "id": "f13e144f-7113-491b-98c0-d13f083419a1",
+      "title": "Vêtements légers en coton / lin & tenue de pluie",
+      "category": "Bagages",
+      "priority": "Moyenne",
+      "status": "À faire",
+      "notes": "Climat chaud et humide"
+    },
+    {
+      "id": "948063df-948b-4579-a7a0-058f77972f1d",
+      "title": "Adaptateur prises universel & batterie externe (Powerbank)",
+      "category": "Bagages",
+      "priority": "Moyenne",
+      "status": "À faire",
+      "notes": "Utile pour les trajets longs et coupures d’énergie"
+    },
+    {
+      "id": "c7b66b65-cc58-43d9-9530-db2db3b40250",
+      "title": "Cadeaux pour la famille et les amis sur place",
+      "category": "Bagages",
+      "priority": "Moyenne",
+      "status": "À faire",
+      "notes": "Chocolats, parfums ou spécialités"
+    },
+    {
+      "id": "37f986b3-ee0d-4f9b-b3d1-7bd327296506",
+      "title": "Prévoir espèces de réserve (Euros à changer en FCFA)",
+      "category": "Finances",
+      "priority": "Haute",
+      "status": "À faire",
+      "notes": "Billets d’euros propres sans déchirure"
+    },
+    {
+      "id": "bced0e2e-3091-49f4-9218-b7babf2ac818",
+      "title": "Informer sa banque du voyage au Cameroun",
+      "category": "Finances",
+      "priority": "Moyenne",
+      "status": "À faire",
+      "notes": "Éviter le blocage préventif de la carte bancaire"
+    },
+    {
+      "id": "f10349c1-0f7f-458d-a673-394252aeaa5e",
+      "title": "Acheter carte SIM locale à l’arrivée (Orange ou MTN)",
+      "category": "Finances",
+      "priority": "Haute",
+      "status": "À faire",
+      "notes": "Aéroport ou agence officielle avec pièce d’identité"
+    }
+  ],
+  "currencies": [
+    {
+      "code": "EUR",
+      "name": "Euro",
+      "symbol": "€",
+      "rateToBase": 1
+    },
+    {
+      "code": "XAF",
+      "name": "Franc CFA (BEAC)",
+      "symbol": "FCFA",
+      "rateToBase": 655.957,
+      "flag": "🇨🇲"
+    }
+  ],
+  "createdAt": "2026-10-22T19:48:40.567Z",
+  "updatedAt": "2026-10-22T19:48:40.568Z"
+}
