@@ -87,3 +87,4 @@ Write-Host "2. Nom du secret : FLY_API_TOKEN"
 Write-Host "3. Collez le jeton ci-dessus et enregistrez."
 Write-Host "4. Poussez votre code : git push -u origin main"
 Write-Host "`n🌐 Votre application sera accessible sur : https://$appName.fly.dev" -ForegroundColor Cyan
+
