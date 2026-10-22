@@ -3,7 +3,7 @@ package-lock.json
 .git/
 .github/
 tests/
-tmp_chrome/
+tmp_chrome*/
 screenshots/
 *.log
 .DS_Store
