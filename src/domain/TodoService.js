@@ -1,4 +1,4 @@
-const generateId = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : 'todo-' + Math.random().toString(36).substring(2, 9);
+const generateId = () => globalThis.crypto.randomUUID();
 
 export const VALID_TODO_STATUSES = ['À faire', 'En cours', 'Fait'];
 export const VALID_TODO_CATEGORIES = ['Formalités', 'Santé', 'Bagages', 'Finances', 'Autre'];

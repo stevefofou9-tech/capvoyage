@@ -110,27 +110,6 @@ describe('Suite Fonctionnalités V4 (Mise à jour Contact, Todo, Taux en ligne &
     assert.equal(trip.currencies.find(c => c.code === 'CAD').rateToBase, 1.52);
   });
 
-  test('V4-04 : TripService gestion du jeton de partage en lecture seule', () => {
-    const trip = TripService.createTrip({
-      country: 'Sénégal',
-      startDate: '2026-12-01',
-      endDate: '2026-12-10'
-    });
-
-    assert.equal(trip.shareToken, undefined);
-
-    const token = TripService.getOrCreateShareToken(trip);
-    assert.ok(token.startsWith('share-'));
-    assert.equal(trip.shareToken, token);
-
-    // Le même jeton est renvoyé lors d'appels subséquents
-    const token2 = TripService.getOrCreateShareToken(trip);
-    assert.equal(token, token2);
-
-    // Validation
-    assert.equal(TripService.validateShareToken(trip, token), true);
-    assert.equal(TripService.validateShareToken(trip, 'mauvais-token'), false);
-    assert.equal(TripService.validateShareToken(null, token), false);
-  });
+  // V4-04 (jeton de partage unique) est remplacé par le partage paramétrable : tests/domain/sharing.test.js
 });
 

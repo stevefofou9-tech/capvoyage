@@ -14,6 +14,10 @@ import { ReminderService } from '../domain/ReminderService.js';
 import { COUNTRIES_CATALOG, GeographyData } from '../domain/GeographyData.js';
 import { ACTIVITY_TEMPLATES, searchTemplates, resolveTemplateTitle } from '../domain/ActivityTemplates.js';
 import { IcsService } from '../domain/IcsService.js';
+import { SyncQueue, SyncStatus } from '../domain/SyncQueue.js';
+
+const DEMO_TRIP_KEY = 'capvoyage_demo_trip';
+const SYNC_RETRY_MS = 30000;
 
 // État global réactif de l'application
 const state = {
@@ -26,6 +30,8 @@ const state = {
   isDayFolded: false,    // Accordéon de la journée
   selectedContactForQuickAdd: null, // Contact sélectionné pour l'ajout rapide
   isReadOnly: false,     // Mode consultation partagée (Lien magique)
+  sharedSections: null,  // Sections visibles en consultation partagée (ADR-006)
+  syncQueue: null,       // File de synchronisation hors-ligne (ADR-003)
   wizardContactsList: [], // Liste locale des contacts ajoutés pas-à-pas à l'étape 3
   wizardData: {
     country: 'Cameroun',
@@ -301,7 +307,7 @@ let lastFocusedElement = null;
 
 export function showToast(message, options = {}) {
   const opts = typeof options === 'string' ? { type: options } : (options || {});
-  const { type = 'info', undoCallback = null, duration = 5000 } = opts;
+  const { type = 'info', undoCallback = null, actionLabel = 'Annuler', duration = 5000 } = opts;
   const container = document.getElementById('toast-container');
   if (!container) return;
 
@@ -317,8 +323,8 @@ export function showToast(message, options = {}) {
   if (undoCallback) {
     const undoBtn = document.createElement('button');
     undoBtn.className = 'toast-undo-btn';
-    undoBtn.textContent = 'Annuler';
-    undoBtn.setAttribute('aria-label', 'Annuler cette action');
+    undoBtn.textContent = actionLabel;
+    undoBtn.setAttribute('aria-label', actionLabel);
     undoBtn.addEventListener('click', () => {
       clearTimeout(timerId);
       item.remove();
@@ -364,6 +370,7 @@ export function closeAccessibleDialog(dialogElement) {
 
 async function initApp() {
   setupEventListeners();
+  initSyncQueue();
 
   // 1. Vérification de la session en cache local (Device-first)
   const cachedSession = localStorage.getItem('capvoyage_session');
@@ -387,10 +394,32 @@ async function initApp() {
     if (elements.readonlyBanner) {
       elements.readonlyBanner.style.display = 'flex';
     }
+    // Aucune saisie possible en consultation partagée (la lecture seule est aussi garantie par le serveur)
+    const READONLY_BLOCKED = '.icon-action-btn, .activity-card, .todo-item-card, .contact-card, .reminder-chip, #kpi-budget-card, #btn-edit-city, #btn-edit-rate, #btn-sync-rates';
+    document.addEventListener('click', (e) => {
+      if (e.target.closest(READONLY_BLOCKED) && !e.target.closest('a[href]')) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    }, true);
+    document.addEventListener('submit', (e) => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      document.querySelectorAll('dialog[open]').forEach(d => d.close());
+      showToast('👁️ Ce voyage est partagé en lecture seule.', { type: 'info' });
+    }, true);
     await enterAppView();
     registerServiceWorker();
     return;
   }
+
+  try {
+    const shareNotice = sessionStorage.getItem('capvoyage_share_notice');
+    if (shareNotice) {
+      sessionStorage.removeItem('capvoyage_share_notice');
+      showToast(`🔒 ${shareNotice}`, { type: 'warning', duration: 10000 });
+    }
+  } catch (e) { /* stockage indisponible */ }
 
   // 3. Si aucune session, afficher la Landing Page
   if (!state.session) {
@@ -616,17 +645,186 @@ async function enterAppView() {
 // GESTION DU VOYAGE & PERSISTANCE (Offline-First)
 // ==========================================================================
 
-async function loadTripData() {
-  try {
-    const headers = {};
-    if (state.session?.token) {
-      headers['Authorization'] = `Bearer ${state.session.token}`;
-    }
-    const urlParams = new URLSearchParams(window.location.search);
-    const shareParam = urlParams.get('share');
-    const endpoint = shareParam ? `/api/trip?share=${encodeURIComponent(shareParam)}` : '/api/trip';
+function isAuthenticated() {
+  return !!(state.session && state.session.token && !state.session.isDemo);
+}
 
-    const res = await fetch(endpoint, { headers });
+function authHeaders(extra = {}) {
+  return isAuthenticated() ? { ...extra, 'Authorization': `Bearer ${state.session.token}` } : { ...extra };
+}
+
+function readJsonStorage(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Synchronisation hors-ligne versionnée (ADR-003)
+// --------------------------------------------------------------------------
+class SessionExpiredError extends Error {}
+
+function initSyncQueue() {
+  state.syncQueue = new SyncQueue({
+    storage: localStorage,
+    transport: async (trip, baseVersion) => {
+      if (!isAuthenticated()) throw new Error('Session absente');
+      const res = await fetch('/api/trip', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ trip, baseVersion })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409) return { status: 'conflict', trip: data.trip };
+      if (res.status === 401) throw new SessionExpiredError(data.error);
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      return { status: 'ok', trip: data.trip };
+    },
+    onStatus: renderSyncIndicator,
+    onError: (err) => {
+      if (err instanceof SessionExpiredError) handleSessionExpired();
+    },
+    onSaved: (serverTrip) => {
+      if (state.trip && state.trip.id === serverTrip.id) {
+        state.trip.version = serverTrip.version;
+        state.trip.sharing = serverTrip.sharing;
+        localStorage.setItem('capvoyage_trip_cache', JSON.stringify(state.trip));
+      }
+    },
+    onConflict: (serverTrip) => {
+      if (state.trip && state.trip.id === serverTrip.id) {
+        state.trip = serverTrip;
+        localStorage.setItem('capvoyage_trip_cache', JSON.stringify(serverTrip));
+        renderAll();
+      }
+      showToast('⚠️ Ce voyage a été modifié sur un autre appareil : la version la plus récente est affichée.', {
+        type: 'warning',
+        duration: 15000,
+        actionLabel: 'Restaurer ma version',
+        undoCallback: () => restoreLocalVersion(serverTrip)
+      });
+    }
+  });
+
+  setInterval(() => {
+    if (state.syncQueue.getStatus() === SyncStatus.PENDING && navigator.onLine) flushSync();
+  }, SYNC_RETRY_MS);
+
+  // En cas de conflit, l'indicateur permet de trancher à tout moment
+  document.getElementById('sync-indicator')?.addEventListener('click', () => {
+    const status = state.syncQueue.getStatus();
+    if (status === SyncStatus.PENDING) {
+      flushSync();
+      return;
+    }
+    if (status !== SyncStatus.CONFLICT || !state.trip) return;
+    const restore = window.confirm('Ce voyage a été modifié sur un autre appareil.\n\nOK : restaurer votre version (elle remplacera l\'autre)\nAnnuler : garder la version affichée');
+    if (restore) {
+      restoreLocalVersion(state.trip);
+    } else {
+      state.syncQueue.dismissConflict(state.trip.id);
+    }
+  });
+  renderSyncIndicator(state.syncQueue.getStatus());
+}
+
+async function flushSync() {
+  if (!state.syncQueue || !isAuthenticated()) return;
+  await state.syncQueue.flush();
+}
+
+function restoreLocalVersion(serverTrip) {
+  const local = state.syncQueue.restoreConflict(serverTrip.id, serverTrip.version);
+  if (!local) return;
+  state.trip = { ...local, version: serverTrip.version };
+  localStorage.setItem('capvoyage_trip_cache', JSON.stringify(state.trip));
+  renderAll();
+  flushSync();
+}
+
+function renderSyncIndicator(status) {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  const showIndicator = isAuthenticated() && !state.isReadOnly;
+  el.hidden = !showIndicator;
+  const labels = {
+    [SyncStatus.SAVED]: '✓ Enregistré',
+    [SyncStatus.PENDING]: '⏳ En attente de synchro',
+    [SyncStatus.CONFLICT]: '⚠️ Conflit'
+  };
+  el.textContent = labels[status] || '';
+  el.dataset.status = status;
+}
+
+function handleSessionExpired() {
+  showToast('Votre session a expiré : reconnectez-vous pour synchroniser vos modifications.', { type: 'warning', duration: 8000 });
+  state.session = null;
+  localStorage.removeItem('capvoyage_session');
+  showLandingView();
+}
+
+async function loadTripData() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const shareParam = urlParams.get('share');
+
+  // 1. Consultation partagée : vue filtrée par le serveur, en lecture seule
+  if (shareParam) {
+    const res = await fetch(`/api/trip?share=${encodeURIComponent(shareParam)}`).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
+    if (!res || !res.ok) {
+      state.trip = null;
+      showShareUnavailable(data.error || "Ce lien de partage n'est plus actif");
+      return;
+    }
+    state.trip = {
+      days: [], todos: [], contacts: [], expenses: [],
+      currencies: JSON.parse(JSON.stringify(BudgetEngine.getSupportedCurrencies())),
+      totalBudget: 0, baseCurrency: 'EUR',
+      ...data
+    };
+    state.sharedSections = data.sharedSections || [];
+    applySharedSectionsVisibility();
+    return;
+  }
+
+  // 2. Démo : copie locale propre à ce navigateur, jamais envoyée au serveur (REQ-SEC-3)
+  if (!isAuthenticated()) {
+    const localDemo = readJsonStorage(DEMO_TRIP_KEY);
+    if (localDemo) {
+      state.trip = localDemo;
+      return;
+    }
+    try {
+      const res = await fetch('/api/trip');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      state.trip = await res.json();
+    } catch (err) {
+      state.trip = TripService.createTrip({ country: 'Cameroun', startDate: '2026-11-01', endDate: '2026-11-21', totalBudget: 2500 });
+      state.trip.todos = TodoService.createDefaultTodos('Cameroun');
+    }
+    localStorage.setItem(DEMO_TRIP_KEY, JSON.stringify(state.trip));
+    return;
+  }
+
+  // 3. Compte connecté : envoyer d'abord les modifications en attente, puis lire le serveur
+  await flushSync();
+  if (!isAuthenticated()) return;
+  const cached = readJsonStorage('capvoyage_trip_cache');
+  if (cached && state.syncQueue.hasPending(cached.id)) {
+    // Toujours hors-ligne : la copie locale est la plus récente
+    state.trip = cached;
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/trip', { headers: authHeaders() });
+    if (res.status === 401) {
+      handleSessionExpired();
+      return;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -642,22 +840,11 @@ async function loadTripData() {
     localStorage.setItem('capvoyage_trip_cache', JSON.stringify(data));
   } catch (err) {
     console.warn('Serveur distant non joignable, récupération depuis le stockage hors-ligne...', err);
-    const cached = localStorage.getItem('capvoyage_trip_cache');
     if (cached) {
-      state.trip = JSON.parse(cached);
-    } else if (state.session && !state.session.isDemo) {
+      state.trip = cached;
+    } else {
       // Utilisateur connecté sans aucun cache : ouvrir l'assistant
       showWizardView();
-      return;
-    } else {
-      // Voyage de secours Démo initialisé
-      state.trip = TripService.createTrip({
-        country: 'Cameroun',
-        startDate: '2026-11-01',
-        endDate: '2026-11-21',
-        totalBudget: 2500
-      });
-      state.trip.todos = TodoService.createDefaultTodos('Cameroun');
     }
   }
 }
@@ -665,23 +852,18 @@ async function loadTripData() {
 async function saveTripData() {
   if (!state.trip || state.isReadOnly) return;
 
+  // Démo : uniquement sur cet appareil
+  if (!isAuthenticated()) {
+    localStorage.setItem(DEMO_TRIP_KEY, JSON.stringify(state.trip));
+    return;
+  }
+
   // 1. Sauvegarde instantanée dans le cache local (Offline-first)
   localStorage.setItem('capvoyage_trip_cache', JSON.stringify(state.trip));
 
-  // 2. Synchronisation serveur en arrière-plan
-  try {
-    const headers = { 'Content-Type': 'application/json' };
-    if (state.session?.token) {
-      headers['Authorization'] = `Bearer ${state.session.token}`;
-    }
-    await fetch('/api/trip', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(state.trip)
-    });
-  } catch (err) {
-    console.warn('Synchronisation serveur différée (accès hors-ligne actif)', err);
-  }
+  // 2. Mise en file puis synchronisation (rejouée automatiquement si hors-ligne)
+  state.syncQueue.enqueue(state.trip, state.trip.version || 1);
+  await flushSync();
 }
 
 // ==========================================================================
@@ -728,6 +910,8 @@ function renderHeader() {
     elements.mobileBadgeContacts.textContent = contactsCount;
     elements.mobileBadgeContacts.style.display = contactsCount > 0 ? 'inline-block' : 'none';
   }
+
+  if (state.syncQueue) renderSyncIndicator(state.syncQueue.getStatus());
 
   const budgetSummary = BudgetEngine.calculateSummary(trip);
   elements.headerRemainingBadge.textContent = `${formatNumber(budgetSummary.remainingBudgetBase)} € restants`;
@@ -1396,9 +1580,11 @@ function setupEventListeners() {
   window.addEventListener('offline', () => {
     showToast('📶 Mode Hors-Ligne activé : vos modifications sont sauvegardées sur votre appareil', 'warning');
   });
-  window.addEventListener('online', () => {
-    showToast('🌐 Connexion rétablie : synchronisation avec le serveur réussie !', 'success');
-    saveTripData();
+  window.addEventListener('online', async () => {
+    await flushSync();
+    if (isAuthenticated() && state.syncQueue.getStatus() === SyncStatus.SAVED) {
+      showToast('🌐 Connexion rétablie : modifications synchronisées', 'success');
+    }
   });
 
   // Fermeture automatique au clic sur le backdrop pour tous les <dialog> et restauration focus
@@ -1835,14 +2021,11 @@ function setupEventListeners() {
         city: day?.city || ''
       });
 
-      if (state.session?.token) {
+      if (isAuthenticated()) {
         try {
           await fetch('/api/user/contacts', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${state.session.token}`
-            },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ name, relationship, city: day?.city || '' })
           });
         } catch (e) {
@@ -1964,20 +2147,6 @@ function setupEventListeners() {
       totalBudget: newBudget,
       baseCurrency: state.trip.baseCurrency || 'EUR'
     });
-
-    try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (state.session?.token) {
-        headers['Authorization'] = `Bearer ${state.session.token}`;
-      }
-      await fetch('/api/trip/budget', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ totalBudget: newBudget })
-      });
-    } catch (err) {
-      console.warn('Mise à jour distante du budget différée', err);
-    }
 
     elements.dialogEditBudget.close();
     saveTripData();
@@ -2247,7 +2416,7 @@ function setupEventListeners() {
         elements.syncRatesBadge.style.display = 'inline-block';
         if (result.success) {
           elements.syncRatesBadge.className = 'sync-status-badge success';
-          elements.syncRatesBadge.textContent = `Taux à jour (${result.updatedCount} devises) ✓`;
+          elements.syncRatesBadge.textContent = `Taux à jour (${result.updatedCount} devises) ✓ · FCFA à parité fixe (655,957)`;
         } else {
           elements.syncRatesBadge.className = 'sync-status-badge offline';
           elements.syncRatesBadge.textContent = 'Mode hors-ligne (taux conservés)';
@@ -2262,20 +2431,11 @@ function setupEventListeners() {
     });
   }
 
-  // 16. Partage de Voyage en Lecture Seule (Lien Magique V4)
+  // 16. Partage paramétrable en lecture seule (ADR-006)
   if (elements.btnHeaderShare) {
-    elements.btnHeaderShare.addEventListener('click', async () => {
-      const token = TripService.getOrCreateShareToken(state.trip);
-      await saveTripData();
-      const shareUrl = `${window.location.origin}${window.location.pathname}?share=${token}`;
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        showToast('🔗 Lien de partage copié dans le presse-papier !', { type: 'success' });
-      } catch (e) {
-        showToast(`Lien : ${shareUrl}`, { type: 'info', duration: 8000 });
-      }
-    });
+    elements.btnHeaderShare.addEventListener('click', () => openShareDialog());
   }
+  setupShareDialog();
 
   // Intégration Native Contact Picker API
   elements.btnImportNativeContacts.addEventListener('click', async () => {
@@ -2318,13 +2478,19 @@ async function finishWizardSubmission(initialContacts = []) {
   };
 
   try {
-    const headers = { 'Content-Type': 'application/json' };
-    if (state.session?.token) {
-      headers['Authorization'] = `Bearer ${state.session.token}`;
+    // Démo : le voyage est créé uniquement sur cet appareil (REQ-SEC-3)
+    if (!isAuthenticated()) {
+      const localTrip = TripService.createTripFromWizard(payload);
+      localTrip.todos = TodoService.createDefaultTodos(payload.country);
+      localStorage.setItem(DEMO_TRIP_KEY, JSON.stringify(localTrip));
+      state.activeDayNumber = 1;
+      await enterAppView();
+      return;
     }
+
     const res = await fetch('/api/wizard/trip', {
       method: 'POST',
-      headers,
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(payload)
     });
     const data = await res.json();
@@ -2332,7 +2498,7 @@ async function finishWizardSubmission(initialContacts = []) {
 
     state.trip = data.trip;
     state.activeDayNumber = 1;
-    saveTripData();
+    localStorage.setItem('capvoyage_trip_cache', JSON.stringify(data.trip));
     await enterAppView();
   } catch (err) {
     showToast(`Erreur : ${err.message}`, { type: 'danger' });
@@ -2353,6 +2519,129 @@ function openLoginModal() {
   elements.loginEmailInput.value = '';
   elements.loginCodeInput.value = '';
   openAccessibleDialog(elements.dialogLogin);
+}
+
+// --------------------------------------------------------------------------
+// Partage paramétrable (ADR-006)
+// --------------------------------------------------------------------------
+const SHARE_SECTION_TABS = {
+  planning: 'tab-planning',
+  todos: 'tab-todos',
+  budget: 'tab-budget',
+  contacts: 'tab-contacts'
+};
+
+function getShareUrl(token) {
+  return token ? `${window.location.origin}${window.location.pathname}?share=${token}` : '';
+}
+
+function renderShareDialog(sharing) {
+  const dialog = document.getElementById('dialog-share');
+  const enabled = !!sharing?.enabled;
+  document.getElementById('share-enabled-toggle').checked = enabled;
+  document.getElementById('share-status-label').textContent = enabled ? 'Lien de partage activé' : 'Lien de partage désactivé';
+  dialog.querySelectorAll('input[name="share-section"]').forEach(input => {
+    input.checked = !!sharing?.sections?.[input.value];
+    input.closest('.purpose-card').classList.toggle('checked', input.checked);
+  });
+  document.getElementById('share-link-input').value = enabled ? getShareUrl(sharing.token) : '';
+  document.getElementById('share-link-group').hidden = !enabled;
+  document.getElementById('btn-regenerate-share-link').hidden = !enabled;
+}
+
+async function updateSharing(changes) {
+  const res = await fetch('/api/trip/sharing', {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ tripId: state.trip.id, ...changes })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    handleSessionExpired();
+    throw new Error('Session expirée');
+  }
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  state.trip.sharing = data.sharing;
+  localStorage.setItem('capvoyage_trip_cache', JSON.stringify(state.trip));
+  renderShareDialog(data.sharing);
+  return data.sharing;
+}
+
+function openShareDialog() {
+  if (!isAuthenticated()) {
+    showToast('Créez votre compte (gratuit, sans mot de passe) pour partager votre propre voyage.', { type: 'info', duration: 6000 });
+    return;
+  }
+  if (!navigator.onLine) {
+    showToast('Le partage se configure en ligne. Réessayez une fois connecté.', { type: 'warning' });
+    return;
+  }
+  renderShareDialog(state.trip.sharing);
+  openAccessibleDialog(document.getElementById('dialog-share'));
+}
+
+function setupShareDialog() {
+  const dialog = document.getElementById('dialog-share');
+  if (!dialog) return;
+  const close = () => closeAccessibleDialog(dialog);
+  const withErrorToast = (fn) => async (...args) => {
+    try {
+      await fn(...args);
+    } catch (err) {
+      showToast(`Partage : ${err.message}`, { type: 'danger' });
+      renderShareDialog(state.trip?.sharing);
+    }
+  };
+
+  document.getElementById('btn-close-share-dialog').addEventListener('click', close);
+  document.getElementById('btn-done-share').addEventListener('click', close);
+
+  document.getElementById('share-enabled-toggle').addEventListener('change', withErrorToast(async (e) => {
+    const sharing = await updateSharing({ enabled: e.target.checked });
+    showToast(sharing.enabled ? '🔗 Lien de partage activé' : '🔒 Lien de partage désactivé : il ne donne plus accès à rien', { type: 'success' });
+  }));
+
+  dialog.querySelectorAll('input[name="share-section"]').forEach(input => {
+    input.addEventListener('change', withErrorToast(async () => {
+      await updateSharing({ sections: { [input.value]: input.checked } });
+    }));
+  });
+
+  document.getElementById('btn-copy-share-link').addEventListener('click', async () => {
+    const url = document.getElementById('share-link-input').value;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('🔗 Lien copié dans le presse-papier !', { type: 'success' });
+    } catch (e) {
+      document.getElementById('share-link-input').select();
+      showToast('Copiez le lien sélectionné (Ctrl+C ou appui long).', { type: 'info' });
+    }
+  });
+
+  document.getElementById('btn-regenerate-share-link').addEventListener('click', withErrorToast(async () => {
+    if (!window.confirm("Régénérer le lien ? L'ancien lien cessera immédiatement de fonctionner.")) return;
+    await updateSharing({ regenerate: true });
+    showToast('♻️ Nouveau lien généré : l\'ancien ne fonctionne plus.', { type: 'success' });
+  }));
+}
+
+// Consultation partagée : masquer les onglets non partagés et bloquer toute saisie
+function applySharedSectionsVisibility() {
+  const visibleTabs = (state.sharedSections || []).map(s => SHARE_SECTION_TABS[s]).filter(Boolean);
+  document.querySelectorAll('.tab-btn[data-tab], .mobile-nav-btn[data-tab]').forEach(btn => {
+    btn.hidden = !visibleTabs.includes(btn.dataset.tab);
+  });
+  if (visibleTabs.length > 0 && !visibleTabs.includes(state.activeTab)) {
+    switchTab(visibleTabs[0]);
+  }
+}
+
+// Lien inactif : retour à l'accueil normal (hors lecture seule), message affiché après redirection
+function showShareUnavailable(message) {
+  try {
+    sessionStorage.setItem('capvoyage_share_notice', message);
+  } catch (e) { /* stockage indisponible : simple redirection */ }
+  window.location.replace(window.location.pathname);
 }
 
 function switchTab(targetTabId) {
@@ -2624,12 +2913,10 @@ async function openUserProfileModal() {
 
 async function switchUserTrip(tripId) {
   try {
+    await flushSync();
     const res = await fetch('/api/user/trips/switch', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${state.session.token}`
-      },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ tripId })
     });
     const data = await res.json();
@@ -2637,7 +2924,7 @@ async function switchUserTrip(tripId) {
 
     state.trip = data.trip;
     state.activeDayNumber = 1;
-    saveTripData();
+    localStorage.setItem('capvoyage_trip_cache', JSON.stringify(data.trip));
     closeAccessibleDialog(elements.dialogUserProfile);
     renderAll();
   } catch (err) {
@@ -2646,7 +2933,12 @@ async function switchUserTrip(tripId) {
 }
 
 function logoutUser() {
-  if (state.session?.token) {
+  if (state.syncQueue && isAuthenticated() && state.syncQueue.getStatus() !== SyncStatus.SAVED) {
+    const confirmed = window.confirm('Des modifications ne sont pas encore synchronisées avec le serveur et seront perdues. Se déconnecter quand même ?');
+    if (!confirmed) return;
+  }
+  if (state.syncQueue) state.syncQueue.clear();
+  if (isAuthenticated()) {
     fetch('/api/auth/logout', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${state.session.token}` }

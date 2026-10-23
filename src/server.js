@@ -1,53 +1,24 @@
 import http from 'http';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { StorageService } from './domain/StorageService.js';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { AuthService } from './domain/AuthService.js';
 import { TripService } from './domain/TripService.js';
 import { TodoService } from './domain/TodoService.js';
-import { BudgetEngine } from './domain/BudgetEngine.js';
-import { createInitialSeedTrip } from './seed.js';
+import { StorageService } from './domain/StorageService.js';
+import { createInitialSeedTrip, DEMO_TRIP_ID } from './seed.js';
 import { DbService } from './services/DbService.js';
 import { EmailService } from './services/EmailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const DATA_FILE = path.join(DATA_DIR, 'trip_cameroun.json');
-const DEMO_FILE = path.join(DATA_DIR, 'trip_cameroun.json');
-const TRIPS_DIR = path.join(DATA_DIR, 'trips');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const DEFAULT_DATA_DIR = path.join(__dirname, '..', 'data');
 const UI_DIR = path.join(__dirname, 'ui');
-const PORT = process.env.PORT || 3000;
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
+const DOMAIN_DIR = path.join(__dirname, 'domain');
 
-// Initialisation de la persistance SQLite (Option B) avec mode WAL
-const DB_PATH = process.env.DATABASE_PATH || path.join(DATA_DIR, 'capvoyage.db');
-const dbService = new DbService(DB_PATH);
-const emailService = new EmailService({ isProduction: IS_PRODUCTION });
-
-// Migration automatique des données JSON existantes vers SQLite au premier démarrage
-const migrationStats = dbService.autoMigrateFromJson(DATA_DIR);
-if (migrationStats.migratedUsers > 0 || migrationStats.migratedTrips > 0) {
-  console.log(`[CapVoyage DbService] Migration SQLite réussie : ${migrationStats.migratedUsers} utilisateurs, ${migrationStats.migratedTrips} voyages.`);
-}
-
-function getUserTripFilePath(userId) {
-  return path.join(TRIPS_DIR, `trip_${userId}.json`);
-}
-
-function getClientIp(req) {
-  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
-}
-
-function getSessionFromReq(req, users) {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (!token) return null;
-  return AuthService.validateSession(users, token);
-}
+const RATES_URL = 'https://api.frankfurter.dev/v1/latest?base=EUR';
+const RATES_CACHE_MS = 6 * 60 * 60 * 1000;
+const SHARE_INACTIVE_MESSAGE = "Ce lien de partage n'est plus actif";
 
 // Types MIME supportés
 const MIME_TYPES = {
@@ -63,38 +34,18 @@ const MIME_TYPES = {
   '.txt': 'text/plain; charset=utf-8'
 };
 
-// Chargement des utilisateurs (depuis SQLite avec fallback/miroir JSON)
-async function loadUsers() {
-  const dbUsers = dbService.getAllUsers();
-  if (dbUsers.length > 0) {
-    return dbUsers;
-  }
-  try {
-    const content = await fs.readFile(USERS_FILE, 'utf-8');
-    const users = JSON.parse(content);
-    if (Array.isArray(users)) {
-      users.forEach(u => dbService.saveUser(u));
-    }
-    return users;
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      return [];
-    }
-    throw err;
-  }
-}
-
-// Sauvegarde des utilisateurs (SQLite + miroir atomique users.json)
-async function saveUsers(users) {
-  for (const u of users) {
-    dbService.saveUser(u);
-  }
-  const dir = path.dirname(USERS_FILE);
-  await fs.mkdir(dir, { recursive: true });
-  const tempPath = `${USERS_FILE}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}.tmp`;
-  await fs.writeFile(tempPath, JSON.stringify(users, null, 2), 'utf-8');
-  await fs.rename(tempPath, USERS_FILE);
-}
+// Politique de sécurité de contenu (ADR-002) : 'unsafe-inline' requis par les attributs style="" de l'UI
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'"
+].join('; ');
 
 // En-têtes de sécurité HTTP de niveau production
 function getSecurityHeaders() {
@@ -102,8 +53,18 @@ function getSecurityHeaders() {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'geolocation=(), camera=(), microphone=()'
+    'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+    'Content-Security-Policy': CONTENT_SECURITY_POLICY
   };
+}
+
+// Erreur métier portant un code HTTP
+class HttpError extends Error {
+  constructor(status, message, extra = {}) {
+    super(message);
+    this.status = status;
+    this.extra = extra;
+  }
 }
 
 // Récupère le body JSON d'une requête avec limitation de taille (protection DoS)
@@ -115,7 +76,7 @@ function parseRequestBody(req, maxBytes = 5 * 1024 * 1024) {
       bytes += chunk.length;
       if (bytes > maxBytes) {
         req.destroy();
-        return reject(new Error('Charge utile trop volumineuse (limite : 5 Mo)'));
+        return reject(new HttpError(413, 'Charge utile trop volumineuse (limite : 5 Mo)'));
       }
       body += chunk;
     });
@@ -124,398 +85,352 @@ function parseRequestBody(req, maxBytes = 5 * 1024 * 1024) {
       try {
         resolve(JSON.parse(body));
       } catch (err) {
-        reject(new Error('Corps de requête JSON invalide : ' + err.message));
+        reject(new HttpError(400, 'Corps de requête JSON invalide : ' + err.message));
       }
     });
     req.on('error', reject);
   });
 }
 
-// Envoi de réponse JSON avec en-têtes sécurisés
-function sendJson(res, statusCode, data) {
-  const headers = {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    ...getSecurityHeaders()
-  };
-  res.writeHead(statusCode, headers);
-  res.end(JSON.stringify(data));
+function getBearerToken(req) {
+  const authHeader = req.headers.authorization || '';
+  return authHeader.replace(/^Bearer\s+/i, '').trim();
 }
 
-// Serveur principal HTTP
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = url.pathname;
+/**
+ * Crée le serveur HTTP CapVoyage sans l'écouter (ADR-005).
+ * @returns {{ server: http.Server, dbService: DbService }}
+ */
+export function createServer({
+  dbPath = ':memory:',
+  isProduction = process.env.NODE_ENV === 'production',
+  emailService = new EmailService({ isProduction }),
+  dataDir = null,
+  allowedOrigin = process.env.ALLOWED_ORIGIN || '*',
+  trustFlyClientIp = !!process.env.FLY_APP_NAME,
+  ratesFetch = globalThis.fetch,
+  now = () => Date.now()
+} = {}) {
+  const dbService = new DbService(dbPath);
 
-  // Gestion des requêtes OPTIONS (CORS)
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+  // Migrations idempotentes au démarrage
+  if (dataDir) {
+    const stats = dbService.autoMigrateFromJson(dataDir);
+    if (stats.migratedUsers > 0 || stats.migratedTrips > 0) {
+      console.log(`[CapVoyage DbService] Migration SQLite : ${stats.migratedUsers} utilisateurs, ${stats.migratedTrips} voyages.`);
+    }
+  }
+  dbService.migrateLegacySessions(now());
+  dbService.purgeExpiredSessions(now());
+  if (!dbService.getTripById(DEMO_TRIP_ID)) {
+    const seed = createInitialSeedTrip();
+    seed.version = 1;
+    TripService.normalizeSharing(seed);
+    dbService.saveTrip(seed, null);
+  }
+
+  let ratesCache = null;
+
+  function sendJson(res, statusCode, data) {
+    res.writeHead(statusCode, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       ...getSecurityHeaders()
     });
-    return res.end();
+    res.end(JSON.stringify(data));
   }
 
-  try {
+  // IP réelle : Fly-Client-IP sur Fly (non falsifiable par le client), sinon l'adresse du socket.
+  // X-Forwarded-For est volontairement ignoré (ADR-002, S4).
+  function getClientIp(req) {
+    if (trustFlyClientIp && req.headers['fly-client-ip']) {
+      return String(req.headers['fly-client-ip']).trim();
+    }
+    return req.socket.remoteAddress || 'unknown';
+  }
+
+  function enforceRateLimit(key, maxAttempts, message) {
+    const rl = dbService.checkRateLimit(key, maxAttempts, 15 * 60 * 1000, 15 * 60 * 1000);
+    if (!rl.allowed) {
+      throw new HttpError(429, `${message} Veuillez patienter ${rl.retryAfterSeconds} secondes.`, { retryAfterSeconds: rl.retryAfterSeconds });
+    }
+  }
+
+  // Utilisateur de la session courante, ou null (session absente, inconnue ou expirée)
+  function getSessionUser(req) {
+    return dbService.getSessionUser(getBearerToken(req), now());
+  }
+
+  function requireUser(req) {
+    const user = getSessionUser(req);
+    if (!user) throw new HttpError(401, 'Session invalide ou expirée');
+    return user;
+  }
+
+  // Charge un voyage depuis la base et vérifie qu'il appartient à l'utilisateur (ADR-002)
+  function loadOwnedTrip(user, tripId) {
+    const trip = tripId ? dbService.getTripById(tripId) : null;
+    if (!trip) throw new HttpError(404, 'Voyage introuvable');
+    if (trip.userId !== user.id) throw new HttpError(403, 'Accès refusé à ce voyage');
+    trip.version = trip.version || 1;
+    TripService.normalizeSharing(trip);
+    return trip;
+  }
+
+  function summarizeTrip(t, user) {
+    return {
+      id: t.id,
+      title: t.title,
+      country: t.country,
+      startDate: t.startDate,
+      endDate: t.endDate,
+      totalBudget: t.totalBudget,
+      baseCurrency: t.baseCurrency,
+      daysCount: (t.days || []).length,
+      activitiesCount: (t.days || []).reduce((acc, d) => acc + (d.activities || []).length, 0),
+      isActive: t.id === user.currentTripId
+    };
+  }
+
+  async function handleApi(req, res, url) {
+    const { pathname } = url;
+
     // --- HEALTH CHECK / PROBES ---
     if ((pathname === '/health' || pathname === '/api/health') && req.method === 'GET') {
       return sendJson(res, 200, {
         status: 'ok',
         uptime: Math.round(process.uptime()),
-        environment: IS_PRODUCTION ? 'production' : 'development',
+        environment: isProduction ? 'production' : 'development',
         database: 'sqlite-wal',
         timestamp: new Date().toISOString()
       });
     }
 
-    // --- API ROUTES : AUTH & COMPTES ---
+    // --- AUTH ---
     if (pathname === '/api/auth/request-code' && req.method === 'POST') {
-      const clientIp = getClientIp(req);
-      const rl = dbService.checkRateLimit(`req_code:${clientIp}`, 5, 15 * 60 * 1000, 15 * 60 * 1000);
-      if (!rl.allowed) {
-        return sendJson(res, 429, {
-          error: `Trop de demandes de code. Veuillez patienter ${rl.retryAfterSeconds} secondes.`,
-          retryAfterSeconds: rl.retryAfterSeconds
-        });
-      }
-
+      enforceRateLimit(`req_code:${getClientIp(req)}`, 5, 'Trop de demandes de code.');
       const { email } = await parseRequestBody(req);
-      const users = await loadUsers();
-      const result = AuthService.requestLoginCode(users, email, { isProduction: IS_PRODUCTION });
-      await saveUsers(users);
+      if (!AuthService.isValidEmail(email)) throw new HttpError(400, 'Adresse email invalide');
+      const normEmail = AuthService.normalizeEmail(email);
+      enforceRateLimit(`req_code_email:${normEmail}`, 5, 'Trop de demandes de code pour cette adresse.');
 
-      // Envoi du mail transactionnel
-      const user = users.find(u => u.email === AuthService.normalizeEmail(email));
-      if (user && user.verificationCode) {
-        await emailService.sendLoginCode(user.email, user.verificationCode).catch(err => {
-          console.error('[EmailService] Erreur transmission e-mail:', err.message);
-        });
-      }
+      const existing = dbService.getUserByEmail(normEmail);
+      const users = existing ? [existing] : [];
+      const result = AuthService.requestLoginCode(users, normEmail, { isProduction });
+      const user = users[0];
+      dbService.saveUser(user);
 
+      await emailService.sendLoginCode(user.email, user.verificationCode).catch(err => {
+        console.error('[EmailService] Erreur transmission e-mail:', err.message);
+      });
       return sendJson(res, 200, result);
     }
 
     if (pathname === '/api/auth/verify-code' && req.method === 'POST') {
-      const clientIp = getClientIp(req);
-      const rl = dbService.checkRateLimit(`verify_code:${clientIp}`, 10, 15 * 60 * 1000, 15 * 60 * 1000);
-      if (!rl.allowed) {
-        return sendJson(res, 429, {
-          error: `Trop de tentatives de validation. Veuillez patienter ${rl.retryAfterSeconds} secondes.`,
-          retryAfterSeconds: rl.retryAfterSeconds
-        });
-      }
-
+      enforceRateLimit(`verify_code:${getClientIp(req)}`, 10, 'Trop de tentatives de validation.');
       const { email, code } = await parseRequestBody(req);
-      const users = await loadUsers();
+      const normEmail = AuthService.normalizeEmail(email);
+      enforceRateLimit(`verify_email:${normEmail}`, 10, 'Trop de tentatives de validation pour cette adresse.');
+
+      const user = dbService.getUserByEmail(normEmail);
+      if (!user) throw new HttpError(400, 'Utilisateur introuvable pour cette adresse email');
       try {
-        const result = AuthService.verifyCode(users, email, code);
-        await saveUsers(users);
+        const result = AuthService.verifyCode([user], normEmail, code);
+        dbService.saveUser(user);
+        dbService.createSession(user.id, result.token, now());
         return sendJson(res, 200, result);
       } catch (err) {
-        await saveUsers(users);
-        return sendJson(res, 400, { error: err.message });
+        dbService.saveUser(user);
+        throw new HttpError(400, err.message);
       }
     }
 
     if (pathname === '/api/auth/me' && req.method === 'GET') {
-      const authHeader = req.headers.authorization || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const users = await loadUsers();
-      const session = AuthService.validateSession(users, token);
-      if (!session) {
-        return sendJson(res, 401, { error: 'Session invalide ou expirée' });
-      }
-      return sendJson(res, 200, { success: true, user: session });
+      const user = requireUser(req);
+      return sendJson(res, 200, { success: true, user: { id: user.id, email: user.email, trips: user.trips } });
     }
 
     if (pathname === '/api/auth/logout' && req.method === 'POST') {
-      const authHeader = req.headers.authorization || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const users = await loadUsers();
-      AuthService.logout(users, token);
-      await saveUsers(users);
+      dbService.deleteSession(getBearerToken(req));
       return sendJson(res, 200, { success: true, message: 'Déconnecté avec succès' });
     }
 
-    // --- API ROUTES : VOYAGES & WIZARD ---
+    // --- MULTI-VOYAGES & CONTACTS ---
     if (pathname === '/api/user/trips' && req.method === 'GET') {
-      const users = await loadUsers();
-      const session = getSessionFromReq(req, users);
-      if (!session) {
-        return sendJson(res, 401, { error: 'Session non authentifiée' });
-      }
-
-      const user = users.find(u => u.id === session.id);
-      const tripIds = user?.trips || [];
-      const summaries = [];
-
-      for (const tid of tripIds) {
-        try {
-          let t = dbService.getTripById(tid);
-          if (!t) {
-            const specificPath = path.join(TRIPS_DIR, `trip_${tid}.json`);
-            t = await StorageService.loadFromFile(specificPath).catch(() => null);
-          }
-
-          if (t) {
-            summaries.push({
-              id: t.id,
-              title: t.title,
-              country: t.country,
-              startDate: t.startDate,
-              endDate: t.endDate,
-              totalBudget: t.totalBudget,
-              baseCurrency: t.baseCurrency,
-              daysCount: (t.days || []).length,
-              activitiesCount: (t.days || []).reduce((acc, d) => acc + (d.activities || []).length, 0),
-              isActive: t.id === user.currentTripId
-            });
-          }
-        } catch (err) {}
-      }
-
-      return sendJson(res, 200, {
-        success: true,
-        trips: summaries,
-        currentTripId: user?.currentTripId,
-        userEmail: user?.email
-      });
+      const user = requireUser(req);
+      const trips = (user.trips || [])
+        .map(tid => dbService.getTripById(tid))
+        .filter(t => t && t.userId === user.id)
+        .map(t => summarizeTrip(t, user));
+      return sendJson(res, 200, { success: true, trips, currentTripId: user.currentTripId, userEmail: user.email });
     }
 
     if (pathname === '/api/user/trips/switch' && req.method === 'POST') {
+      const user = requireUser(req);
       const { tripId } = await parseRequestBody(req);
-      const users = await loadUsers();
-      const authHeader = req.headers.authorization || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-
+      const trip = loadOwnedTrip(user, tripId);
       try {
-        AuthService.switchCurrentTrip(users, token, tripId);
-        await saveUsers(users);
-
-        let trip = dbService.getTripById(tripId);
-        if (!trip) {
-          trip = await StorageService.loadFromFile(path.join(TRIPS_DIR, `trip_${tripId}.json`));
-        }
-
-        return sendJson(res, 200, { success: true, trip, currentTripId: tripId });
+        AuthService.switchCurrentTrip([user], user.sessionToken, tripId);
       } catch (err) {
-        return sendJson(res, 400, { error: err.message });
+        throw new HttpError(403, err.message);
       }
+      dbService.saveUser(user);
+      return sendJson(res, 200, { success: true, trip, currentTripId: tripId });
     }
 
     if (pathname === '/api/user/contacts') {
-      const users = await loadUsers();
-      const authHeader = req.headers.authorization || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-
+      const user = requireUser(req);
       if (req.method === 'GET') {
-        const contacts = AuthService.getGlobalContacts(users, token);
-        return sendJson(res, 200, { success: true, contacts });
+        return sendJson(res, 200, { success: true, contacts: user.globalContacts || [] });
       }
-
       if (req.method === 'POST') {
         const contact = await parseRequestBody(req);
-        AuthService.addGlobalContact(users, token, contact);
-        await saveUsers(users);
-        return sendJson(res, 200, { success: true, contacts: AuthService.getGlobalContacts(users, token) });
+        if (!contact || !contact.name || !String(contact.name).trim()) {
+          throw new HttpError(400, 'Le nom du contact est obligatoire');
+        }
+        AuthService.addGlobalContact([user], user.sessionToken, contact);
+        dbService.saveUser(user);
+        return sendJson(res, 200, { success: true, contacts: user.globalContacts });
       }
     }
 
+    // --- VOYAGES ---
     if (pathname === '/api/wizard/trip' && req.method === 'POST') {
+      const user = requireUser(req);
       const payload = await parseRequestBody(req);
-      const users = await loadUsers();
-      const authHeader = req.headers.authorization || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const session = getSessionFromReq(req, users);
-      const newTrip = TripService.createTripFromWizard(payload);
-      newTrip.todos = TodoService.createDefaultTodos(payload.country);
-
-      if (session) {
-        newTrip.userId = session.id;
-        // Sauvegarde SQLite
-        dbService.saveTrip(newTrip, session.id);
-
-        // Sauvegarde miroir fichier JSON
-        await fs.mkdir(TRIPS_DIR, { recursive: true });
-        await StorageService.saveToFile(newTrip, path.join(TRIPS_DIR, `trip_${newTrip.id}.json`));
-        await StorageService.saveToFile(newTrip, getUserTripFilePath(session.id));
-
-        // Mettre à jour l'utilisateur
-        AuthService.addTripToUser(users, token, newTrip.id);
-        if (Array.isArray(payload.initialContacts)) {
-          payload.initialContacts.forEach(c => AuthService.addGlobalContact(users, token, c));
-        }
-        await saveUsers(users);
-      } else {
-        dbService.saveTrip(newTrip, null);
-        await StorageService.saveToFile(newTrip, DEMO_FILE);
+      let newTrip;
+      try {
+        newTrip = TripService.createTripFromWizard(payload);
+      } catch (err) {
+        throw new HttpError(400, err.message);
       }
+      newTrip.todos = TodoService.createDefaultTodos(payload.country);
+      newTrip.userId = user.id;
+      newTrip.version = 1;
+      TripService.normalizeSharing(newTrip);
+      dbService.saveTrip(newTrip, user.id);
 
+      AuthService.addTripToUser([user], user.sessionToken, newTrip.id);
+      if (Array.isArray(payload.initialContacts)) {
+        payload.initialContacts
+          .filter(c => c && c.name && String(c.name).trim())
+          .forEach(c => AuthService.addGlobalContact([user], user.sessionToken, c));
+      }
+      dbService.saveUser(user);
       return sendJson(res, 200, { success: true, trip: newTrip });
     }
 
-    if (pathname === '/api/trip/budget' && req.method === 'POST') {
-      const { totalBudget, baseCurrency, localRate } = await parseRequestBody(req);
-      const users = await loadUsers();
-      const session = getSessionFromReq(req, users);
-      const user = session ? users.find(u => u.id === session.id) : null;
-      let trip = null;
-      let tripFile = DEMO_FILE;
-
-      if (user && user.currentTripId) {
-        trip = dbService.getTripById(user.currentTripId);
-        tripFile = path.join(TRIPS_DIR, `trip_${user.currentTripId}.json`);
-      }
-
-      if (!trip) {
-        trip = await StorageService.loadFromFile(tripFile).catch(() => null);
-      }
-
-      if (!trip) {
-        return sendJson(res, 404, { error: 'Aucun voyage trouvé' });
-      }
-
-      TripService.updateTripBudget(trip, { totalBudget, baseCurrency });
-      if (localRate && trip.currencies) {
-        const secondary = trip.currencies.find(c => c.code !== (trip.baseCurrency || 'EUR'));
-        if (secondary) {
-          BudgetEngine.setCurrencyRate(trip, secondary.code, localRate);
-        }
-      }
-
-      // Persistance SQLite + Fichier
-      dbService.saveTrip(trip, trip.userId);
-      await StorageService.saveToFile(trip, tripFile);
-      return sendJson(res, 200, { success: true, trip });
+    if (pathname === '/api/trip/sharing' && req.method === 'PUT') {
+      const user = requireUser(req);
+      const { tripId, enabled, sections, regenerate } = await parseRequestBody(req);
+      const trip = loadOwnedTrip(user, tripId || user.currentTripId);
+      const sharing = TripService.updateSharing(trip, { enabled, sections, regenerate: !!regenerate });
+      dbService.saveTrip(trip, user.id);
+      return sendJson(res, 200, { success: true, sharing });
     }
 
-    if (pathname === '/api/trip') {
-      const users = await loadUsers();
-      const session = getSessionFromReq(req, users);
-      const user = session ? users.find(u => u.id === session.id) : null;
-
-      if (req.method === 'GET') {
-        // 1. Mode Partage en Lecture Seule (?share=token)
-        const shareToken = url.searchParams.get('share');
-        if (shareToken) {
-          let trip = dbService.getTripByShareToken(shareToken);
-          if (!trip) {
-            // Recherche de secours dans les fichiers
-            const files = await fs.readdir(TRIPS_DIR).catch(() => []);
-            for (const f of files) {
-              if (f.endsWith('.json')) {
-                const candidate = await StorageService.loadFromFile(path.join(TRIPS_DIR, f)).catch(() => null);
-                if (candidate && candidate.shareToken === shareToken) {
-                  trip = candidate;
-                  dbService.saveTrip(trip, trip.userId);
-                  break;
-                }
-              }
-            }
-          }
-          if (trip) {
-            return sendJson(res, 200, { ...trip, isReadOnly: true });
-          } else {
-            return sendJson(res, 404, { error: 'Voyage introuvable pour ce lien de partage' });
-          }
+    if (pathname === '/api/trip' && req.method === 'GET') {
+      // 1. Lien de partage : vue filtrée en lecture seule (ADR-006)
+      const shareToken = url.searchParams.get('share');
+      if (shareToken) {
+        const trip = dbService.getTripByShareToken(shareToken);
+        const sharing = trip ? TripService.normalizeSharing(trip) : null;
+        if (!sharing || !sharing.enabled || sharing.token !== shareToken) {
+          throw new HttpError(404, SHARE_INACTIVE_MESSAGE);
         }
+        return sendJson(res, 200, TripService.buildSharedView(trip));
+      }
 
-        // 2. Utilisateur authentifié : charger son voyage actif
-        if (session) {
-          let userTrip = null;
-          if (user?.currentTripId) {
-            userTrip = dbService.getTripById(user.currentTripId);
-            if (!userTrip) {
-              userTrip = await StorageService.loadFromFile(path.join(TRIPS_DIR, `trip_${user.currentTripId}.json`)).catch(() => null);
-            }
-          }
-          if (!userTrip) {
-            userTrip = await StorageService.loadFromFile(getUserTripFilePath(session.id)).catch(() => null);
-          }
-
-          if (userTrip) {
-            return sendJson(res, 200, userTrip);
-          }
+      // 2. Utilisateur authentifié : voyage courant
+      if (getBearerToken(req)) {
+        const user = requireUser(req);
+        const trip = user.currentTripId ? dbService.getTripById(user.currentTripId) : null;
+        if (!trip || trip.userId !== user.id) {
           return sendJson(res, 200, { hasTrip: false, message: 'Aucun voyage configuré pour ce compte' });
         }
-
-        // 3. Mode Démo ou visiteur non connecté : charger le voyage démo Cameroun
-        let trip = dbService.getTripById('trip-cameroun-seed') || (await StorageService.loadFromFile(DEMO_FILE).catch(() => null));
-        if (!trip) {
-          trip = createInitialSeedTrip();
-          trip.id = trip.id || 'trip-cameroun-seed';
-          dbService.saveTrip(trip, null);
-          await StorageService.saveToFile(trip, DEMO_FILE);
-        }
+        trip.version = trip.version || 1;
+        TripService.normalizeSharing(trip);
         return sendJson(res, 200, trip);
       }
 
-      if (req.method === 'POST') {
-        const updatedTrip = await parseRequestBody(req);
-        StorageService.validateTripSchema(updatedTrip);
+      // 3. Visiteur : voyage démo, jamais modifié par l'API (ADR-001, ADR-003)
+      const demo = dbService.getTripById(DEMO_TRIP_ID);
+      delete demo.sharing;
+      delete demo.userId;
+      return sendJson(res, 200, { ...demo, isDemo: true });
+    }
 
-        // Protection de sécurité : interdire la modification d'un voyage en mode lecture seule
-        if (updatedTrip.isReadOnly) {
-          return sendJson(res, 403, { error: 'Modification interdite en mode consultation partagée (Lecture Seule)' });
-        }
-
-        updatedTrip.updatedAt = new Date().toISOString();
-
-        let tripFile = DEMO_FILE;
-        if (user?.currentTripId) {
-          tripFile = path.join(TRIPS_DIR, `trip_${user.currentTripId}.json`);
-        } else if (session) {
-          tripFile = getUserTripFilePath(session.id);
-        }
-
-        // Persistance SQLite
-        dbService.saveTrip(updatedTrip, user?.id || null);
-
-        // Miroir fichier JSON
-        await fs.mkdir(path.dirname(tripFile), { recursive: true });
-        await StorageService.saveToFile(updatedTrip, tripFile);
-        return sendJson(res, 200, { success: true, trip: updatedTrip });
+    if (pathname === '/api/trip' && req.method === 'POST') {
+      const user = requireUser(req);
+      const body = await parseRequestBody(req);
+      const incoming = body && body.trip;
+      if (!incoming) throw new HttpError(400, 'Corps attendu : { trip, baseVersion }');
+      try {
+        StorageService.validateTripSchema(incoming);
+      } catch (err) {
+        throw new HttpError(400, err.message);
       }
+
+      const current = loadOwnedTrip(user, incoming.id);
+      if (body.baseVersion !== current.version) {
+        throw new HttpError(409, 'Le voyage a été modifié ailleurs (conflit de version)', { trip: current });
+      }
+
+      // Les champs serveur ne viennent jamais du client (ADR-002)
+      const saved = {
+        ...incoming,
+        id: current.id,
+        userId: user.id,
+        sharing: current.sharing,
+        createdAt: current.createdAt,
+        version: current.version + 1,
+        updatedAt: new Date(now()).toISOString()
+      };
+      delete saved.shareToken;
+      delete saved.isReadOnly;
+      delete saved.isDemo;
+      dbService.saveTrip(saved, user.id);
+      return sendJson(res, 200, { success: true, trip: saved });
     }
 
-    if (pathname === '/api/reset' && req.method === 'POST') {
-      const freshTrip = createInitialSeedTrip();
-      freshTrip.id = freshTrip.id || 'trip-cameroun-seed';
-      dbService.saveTrip(freshTrip, null);
-      await StorageService.saveToFile(freshTrip, DATA_FILE);
-      return sendJson(res, 200, { success: true, trip: freshTrip });
+    // --- TAUX DE CHANGE (proxy serveur, cache 6 h) ---
+    if (pathname === '/api/rates' && req.method === 'GET') {
+      if (!ratesCache || now() - ratesCache.fetchedAt > RATES_CACHE_MS) {
+        try {
+          const upstream = await ratesFetch(RATES_URL);
+          if (!upstream.ok) throw new Error(`HTTP ${upstream.status}`);
+          const data = await upstream.json();
+          ratesCache = { fetchedAt: now(), data: { base: data.base || 'EUR', date: data.date, rates: data.rates || {} } };
+        } catch (err) {
+          throw new HttpError(503, `Taux de change indisponibles : ${err.message}`);
+        }
+      }
+      return sendJson(res, 200, ratesCache.data);
     }
 
-    // --- STATIC FILES ROUTING ---
-    const DOMAIN_DIR = path.join(__dirname, 'domain');
+    return null;
+  }
+
+  async function serveStatic(req, res, pathname) {
     let filePath;
     if (pathname.startsWith('/domain/')) {
-      const rel = pathname.replace('/domain/', '');
-      filePath = path.join(DOMAIN_DIR, rel);
-      if (!filePath.startsWith(DOMAIN_DIR)) {
-        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8', ...getSecurityHeaders() });
-        return res.end('Accès refusé');
-      }
+      filePath = path.join(DOMAIN_DIR, pathname.replace('/domain/', ''));
+      if (!filePath.startsWith(DOMAIN_DIR)) throw new HttpError(403, 'Accès refusé');
     } else {
       filePath = path.join(UI_DIR, pathname === '/' ? 'index.html' : pathname);
-      if (!filePath.startsWith(UI_DIR)) {
-        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8', ...getSecurityHeaders() });
-        return res.end('Accès refusé');
-      }
+      if (!filePath.startsWith(UI_DIR)) throw new HttpError(403, 'Accès refusé');
     }
 
     try {
-      const stat = await fs.stat(filePath);
-      if (stat.isDirectory()) {
+      let fileStat = await fs.stat(filePath);
+      if (fileStat.isDirectory()) {
         filePath = path.join(filePath, 'index.html');
+        fileStat = await fs.stat(filePath);
       }
       const ext = path.extname(filePath).toLowerCase();
       const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-      const fileStat = await fs.stat(filePath);
 
       // Les fichiers ne sont pas fingerprintés (app.js, style.css...) : un max-age
       // figerait une version cassée chez l'utilisateur. On impose la revalidation
@@ -533,10 +448,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const content = await fs.readFile(filePath);
-      res.writeHead(200, {
-        'Content-Type': contentType,
-        ...cacheHeaders
-      });
+      res.writeHead(200, { 'Content-Type': contentType, ...cacheHeaders });
       return res.end(content);
     } catch (err) {
       if (err.code === 'ENOENT') {
@@ -545,34 +457,62 @@ const server = http.createServer(async (req, res) => {
       }
       throw err;
     }
-
-  } catch (error) {
-    console.error('[CapVoyage Serveur] Erreur non gérée :', error);
-    return sendJson(res, 500, { error: error.message });
   }
-});
 
-server.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`🧭 CapVoyage Production Ready démarré sur : http://localhost:${PORT}`);
-  console.log(`📦 Base de données : SQLite WAL (${DB_PATH})`);
-  console.log(`🛡️ Sécurité : Rate Limiting actif, En-têtes sécurisés`);
-  console.log(`=======================================================`);
-});
+  const server = http.createServer(async (req, res) => {
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
-// Arrêt propre du serveur (Graceful Shutdown)
-function gracefulShutdown(signal) {
-  console.log(`\n[CapVoyage] Signal ${signal} reçu, arrêt propre du serveur...`);
-  server.close(() => {
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': allowedOrigin,
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        ...getSecurityHeaders()
+      });
+      return res.end();
+    }
+
     try {
-      dbService.close();
-      console.log('[CapVoyage] Connexion SQLite fermée proprement.');
-    } catch (err) {}
-    process.exit(0);
+      if (url.pathname === '/health' || url.pathname.startsWith('/api/')) {
+        const handled = await handleApi(req, res, url);
+        if (handled === null) sendJson(res, 404, { error: 'Route introuvable' });
+        return;
+      }
+      await serveStatic(req, res, url.pathname);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return sendJson(res, error.status, { error: error.message, ...error.extra });
+      }
+      console.error('[CapVoyage Serveur] Erreur non gérée :', error);
+      return sendJson(res, 500, { error: 'Erreur interne du serveur' });
+    }
   });
+
+  server.on('close', () => {
+    try { dbService.close(); } catch (err) {}
+  });
+
+  return { server, dbService };
 }
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+// Démarrage uniquement si le fichier est exécuté directement (`node src/server.js`)
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const PORT = process.env.PORT || 3000;
+  const DB_PATH = process.env.DATABASE_PATH || path.join(DEFAULT_DATA_DIR, 'capvoyage.db');
+  const { server } = createServer({ dbPath: DB_PATH, dataDir: DEFAULT_DATA_DIR });
 
-export { server, dbService, emailService };
+  server.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`🧭 CapVoyage démarré sur : http://localhost:${PORT}`);
+    console.log(`📦 Base de données : SQLite WAL (${DB_PATH})`);
+    console.log(`=======================================================`);
+  });
+
+  // Arrêt propre du serveur (Graceful Shutdown)
+  const gracefulShutdown = (signal) => {
+    console.log(`\n[CapVoyage] Signal ${signal} reçu, arrêt propre du serveur...`);
+    server.close(() => process.exit(0));
+  };
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+}

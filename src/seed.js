@@ -3,9 +3,12 @@ import { TodoService } from './domain/TodoService.js';
 import { ContactService } from './domain/ContactService.js';
 import { ActivityService } from './domain/ActivityService.js';
 import { BudgetEngine } from './domain/BudgetEngine.js';
-import { StorageService } from './domain/StorageService.js';
-import path from 'path';
 
+export const DEMO_TRIP_ID = 'trip-cameroun-seed';
+
+/**
+ * Voyage démo « Cameroun 21 jours ». Pur : aucun effet de bord, id stable (ADR-001).
+ */
 export function createInitialSeedTrip() {
   // 1. Création du séjour 21 jours
   const trip = TripService.createTrip({
@@ -192,13 +195,6 @@ export function createInitialSeedTrip() {
     activityId: aJ4.id
   });
 
+  trip.id = DEMO_TRIP_ID;
   return trip;
 }
-
-// Exécution directe si appelé via script
-const dataFilePath = path.join(process.cwd(), 'data', 'trip_cameroun.json');
-const initialTrip = createInitialSeedTrip();
-StorageService.saveToFile(initialTrip, dataFilePath).then(() => {
-  console.log(`Données initiales générées avec succès dans ${dataFilePath}`);
-});
-

@@ -319,7 +319,8 @@
             <span class="user-icon">👤</span>
             <span class="user-email-text" id="user-email-text">Mode Démo</span>
           </div>
-          <button class="btn btn-secondary btn-sm" id="btn-header-share" title="Générer et copier le lien magique de partage en lecture seule">
+          <button type="button" id="sync-indicator" class="sync-indicator" aria-live="polite" hidden></button>
+          <button class="btn btn-secondary btn-sm" id="btn-header-share" title="Choisir ce que vous partagez et gérer le lien en lecture seule">
             🔗 Partager
           </button>
           <button class="btn btn-secondary btn-sm" id="btn-header-new-trip" title="Configurer un nouveau voyage avec l'assistant">
@@ -1130,6 +1131,68 @@
           <button type="submit" class="btn btn-primary">Valider le taux</button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- Partage paramétrable en lecture seule (ADR-006) -->
+  <dialog id="dialog-share" class="app-dialog" aria-labelledby="dialog-share-title">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="dialog-share-title">🔗 Partager mon voyage</h3>
+        <button class="dialog-close" id="btn-close-share-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <div class="dialog-form">
+        <label class="share-toggle-row" for="share-enabled-toggle">
+          <input type="checkbox" id="share-enabled-toggle" role="switch" />
+          <span>
+            <strong id="share-status-label">Lien de partage désactivé</strong>
+            <span class="subtitle">Les personnes qui ont le lien voient les sections choisies, en lecture seule, sans compte.</span>
+          </span>
+        </label>
+
+        <div class="form-group" id="share-link-group">
+          <label for="share-link-input">Lien à envoyer</label>
+          <div class="share-link-row">
+            <input type="text" id="share-link-input" readonly />
+            <button type="button" class="btn btn-primary" id="btn-copy-share-link">Copier</button>
+          </div>
+        </div>
+
+        <fieldset class="share-sections" id="share-sections-fieldset">
+          <legend>Sections partagées</legend>
+          <div class="purposes-selection-grid">
+            <label class="purpose-card">
+              <input type="checkbox" name="share-section" value="planning" />
+              <div class="purpose-icon">🗓️</div>
+              <div class="purpose-title">Programme</div>
+              <div class="purpose-desc">Journées, villes étapes et activités.</div>
+            </label>
+            <label class="purpose-card">
+              <input type="checkbox" name="share-section" value="todos" />
+              <div class="purpose-icon">📋</div>
+              <div class="purpose-title">Préparatifs</div>
+              <div class="purpose-desc">Formalités, santé, valise.</div>
+            </label>
+            <label class="purpose-card">
+              <input type="checkbox" name="share-section" value="budget" />
+              <div class="purpose-icon">💰</div>
+              <div class="purpose-title">Budget</div>
+              <div class="purpose-desc">Budget prévu et dépenses.</div>
+            </label>
+            <label class="purpose-card">
+              <input type="checkbox" name="share-section" value="contacts" />
+              <div class="purpose-icon">👥</div>
+              <div class="purpose-title">Contacts</div>
+              <div class="purpose-desc">Carnet, téléphones et participants des activités.</div>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="dialog-actions space-between">
+          <button type="button" class="btn btn-secondary" id="btn-regenerate-share-link">♻️ Régénérer le lien</button>
+          <button type="button" class="btn btn-secondary" id="btn-done-share">Terminé</button>
+        </div>
+      </div>
     </div>
   </dialog>
 

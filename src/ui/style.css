@@ -2541,3 +2541,94 @@ h1, h2, h3, h4, .brand-name, .hero-title, .landing-section-heading, #active-day-
 .btn-outline-danger:hover {
   background: var(--danger-light);
 }
+
+/* ==========================================================================
+   SYNCHRONISATION HORS-LIGNE (ADR-003)
+   ========================================================================== */
+.sync-indicator {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--success-light);
+  color: var(--success);
+}
+.sync-indicator[hidden] { display: none; }
+.sync-indicator[data-status="pending"] { background: var(--warning-light); color: var(--warning); }
+.sync-indicator[data-status="conflict"] { background: var(--danger-light); color: var(--danger); }
+
+/* ==========================================================================
+   PARTAGE PARAMÉTRABLE (ADR-006)
+   ========================================================================== */
+.share-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+.share-toggle-row input {
+  width: 22px;
+  height: 22px;
+  margin-top: 0.15rem;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.share-toggle-row .subtitle {
+  display: block;
+  font-size: 0.82rem;
+  margin-top: 0.2rem;
+}
+.share-sections {
+  border: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+.share-sections legend {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+}
+.share-link-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.share-link-row input {
+  flex: 1;
+  min-width: 0;
+}
+#share-link-group[hidden],
+#btn-regenerate-share-link[hidden] { display: none; }
+
+/* Consultation partagée : aucun contrôle d'édition */
+body.mode-readonly .user-session-zone,
+body.mode-readonly .quick-add-bar-wrapper,
+body.mode-readonly .activity-template-ribbon,
+body.mode-readonly #btn-open-add-todo,
+body.mode-readonly #btn-open-add-expense,
+body.mode-readonly #btn-open-add-contact,
+body.mode-readonly #btn-import-native-contacts,
+body.mode-readonly #btn-edit-city,
+body.mode-readonly #btn-edit-rate,
+body.mode-readonly #btn-sync-rates,
+body.mode-readonly .icon-action-btn {
+  display: none !important;
+}
+.tab-btn[hidden],
+.mobile-nav-btn[hidden] { display: none !important; }
+.share-sections .purposes-selection-grid { gap: 0.6rem; }
+.share-sections .purpose-card { padding: 0.75rem 0.85rem; min-height: 44px; }
+.share-sections .purpose-icon { font-size: 1.15rem; margin-bottom: 0.2rem; }
+.share-sections .purpose-title { font-size: 0.9rem; }
+.share-sections .purpose-desc { font-size: 0.75rem; }

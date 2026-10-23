@@ -2,7 +2,7 @@ import { GeographyData } from './GeographyData.js';
 import { ContactService } from './ContactService.js';
 import { SUPPORTED_CURRENCIES } from './BudgetEngine.js';
 
-const generateId = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : 'trip-' + Math.random().toString(36).substring(2, 9);
+const generateId = () => globalThis.crypto.randomUUID();
 
 export class TripService {
   /**
@@ -327,21 +327,91 @@ export class TripService {
   }
 
   /**
-   * Obtient ou génère un jeton de partage en lecture seule
+   * Normalise la configuration de partage (ADR-006) et migre l'ancien `shareToken`.
+   * Un ancien lien reste actif mais ne partage plus que le Programme.
    */
-  static getOrCreateShareToken(trip) {
-    if (!trip.shareToken) {
-      trip.shareToken = 'share-' + (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : Math.random().toString(36).substring(2, 10));
-      trip.updatedAt = new Date().toISOString();
+  static normalizeSharing(trip) {
+    if (!trip.sharing || typeof trip.sharing !== 'object') {
+      trip.sharing = {
+        enabled: !!trip.shareToken,
+        token: trip.shareToken || null,
+        sections: { ...DEFAULT_SHARE_SECTIONS },
+        updatedAt: null
+      };
+    } else {
+      trip.sharing.sections = { ...DEFAULT_SHARE_SECTIONS, ...pickShareSections(trip.sharing.sections) };
+      trip.sharing.enabled = !!trip.sharing.enabled;
+      trip.sharing.token = trip.sharing.token || null;
     }
-    return trip.shareToken;
+    delete trip.shareToken;
+    return trip.sharing;
   }
 
   /**
-   * Valide un jeton de partage
+   * Met à jour le partage : activation, sections partagées, régénération du lien.
    */
-  static validateShareToken(trip, token) {
-    if (!trip || !token || !trip.shareToken) return false;
-    return trip.shareToken === token.trim();
+  static updateSharing(trip, { enabled, sections, regenerate = false } = {}) {
+    const sharing = TripService.normalizeSharing(trip);
+    if (sections && typeof sections === 'object') {
+      sharing.sections = { ...sharing.sections, ...pickShareSections(sections) };
+    }
+    if (enabled !== undefined) {
+      sharing.enabled = !!enabled;
+    }
+    if (regenerate || (sharing.enabled && !sharing.token)) {
+      sharing.token = 'share-' + globalThis.crypto.randomUUID();
+    }
+    sharing.updatedAt = new Date().toISOString();
+    return sharing;
   }
+
+  /**
+   * Projection en lecture seule d'un voyage partagé : uniquement les sections choisies,
+   * sans aucun identifiant interne (id, userId, sharing, version).
+   */
+  static buildSharedView(trip) {
+    const sharing = TripService.normalizeSharing(JSON.parse(JSON.stringify(trip)));
+    const { sections } = sharing;
+    const view = {
+      title: trip.title,
+      country: trip.country,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      isReadOnly: true,
+      sharedSections: Object.keys(sections).filter(key => sections[key])
+    };
+
+    if (sections.planning) {
+      view.days = (trip.days || []).map(day => ({
+        ...day,
+        activities: (day.activities || []).map(act => ({
+          ...act,
+          contactIds: sections.contacts ? [...(act.contactIds || [])] : []
+        }))
+      }));
+    }
+    if (sections.todos) {
+      view.todos = JSON.parse(JSON.stringify(trip.todos || []));
+    }
+    if (sections.budget) {
+      view.totalBudget = trip.totalBudget;
+      view.baseCurrency = trip.baseCurrency;
+      view.currencies = JSON.parse(JSON.stringify(trip.currencies || []));
+      view.expenses = JSON.parse(JSON.stringify(trip.expenses || []));
+    }
+    if (sections.contacts) {
+      view.contacts = JSON.parse(JSON.stringify(trip.contacts || []));
+    }
+    return view;
+  }
+}
+
+export const DEFAULT_SHARE_SECTIONS = Object.freeze({ planning: true, todos: false, budget: false, contacts: false });
+
+function pickShareSections(sections = {}) {
+  const picked = {};
+  for (const key of Object.keys(DEFAULT_SHARE_SECTIONS)) {
+    if (sections[key] !== undefined) picked[key] = !!sections[key];
+  }
+  return picked;
 }

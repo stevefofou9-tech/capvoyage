@@ -1,4 +1,4 @@
-const generateId = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : 'exp-' + Math.random().toString(36).substring(2, 9);
+const generateId = () => globalThis.crypto.randomUUID();
 
 export const VALID_EXPENSE_CATEGORIES = [
   'Transport',
@@ -280,7 +280,7 @@ export class BudgetEngine {
   /**
    * Actualise les taux de devises en ligne avec cache local et repli hors-ligne
    */
-  static async syncExchangeRates(trip, { fetchFn = globalThis.fetch } = {}) {
+  static async syncExchangeRates(trip, { fetchFn = globalThis.fetch, url = '/api/rates' } = {}) {
     if (!trip.currencies) {
       trip.currencies = JSON.parse(JSON.stringify(SUPPORTED_CURRENCIES));
     }
@@ -290,7 +290,7 @@ export class BudgetEngine {
         throw new Error('fetchFn indisponible');
       }
 
-      const res = await fetchFn('https://api.frankfurter.app/latest?from=EUR');
+      const res = await fetchFn(url);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }

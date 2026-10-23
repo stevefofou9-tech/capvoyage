@@ -1,4 +1,4 @@
-const generateId = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : 'act-' + Math.random().toString(36).substring(2, 9);
+const generateId = () => globalThis.crypto.randomUUID();
 
 export const VALID_ACTIVITY_STATUSES = ['À planifier', 'Confirmé', 'Effectué', 'Annulé'];
 export const VALID_ACTIVITY_CATEGORIES = [

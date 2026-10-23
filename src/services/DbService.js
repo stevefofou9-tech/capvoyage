@@ -2,6 +2,9 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const SESSION_SLIDE_INTERVAL_MS = 60 * 60 * 1000;
+
 export class DbService {
   /**
    * @param {string} dbPath - Chemin vers le fichier SQLite ou ':memory:'
@@ -62,6 +65,16 @@ export class DbService {
       CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
       CREATE INDEX IF NOT EXISTS idx_trips_share_token ON trips(share_token);
 
+      CREATE TABLE IF NOT EXISTS sessions (
+        token TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        last_seen_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+
       CREATE TABLE IF NOT EXISTS rate_limits (
         key TEXT PRIMARY KEY,
         attempts INTEGER NOT NULL,
@@ -120,7 +133,6 @@ export class DbService {
       ON CONFLICT(id) DO UPDATE SET
         email = excluded.email,
         last_login_at = excluded.last_login_at,
-        session_token = excluded.session_token,
         verification_code = excluded.verification_code,
         code_expires_at = excluded.code_expires_at,
         failed_attempts = excluded.failed_attempts,
@@ -134,7 +146,7 @@ export class DbService {
       email,
       user.createdAt || new Date().toISOString(),
       user.lastLoginAt || null,
-      user.sessionToken || null,
+      null,
       user.verificationCode || null,
       user.codeExpiresAt || null,
       user.failedAttempts || 0,
@@ -229,7 +241,7 @@ export class DbService {
       trip.endDate || '',
       trip.baseCurrency || 'EUR',
       trip.totalBudget || 0,
-      trip.shareToken || null,
+      (trip.sharing ? (trip.sharing.enabled ? trip.sharing.token : null) : trip.shareToken) || null,
       JSON.stringify(trip),
       createdAt,
       updatedAt
@@ -248,6 +260,64 @@ export class DbService {
   // ==========================================
   // PROTECTION BRUTE-FORCE & RATE LIMITING
   // ==========================================
+
+  // ==========================================
+  // SESSIONS MULTI-APPAREILS (ADR-004)
+  // ==========================================
+
+  /**
+   * Crée une session pour un utilisateur, valable `ttlMs` (30 jours par défaut)
+   */
+  createSession(userId, token, nowMs = Date.now(), ttlMs = SESSION_TTL_MS) {
+    const now = new Date(nowMs).toISOString();
+    this.purgeExpiredSessions(nowMs);
+    this.db.prepare('INSERT INTO sessions (token, user_id, created_at, last_seen_at, expires_at) VALUES (?, ?, ?, ?, ?)')
+      .run(token, userId, now, now, new Date(nowMs + ttlMs).toISOString());
+    return token;
+  }
+
+  /**
+   * Retourne l'utilisateur d'une session valide (expiration glissante, prolongée au plus une fois par heure)
+   */
+  getSessionUser(token, nowMs = Date.now(), ttlMs = SESSION_TTL_MS) {
+    if (!token) return null;
+    const row = this.db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
+    if (!row) return null;
+    if (Date.parse(row.expires_at) <= nowMs) {
+      this.deleteSession(token);
+      return null;
+    }
+    if (nowMs - Date.parse(row.last_seen_at) > SESSION_SLIDE_INTERVAL_MS) {
+      this.db.prepare('UPDATE sessions SET last_seen_at = ?, expires_at = ? WHERE token = ?')
+        .run(new Date(nowMs).toISOString(), new Date(nowMs + ttlMs).toISOString(), token);
+    }
+    const user = this.getUserById(row.user_id);
+    if (!user) return null;
+    user.sessionToken = token;
+    return user;
+  }
+
+  deleteSession(token) {
+    if (!token) return false;
+    return this.db.prepare('DELETE FROM sessions WHERE token = ?').run(token).changes > 0;
+  }
+
+  purgeExpiredSessions(nowMs = Date.now()) {
+    this.db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(new Date(nowMs).toISOString());
+  }
+
+  /**
+   * Migration idempotente : l'ancien jeton unique `users.session_token` devient une session
+   */
+  migrateLegacySessions(nowMs = Date.now()) {
+    const rows = this.db.prepare('SELECT id, session_token FROM users WHERE session_token IS NOT NULL').all();
+    for (const row of rows) {
+      const exists = this.db.prepare('SELECT 1 FROM sessions WHERE token = ?').get(row.session_token);
+      if (!exists) this.createSession(row.id, row.session_token, nowMs);
+    }
+    this.db.prepare('UPDATE users SET session_token = NULL WHERE session_token IS NOT NULL').run();
+    return rows.length;
+  }
 
   /**
    * Vérifie et met à jour le rate limiting pour une clé donnée
@@ -348,21 +418,6 @@ export class DbService {
             console.warn(`[DbService] Erreur lors de la migration ${file}:`, err.message);
           }
         }
-      }
-    }
-
-    // 3. Migration du voyage démo trip_cameroun.json
-    const demoFile = path.join(dataDir, 'trip_cameroun.json');
-    if (fs.existsSync(demoFile)) {
-      try {
-        const raw = fs.readFileSync(demoFile, 'utf-8');
-        const trip = JSON.parse(raw);
-        if (trip && trip.id && !this.getTripById(trip.id)) {
-          this.saveTrip(trip, null);
-          migratedTrips++;
-        }
-      } catch (err) {
-        console.warn('[DbService] Erreur lors de la migration trip_cameroun.json:', err.message);
       }
     }
 

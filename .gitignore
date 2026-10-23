@@ -36,3 +36,9 @@ test_*.js
 # Système d'exploitation
 .DS_Store
 Thumbs.db
+
+# Données démo : générées par src/seed.js (ADR-001)
+data/trip_cameroun.json
+
+# État de travail des outils de design
+.impeccable/

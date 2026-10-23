@@ -1,5 +1,5 @@
-const generateId = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : 'usr-' + Math.random().toString(36).substring(2, 9);
-const generateToken = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID().replace(/-/g, '') + globalThis.crypto.randomUUID().replace(/-/g, '') : 'tok-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+const generateId = () => globalThis.crypto.randomUUID();
+const generateToken = () => globalThis.crypto.randomUUID().replace(/-/g, '') + globalThis.crypto.randomUUID().replace(/-/g, '');
 
 export class AuthService {
   /**
@@ -22,7 +22,14 @@ export class AuthService {
    * Génère un code à 6 chiffres
    */
   static generateCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    // Tirage cryptographique uniforme dans [100000, 999999] (rejet pour éviter le biais modulo)
+    const range = 900000;
+    const limit = Math.floor(0x100000000 / range) * range;
+    const buf = new Uint32Array(1);
+    do {
+      globalThis.crypto.getRandomValues(buf);
+    } while (buf[0] >= limit);
+    return String(100000 + (buf[0] % range));
   }
 
   /**

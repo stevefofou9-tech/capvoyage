@@ -1,4 +1,4 @@
-const generateId = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : 'cnt-' + Math.random().toString(36).substring(2, 9);
+const generateId = () => globalThis.crypto.randomUUID();
 
 export const RELATION_CIRCLES = [
   'Famille',
