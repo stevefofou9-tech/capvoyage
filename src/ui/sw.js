@@ -6,7 +6,7 @@
 // (L'ancienne stratégie cache-first continuait de servir un app.js cassé
 // après correction, rendant l'interface inerte.)
 
-const CACHE_NAME = 'capvoyage-cache-v7';
+const CACHE_NAME = 'capvoyage-cache-v8';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -24,7 +24,9 @@ const ASSETS_TO_CACHE = [
   '/domain/ActivityTemplates.js',
   '/domain/GeographyData.js',
   '/domain/IcsService.js',
-  '/domain/SyncQueue.js'
+  '/domain/SyncQueue.js',
+  '/domain/NowService.js',
+  '/domain/ContactImport.js'
 ];
 
 self.addEventListener('install', (event) => {

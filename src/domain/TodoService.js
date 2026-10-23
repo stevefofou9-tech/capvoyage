@@ -176,6 +176,18 @@ export class TodoService {
   }
 
   /**
+   * Bascule rapide d'un tap (REQ-2.5) : Fait -> À faire ; À faire / En cours -> Fait.
+   */
+  static toggleDone(todos, id) {
+    const todo = todos.find(t => t.id === id);
+    if (!todo) {
+      throw new Error(`Tâche introuvable avec l'id : ${id}`);
+    }
+    todo.status = todo.status === 'Fait' ? 'À faire' : 'Fait';
+    return todo;
+  }
+
+  /**
    * Modifie l'ensemble des champs d'une tâche
    */
   static updateTodo(todos, id, updates = {}) {

@@ -114,6 +114,9 @@ export async function launchBrowser(chromePath) {
         await send('Page.navigate', { url }, sessionId);
         await page.waitFor(`document.readyState === 'complete' && location.href.startsWith(${JSON.stringify(url.split('?')[0])})`);
       },
+      async addInitScript(source) {
+        await send('Page.addScriptToEvaluateOnNewDocument', { source }, sessionId);
+      },
       async setViewport(width, height, mobile = false) {
         await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile }, sessionId);
       }

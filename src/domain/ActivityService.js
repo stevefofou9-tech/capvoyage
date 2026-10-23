@@ -22,18 +22,18 @@ export class ActivityService {
       throw new Error("Le titre de l'activité est obligatoire");
     }
 
-    const day = trip.days.find(d => d.id === dayId || d.dayNumber === Number(dayId));
-    if (!day) {
+    const hasDay = dayId !== undefined && dayId !== null && dayId !== '';
+    const day = hasDay ? trip.days.find(d => d.id === dayId || d.dayNumber === Number(dayId)) : null;
+    if (hasDay && !day) {
       throw new Error(`Journée introuvable pour l'identifiant : ${dayId}`);
     }
 
-    if (!day.activities) {
+    if (day && !day.activities) {
       day.activities = [];
     }
 
     const newActivity = {
       id: generateId(),
-      dayId: day.id,
       title: title.trim(),
       category: VALID_ACTIVITY_CATEGORIES.includes(category) ? category : 'Autre',
       time: time ? time.trim() : '',
@@ -44,7 +44,14 @@ export class ActivityService {
       createdAt: new Date().toISOString()
     };
 
-    day.activities.push(newActivity);
+    if (day) {
+      newActivity.dayId = day.id;
+      day.activities.push(newActivity);
+    } else {
+      // Idée : activité sans jour (ADR-007)
+      if (!Array.isArray(trip.ideas)) trip.ideas = [];
+      trip.ideas.push(newActivity);
+    }
     trip.updatedAt = new Date().toISOString();
     return newActivity;
   }
@@ -53,6 +60,8 @@ export class ActivityService {
    * Recherche d'une activité par son ID
    */
   static findActivity(trip, activityId) {
+    const idea = (trip.ideas || []).find(a => a.id === activityId);
+    if (idea) return { activity: idea, day: null };
     for (const day of trip.days) {
       if (day.activities) {
         const found = day.activities.find(a => a.id === activityId);
@@ -129,8 +138,12 @@ export class ActivityService {
 
     const { activity, day: sourceDay } = result;
 
-    // Retrait de la journée source
-    sourceDay.activities = sourceDay.activities.filter(a => a.id !== activityId);
+    // Retrait de la journée source (ou du bac à idées)
+    if (sourceDay) {
+      sourceDay.activities = sourceDay.activities.filter(a => a.id !== activityId);
+    } else {
+      trip.ideas = (trip.ideas || []).filter(a => a.id !== activityId);
+    }
 
     // Mise à jour du lien de journée
     activity.dayId = targetDay.id;
@@ -153,9 +166,54 @@ export class ActivityService {
     }
 
     const { activity, day } = result;
-    day.activities = day.activities.filter(a => a.id !== activityId);
+    if (day) {
+      day.activities = day.activities.filter(a => a.id !== activityId);
+    } else {
+      trip.ideas = (trip.ideas || []).filter(a => a.id !== activityId);
+    }
     trip.updatedAt = new Date().toISOString();
     return activity;
+  }
+
+  /**
+   * Place une idée sur un jour (ADR-007). Tous les champs et le statut sont conservés.
+   */
+  static placeIdea(trip, activityId, dayId, { time } = {}) {
+    const result = ActivityService.findActivity(trip, activityId);
+    if (!result || result.day) {
+      throw new Error(`Idée introuvable avec l'id : ${activityId}`);
+    }
+    const activity = ActivityService.moveActivity(trip, activityId, dayId);
+    if (time !== undefined) activity.time = time ? String(time).trim() : '';
+    return activity;
+  }
+
+  /**
+   * Remet une activité datée dans le bac à idées (ADR-007).
+   */
+  static unplaceActivity(trip, activityId) {
+    const result = ActivityService.findActivity(trip, activityId);
+    if (!result) {
+      throw new Error(`Activité introuvable avec l'id : ${activityId}`);
+    }
+    const { activity, day } = result;
+    if (!day) return activity;
+    day.activities = day.activities.filter(a => a.id !== activityId);
+    delete activity.dayId;
+    if (!Array.isArray(trip.ideas)) trip.ideas = [];
+    trip.ideas.push(activity);
+    trip.updatedAt = new Date().toISOString();
+    return activity;
+  }
+
+  /**
+   * Un bouton ✓ n'est proposé que pour une activité datée, du jour courant ou passée,
+   * ni déjà effectuée ni annulée (REQ-2.5). `todayStr` : date locale AAAA-MM-JJ.
+   */
+  static isCheckable(activity, day, todayStr) {
+    if (!activity || !day || !day.date || !todayStr) return false;
+    if (activity.status === 'Effectué' || activity.status === 'Annulé') return false;
+    return day.date <= todayStr;
   }
 
   /**

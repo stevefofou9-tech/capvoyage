@@ -4,7 +4,7 @@
 **Référence PRD :** `docs/PRD.md` (v2.1.0) | `docs/user_stories.md` (v2.1.0) | `docs/adr/`  
 **Cas pilote de test :** Voyage de 21 jours au Cameroun (Douala -> Yaoundé -> Kribi)  
 **Date :** 18/10/2026 · **Révision v2.0 :** 23/10/2026  
-**Statut :** v2.0 exécutée. Les modules 16 à 19 passent tous (voir la CI). **Modules 20 à 24 (🆕 v2.1) : spécifiés le 23/10/2026, écrits avant le code de chaque lot (tests d'abord, ils échouent tant que le lot n'est pas livré).**
+**Statut :** v2.0 exécutée. Les modules 16 à 19 passent tous (voir la CI). **Modules 20 à 24 (🆕 v2.1) : implémentés et verts le 23/10/2026** (`tests/domain/{ideas,todo_toggle,contact_import,now}.test.js`, `tests/api/ideas.test.js`, `tests/ui/{v21.cdp,design_rules,sw_precache}.test.js`). Le sélecteur de contacts en feuille basse et l'import testés sur écran réel ; l'import via l'assistant (étape 3) partage le même composant et n'a pas de parcours CDP dédié.
 
 ---
 

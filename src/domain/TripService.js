@@ -286,6 +286,10 @@ export class TripService {
     }
 
     let foundActivity = null;
+    const ideaIdx = (trip.ideas || []).findIndex(a => a.id === activityId);
+    if (ideaIdx !== -1) {
+      [foundActivity] = trip.ideas.splice(ideaIdx, 1);
+    }
     (trip.days || []).forEach(d => {
       if (d.activities) {
         const idx = d.activities.findIndex(a => a.id === activityId);

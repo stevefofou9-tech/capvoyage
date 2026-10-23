@@ -3,7 +3,7 @@
 **Méthodologie :** Spec-Driven Development (SDD)
 **Version :** 2.1.0
 **Date :** 23/10/2026
-**Statut :** v2.0 implémentée ; **v2.1 spécifiée et validée (23/10/2026), développement à venir**
+**Statut :** v2.0 et v2.1 implémentées et testées (23/10/2026)
 
 > **Historique**
 > - v1.0.0 (18/10/2026) : périmètre initial (modules 1 à 6).
@@ -85,7 +85,7 @@ CapVoyage est un planificateur de voyage axé sur :
 - **REQ-3.2 :** chaque fiche comprend : nom, relation (Famille, Ami, Guide, Chauffeur, Collègue, Autre), téléphone/WhatsApp, ville, notes.
 - **REQ-3.3 :** association de plusieurs contacts à une activité.
 - **REQ-3.4 :** vue synthétique par contact, listant toutes ses activités.
-- **REQ-3.5 (sélecteur de contacts, nouveau v2.1) :** l'association de contacts à une activité (fiche et ajout rapide) passe par un **sélecteur à recherche** en feuille basse : champ de filtre, contacts récents en tête, tap = ajout/retrait d'une pastille, multi-sélection, « + Nouveau » en bas. Il remplace le nuage de cases et le menu `@Contact`.
+- **REQ-3.5 (sélecteur de contacts, nouveau v2.1) :** l'association de contacts à une activité (fiche et ajout rapide) passe par un **sélecteur à recherche** en feuille basse : champ de filtre, contacts récents en tête, tap = ajout/retrait d'une pastille, multi-sélection, « + Nouveau » en bas. Il remplace le nuage de cases et le bouton `@Contact` ; la suggestion en ligne quand on tape `@` dans la barre d'ajout est conservée (autocomplétion, sans fenêtre). Les relations proposées restent celles de l'application : Famille, Amis, Pro / Affaires, Guide / Chauffeur, Autre.
 - **REQ-3.6 (import du répertoire à la configuration, nouveau v2.1) :** l'étape « contacts » de l'assistant (et l'onglet Contacts) permet de charger des contacts depuis : (a) le sélecteur natif quand le navigateur le fournit (Chrome Android), (b) un fichier **vCard (.vcf)**, (c) une **saisie en lot** (un nom par ligne). Les sources alimentent un **écran de tri unique** où chaque contact reçoit sa **relation** en un tap (actions « Tout en Ami » et « Ignorer »). Rien n'est enregistré avant validation ; seuls les contacts conservés entrent dans le voyage.
 
 ### Module 4 : To-Do Pré-Voyage & Formalités

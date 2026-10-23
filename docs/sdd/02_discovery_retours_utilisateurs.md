@@ -1,6 +1,6 @@
 # SDD — Phase 1 : Discovery (chantier « Premiers retours utilisateurs »)
 
-**Date :** 23/10/2026 · **Entrée :** premiers retours d'usage réel (verbatim §2) · **Statut :** ✅ **validée le 23/10/2026** (Q1 à Q6 : recommandations retenues telles quelles). Spécifications livrées : [PRD v2.1](../PRD.md), [user stories](../user_stories.md), [ADR-007](../adr/ADR-007-activites-sans-jour-idees.md), [ADR-008](../adr/ADR-008-import-contacts-multi-sources.md), [cahier de test modules 20 à 24](../cahier_de_test.md). Développement : à venir, dans l'ordre du §5.
+**Date :** 23/10/2026 · **Entrée :** premiers retours d'usage réel (verbatim §2) · **Statut :** ✅ **validée le 23/10/2026** (Q1 à Q6 : recommandations retenues telles quelles). Spécifications livrées : [PRD v2.1](../PRD.md), [user stories](../user_stories.md), [ADR-007](../adr/ADR-007-activites-sans-jour-idees.md), [ADR-008](../adr/ADR-008-import-contacts-multi-sources.md), [cahier de test modules 20 à 24](../cahier_de_test.md). Développement : livré le 23/10/2026 (voir TASKS_PROGRESS, phase 16).
 **Précédent chantier :** [`01_discovery.md`](01_discovery.md) (audit, sécurité, synchro, partage, mobile)
 
 ---

@@ -2722,3 +2722,226 @@ body.mode-readonly .icon-action-btn {
 }
 .demo-exit-banner[hidden] { display: none; }
 .demo-exit-banner .btn { min-height: 44px; }
+
+/* ==========================================================================
+   v2.1 (DÉBUT) : ergonomie mobile, idées, sélecteur, import (REQ-UX-1 à 4)
+   Règle : aucune couleur ni rayon en dur dans ce bloc, uniquement les tokens :root
+   (garde-fou : tests/ui/design_rules.test.js).
+   ========================================================================== */
+.header-menu-wrap { position: relative; display: none; }
+.header-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  min-width: 13rem;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 0.35rem;
+  z-index: 950;
+}
+.header-menu[hidden] { display: none; }
+.header-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: 0 0.85rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+}
+.header-menu button:hover,
+.header-menu button:focus-visible { background: var(--bg-subtle); outline: none; }
+
+/* Idées */
+.ideas-panel {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin-bottom: 0.9rem;
+}
+.ideas-panel[hidden] { display: none; }
+.ideas-panel > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--touch-target-min);
+  padding: 0 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+.ideas-panel > summary::-webkit-details-marker { display: none; }
+.ideas-panel > summary::after { content: '▾'; margin-left: auto; color: var(--text-light); }
+.ideas-panel[open] > summary::after { content: '▴'; }
+.ideas-hint { padding: 0 1rem; margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--text-light); }
+.ideas-list { display: grid; gap: 0.5rem; padding: 0 0.75rem 0.75rem; }
+.idea-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--bg-subtle);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.8rem;
+  min-width: 0;
+}
+.idea-main { min-width: 0; }
+.idea-main .activity-title { overflow-wrap: anywhere; }
+.idea-meta { display: flex; flex-wrap: wrap; gap: 0.35rem 0.6rem; font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem; }
+.idea-actions { display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
+.idea-actions .btn { min-height: 44px; }
+
+/* Prochaine activité / compte à rebours */
+.next-activity-banner {
+  background: var(--primary-surface);
+  border: 1.5px solid var(--primary-light);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+.next-activity-banner[hidden] { display: none; }
+
+/* Statut en un tap */
+.todo-status-btn {
+  font-family: inherit;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+  cursor: pointer;
+}
+.btn-done-act { color: var(--success); font-weight: 800; }
+
+/* Pastilles de contacts (fiche d'activité) */
+.contact-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--primary-surface);
+  border: 1.5px solid var(--primary-light);
+  border-radius: var(--radius-full);
+  padding: 0 0.25rem 0 0.8rem;
+  min-height: 40px;
+  font-weight: 700;
+}
+.contact-chip-del {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+}
+.contact-chip-add { min-height: 44px; }
+#edit-activity-contacts-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+/* Sélecteur de contacts */
+#contact-picker-search {
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: 0.65rem 0.95rem;
+  font: inherit;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.6rem;
+}
+.picker-list { list-style: none; margin: 0 0 0.75rem; padding: 0; max-height: 45vh; overflow-y: auto; display: grid; gap: 0.3rem; }
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: 0 0.8rem;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.picker-item[aria-pressed="true"] { background: var(--primary-surface); border-color: var(--primary); }
+.picker-check { width: 1.4rem; text-align: center; font-weight: 800; color: var(--primary); }
+.picker-name { font-weight: 700; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.picker-item small { color: var(--text-light); }
+.picker-create { border-style: dashed; }
+
+/* Import de contacts */
+.import-sources { display: grid; gap: 0.6rem; }
+.import-sources[hidden],
+.import-sort[hidden] { display: none; }
+.import-sources .btn { min-height: var(--touch-target-min); justify-content: center; text-align: center; }
+.import-sources textarea { font: inherit; padding: 0.65rem 0.95rem; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); }
+.import-sort-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem; }
+.import-sort-tools .btn { min-height: 44px; }
+.import-sort-list { list-style: none; margin: 0 0 0.75rem; padding: 0; max-height: 50vh; overflow-y: auto; display: grid; gap: 0.5rem; }
+.import-row { border: 1.5px solid var(--border-light); border-radius: var(--radius-md); padding: 0.6rem 0.7rem; background: var(--bg-card); }
+.import-row.is-ignored { opacity: 0.55; }
+.import-row-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.import-row-head .btn { min-height: 44px; flex-shrink: 0; }
+.dup-tag { color: var(--warning); font-weight: 700; }
+.rel-chip-group { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; }
+.rel-chip {
+  min-height: 44px;
+  padding: 0 0.85rem;
+  background: var(--bg-subtle);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-full);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rel-chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--text-inverse); }
+#btn-wiz-import-contacts { width: 100%; min-height: var(--touch-target-min); margin-top: 0.75rem; }
+
+/* En-tête mobile sobre : identité + synchro + menu « ⋯ » (REQ-UX-2, REQ-UX-3) */
+@media (max-width: 768px) {
+  .app-header .header-container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand actions" "title title";
+    align-items: center;
+    gap: 0 0.5rem;
+    padding: 0.2rem 1rem 0.5rem;
+  }
+  .brand-zone { display: contents; }
+  .brand-logo.sm { grid-area: brand; min-height: 44px; display: flex; align-items: center; }
+  .brand-zone > div:last-child { grid-area: title; min-width: 0; }
+  .country-badge { display: none; }
+  .brand-zone h1 {
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .trip-meta {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .user-session-zone { grid-area: actions; justify-self: end; overflow: visible; gap: 0.4rem; }
+  .user-pill,
+  #btn-header-share,
+  #btn-header-new-trip,
+  #btn-logout-header { display: none; }
+  .header-menu-wrap { display: block; }
+  #btn-header-menu { min-width: 44px; min-height: 44px; font-size: 1.35rem; line-height: 1; padding: 0 0.6rem; }
+  .idea-card { flex-direction: column; align-items: stretch; }
+  .idea-actions { justify-content: space-between; }
+}
+/* v2.1 (FIN) */

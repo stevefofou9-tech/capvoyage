@@ -118,6 +118,14 @@ export class IcsService {
           lines.push(`LOCATION:${escapeIcsText(location)}`);
         }
         lines.push(`STATUS:${status}`);
+        if (!dateInfo.isAllDay) {
+          // Alarme 1 h avant (REQ-7.7) : le calendrier du téléphone notifie, même hors-ligne
+          lines.push('BEGIN:VALARM');
+          lines.push('ACTION:DISPLAY');
+          lines.push(`DESCRIPTION:${escapeIcsText(act.title)}`);
+          lines.push('TRIGGER:-PT1H');
+          lines.push('END:VALARM');
+        }
         lines.push('END:VEVENT');
       });
     });

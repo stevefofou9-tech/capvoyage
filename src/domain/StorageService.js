@@ -18,6 +18,10 @@ export class StorageService {
       throw new Error('La propriété "days" doit être un tableau');
     }
 
+    if (trip.ideas !== undefined && !Array.isArray(trip.ideas)) {
+      throw new Error('La propriété "ideas" doit être un tableau');
+    }
+
     return true;
   }
 

@@ -30,7 +30,7 @@ pie title Répartition de l'avancement des phases
 | **Phase 13** | Audit complet & correctif « clic inerte » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | `docs/audit_2026-10-23.md` ; Service Worker network-first, `no-cache` + ETag, test d'intégrité du front |
 | **Phase 14** | Refonte visuelle « Carte Solaire » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | `DESIGN.md`, `style.css` (Public Sans + Atkinson Hyperlegible, palette solaire) — remplace la palette de la phase 12 |
 | **Phase 15** | Chantier SDD « Recommandations de l'audit » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | Discovery, PRD v2.0, ADR-001 à 006, cahier v2.0 ; sécurité serveur, partage paramétrable, synchro hors-ligne, mobile, CI + parcours Chrome, sauvegardes |
-| **Phase 16** | Chantier SDD « Premiers retours utilisateurs » | 🟡 **Spécifié, développement à venir** | 23/10/2026 | — | Discovery validée, PRD v2.1, US-1.3/3.4/3.5/4.3/4.4 et EPIC 9, ADR-007/008, cahier modules 20 à 24 |
+| **Phase 16** | Chantier SDD « Premiers retours utilisateurs » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | Discovery validée, PRD v2.1, US-1.3/3.4/3.5/4.3/4.4 et EPIC 9, ADR-007/008, cahier modules 20 à 24 |
 
 ---
 
@@ -277,17 +277,17 @@ pie title Répartition de l'avancement des phases
 
 ---
 
-### Phase 16 : Chantier SDD « Premiers retours utilisateurs » (🟡 Spécifié)
+### Phase 16 : Chantier SDD « Premiers retours utilisateurs » (🟢 Terminé)
 - [x] **Discovery** : [`docs/sdd/02_discovery_retours_utilisateurs.md`](docs/sdd/02_discovery_retours_utilisateurs.md), 6 retours analysés et challengés, Q1 à Q6 tranchées.
 - [x] **Exigences** : PRD v2.1 (module 9 Ergonomie, REQ-2.1 révisé, REQ-2.4, 2.5, 3.5, 3.6, 7.5 à 7.7), user stories, hors-périmètre (push).
 - [x] **Architecture** : ADR-007 (idées dans `trip.ideas[]`), ADR-008 (import de contacts multi-sources).
 - [x] **Plan de test** : modules TC-UX, TC-IDEA, TC-QS, TC-CTX, TC-NOW.
-- [ ] **Développement** (un lot = un commit, tests verts avant le suivant) :
-  - [ ] Lot 1 : design system v2 (`DESIGN.md`) + en-tête mobile (R1)
-  - [ ] Lot 2 : statut en un tap, tâches puis activités (R4)
-  - [ ] Lot 3 : bac à idées (R5)
-  - [ ] Lot 4 : sélecteur de contacts à recherche (R2)
-  - [ ] Lot 5 : jour courant + prochaine activité (R6)
-  - [ ] Lot 6 : import du répertoire + tri à la configuration (R3)
-  - [ ] Lot 7 : alarmes dans l'export `.ics` (R6)
-- [ ] **Recette** : navigateur desktop et 375 px.
+- [x] **Développement** (un lot = un commit, tests verts avant le suivant) :
+  - [x] Lot 1 : design system v2 (`DESIGN.md`) + en-tête mobile (R1)
+  - [x] Lot 2 : statut en un tap, tâches puis activités (R4)
+  - [x] Lot 3 : bac à idées (R5)
+  - [x] Lot 4 : sélecteur de contacts à recherche (R2)
+  - [x] Lot 5 : jour courant + prochaine activité (R6)
+  - [x] Lot 6 : import du répertoire + tri à la configuration (R3)
+  - [x] Lot 7 : alarmes dans l'export `.ics` (R6)
+- [x] **Recette** : navigateur desktop et 375 px.

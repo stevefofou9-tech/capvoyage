@@ -15,6 +15,8 @@ import { COUNTRIES_CATALOG, GeographyData } from '../domain/GeographyData.js';
 import { ACTIVITY_TEMPLATES, searchTemplates, resolveTemplateTitle } from '../domain/ActivityTemplates.js';
 import { IcsService } from '../domain/IcsService.js';
 import { SyncQueue, SyncStatus } from '../domain/SyncQueue.js';
+import { NowService } from '../domain/NowService.js';
+import { parseVCard, parseBulk, buildSortRows, toContacts, filterContacts, IMPORT_RELATIONSHIPS } from '../domain/ContactImport.js';
 
 const DEMO_TRIP_KEY = 'capvoyage_demo_trip';
 const SYNC_RETRY_MS = 30000;
@@ -33,6 +35,10 @@ const state = {
   sharedSections: null,  // Sections visibles en consultation partagée (ADR-006)
   syncQueue: null,       // File de synchronisation hors-ligne (ADR-003)
   wizardContactsList: [], // Liste locale des contacts ajoutés pas-à-pas à l'étape 3
+  enrichContactIds: [],  // Contacts cochés dans la fiche d'activité (sélecteur REQ-3.5)
+  quickAddContactIds: [], // Contacts choisis pour l'ajout rapide
+  picker: null,          // Contexte du sélecteur de contacts ouvert
+  importCtx: null,       // Contexte de l'import de contacts { context, rows }
   wizardData: {
     country: 'Cameroun',
     mainCity: 'Douala',
@@ -287,6 +293,42 @@ const elements = {
   btnCancelEditRate: document.getElementById('btn-cancel-edit-rate'),
   btnCloseEditRateDialog: document.getElementById('btn-close-edit-rate-dialog'),
 
+  // 14 bis. v2.1 : menu d'en-tête, idées, sélecteur, import
+  btnHeaderMenu: document.getElementById('btn-header-menu'),
+  headerMenu: document.getElementById('header-menu'),
+  ideasPanel: document.getElementById('ideas-panel'),
+  ideasCount: document.getElementById('ideas-count'),
+  ideasList: document.getElementById('ideas-list'),
+  nextActivityBanner: document.getElementById('next-activity-banner'),
+  btnQuickAddIdea: document.getElementById('btn-quick-add-idea'),
+  dialogContactPicker: document.getElementById('dialog-contact-picker'),
+  btnCloseContactPicker: document.getElementById('btn-close-contact-picker'),
+  contactPickerSearch: document.getElementById('contact-picker-search'),
+  contactPickerList: document.getElementById('contact-picker-list'),
+  btnContactPickerDone: document.getElementById('btn-contact-picker-done'),
+  dialogPlaceIdea: document.getElementById('dialog-place-idea'),
+  formPlaceIdea: document.getElementById('form-place-idea'),
+  placeIdeaId: document.getElementById('place-idea-id'),
+  placeIdeaTitle: document.getElementById('place-idea-title'),
+  placeIdeaDay: document.getElementById('place-idea-day'),
+  placeIdeaTime: document.getElementById('place-idea-time'),
+  btnCancelPlaceIdea: document.getElementById('btn-cancel-place-idea'),
+  btnClosePlaceIdea: document.getElementById('btn-close-place-idea'),
+  btnWizImportContacts: document.getElementById('btn-wiz-import-contacts'),
+  dialogImportContacts: document.getElementById('dialog-import-contacts'),
+  btnCloseImportContacts: document.getElementById('btn-close-import-contacts'),
+  btnCancelImport: document.getElementById('btn-cancel-import'),
+  importSources: document.getElementById('import-sources'),
+  importSort: document.getElementById('import-sort'),
+  importSortList: document.getElementById('import-sort-list'),
+  btnImportNative: document.getElementById('btn-import-native'),
+  importVcfFile: document.getElementById('import-vcf-file'),
+  importBulkText: document.getElementById('import-bulk-text'),
+  btnImportBulk: document.getElementById('btn-import-bulk'),
+  btnImportAllFriends: document.getElementById('btn-import-all-friends'),
+  btnImportIgnoreNoPhone: document.getElementById('btn-import-ignore-nophone'),
+  btnImportConfirm: document.getElementById('btn-import-confirm'),
+
   // 15. Navigation Mobile & Badges synchronisés
   mobileNavBtns: document.querySelectorAll('.mobile-nav-btn'),
   mobileBadgeTodos: document.getElementById('mobile-badge-todos'),
@@ -364,6 +406,7 @@ export function closeAccessibleDialog(dialogElement) {
 async function initApp() {
   setupEventListeners();
   initSyncQueue();
+  setInterval(() => { if (state.trip) renderNowBanner(); }, 60000);
 
   // 1. Vérification de la session en cache local (Device-first)
   const cachedSession = localStorage.getItem('capvoyage_session');
@@ -633,6 +676,9 @@ async function enterAppView() {
   if (demoBanner) demoBanner.hidden = isAuthenticated() || state.isReadOnly;
 
   await loadTripData();
+  if (state.trip && (state.trip.days || []).length > 0) {
+    state.activeDayNumber = NowService.getCurrentDay(state.trip, new Date()).dayNumber;
+  }
   renderAll();
 }
 
@@ -872,6 +918,8 @@ function renderAll() {
   renderRemindersBanner();
   renderDayTimeline();
   renderActiveDayPlanning();
+  renderIdeas();
+  renderNowBanner();
   renderTemplateRibbon();
   renderTodos();
   renderBudget();
@@ -1028,6 +1076,9 @@ function renderTemporalBlock(container, countEl, acts, emptyMsg) {
     card.setAttribute('role', 'button');
     card.setAttribute('aria-label', `Détail de l'activité ${act.title}`);
 
+    const dayOfAct = (state.trip.days || []).find(d => (d.activities || []).some(a => a.id === act.id));
+    const checkable = !state.isReadOnly && ActivityService.isCheckable(act, dayOfAct, NowService.getCurrentDay(state.trip, new Date()).todayStr);
+
     // Nuage de contacts liés
     const contactsHtml = (act.contactIds || []).map(cid => {
       const c = (state.trip.contacts || []).find(x => x.id === cid);
@@ -1052,6 +1103,7 @@ function renderTemporalBlock(container, countEl, acts, emptyMsg) {
         <span class="status-badge status-${(act.status || 'À planifier').replace(/\s+/g, '-')}">${act.status || 'À planifier'}</span>
         <div class="card-actions">
           <span class="edit-hint-label">Détail & Modifier ➔</span>
+          ${checkable ? `<button type="button" class="icon-action-btn btn-done-act" title="Marquer comme effectuée" aria-label="Marquer ${escapeHtml(act.title)} comme effectuée">✓</button>` : ''}
           <button class="icon-action-btn btn-del-act" title="Supprimer l'activité">🗑️</button>
         </div>
       </div>
@@ -1059,6 +1111,22 @@ function renderTemporalBlock(container, countEl, acts, emptyMsg) {
 
     // Clic sur toute la tuile pour ouvrir la modale d'enrichissement / détail
     card.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-done-act')) {
+        e.stopPropagation();
+        const previous = act.status || 'À planifier';
+        ActivityService.updateActivity(state.trip, act.id, { status: 'Effectué' });
+        saveTripData();
+        renderAll();
+        showToast(`« ${act.title} » effectuée.`, {
+          type: 'success',
+          undoCallback: () => {
+            ActivityService.updateActivity(state.trip, act.id, { status: previous });
+            saveTripData();
+            renderAll();
+          }
+        });
+        return;
+      }
       if (e.target.closest('.btn-del-act')) {
         e.stopPropagation();
         const deletedAct = { ...act };
@@ -1080,6 +1148,7 @@ function renderTemporalBlock(container, countEl, acts, emptyMsg) {
     });
 
     card.addEventListener('keydown', (e) => {
+      if (e.target !== card) return;
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         openEnrichModal(act);
@@ -1105,8 +1174,14 @@ function openEnrichModal(activity) {
   // Populer le menu déroulant direct de Jour
   if (elements.editActivityDay) {
     elements.editActivityDay.innerHTML = '';
-    const currentDay = (state.trip.days || []).find(d => (d.activities || []).some(a => a.id === activity.id)) ||
-                       (state.trip.days || []).find(d => d.dayNumber === state.activeDayNumber);
+    const isIdea = (state.trip.ideas || []).some(a => a.id === activity.id);
+    const currentDay = isIdea ? null : (state.trip.days || []).find(d => (d.activities || []).some(a => a.id === activity.id));
+
+    const ideaOpt = document.createElement('option');
+    ideaOpt.value = '';
+    ideaOpt.textContent = '💡 Aucun jour (idée)';
+    ideaOpt.selected = isIdea;
+    elements.editActivityDay.appendChild(ideaOpt);
 
     (state.trip.days || []).forEach(d => {
       const opt = document.createElement('option');
@@ -1125,7 +1200,8 @@ function openEnrichModal(activity) {
     if (elements.inlineContactName) elements.inlineContactName.value = '';
   }
 
-  renderContactsInModal(activity.category || 'Autre', activity.contactIds || []);
+  state.enrichContactIds = [...(activity.contactIds || [])];
+  renderEnrichContacts();
 
   openAccessibleDialog(elements.dialogActivityEnrich);
 }
@@ -1177,27 +1253,34 @@ function renderTemplateRibbon() {
   });
 }
 
-function renderContactsInModal(category, selectedContactIds = []) {
+function renderEnrichContacts() {
   const cloud = elements.editActivityContactsList;
   cloud.innerHTML = '';
 
-  const sortedContacts = ContactService.getContactsForActivityCategory(state.trip, category);
-
-  if (sortedContacts.length === 0) {
-    cloud.innerHTML = `<span style="font-size:0.8rem; color:#64748b;">Aucun contact créé. Ajoutez-en dans l'onglet "Contacts".</span>`;
-    return;
-  }
-
-  sortedContacts.forEach(c => {
-    const isChecked = selectedContactIds.includes(c.id);
-    const label = document.createElement('label');
-    label.className = 'checkbox-tag-item';
-    label.innerHTML = `
-      <input type="checkbox" name="contact-chk" value="${c.id}" ${isChecked ? 'checked' : ''} />
-      <span>${escapeHtml(c.name)} <small>(${escapeHtml(c.relationship)})</small></span>
-    `;
-    cloud.appendChild(label);
+  state.enrichContactIds.forEach(cid => {
+    const c = (state.trip.contacts || []).find(x => x.id === cid);
+    if (!c) return;
+    const chip = document.createElement('span');
+    chip.className = 'contact-chip';
+    chip.innerHTML = `<span>👤 ${escapeHtml(c.name)}</span><button type="button" class="contact-chip-del" aria-label="Retirer ${escapeHtml(c.name)}">&times;</button>`;
+    chip.querySelector('.contact-chip-del').addEventListener('click', () => {
+      state.enrichContactIds = state.enrichContactIds.filter(id => id !== cid);
+      renderEnrichContacts();
+    });
+    cloud.appendChild(chip);
   });
+
+  const add = document.createElement('button');
+  add.type = 'button';
+  add.className = 'btn btn-secondary btn-sm contact-chip-add';
+  add.textContent = state.enrichContactIds.length ? '＋ Ajouter' : '＋ Choisir les contacts';
+  add.addEventListener('click', () => {
+    openContactPicker({
+      selectedIds: state.enrichContactIds,
+      onChange: (ids) => { state.enrichContactIds = ids; renderEnrichContacts(); }
+    });
+  });
+  cloud.appendChild(add);
 }
 
 // --------------------------------------------------------------------------
@@ -1239,7 +1322,7 @@ function renderTodos() {
       <div class="todo-body">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.35rem;">
           <h4 class="todo-title">${escapeHtml(todo.title)}</h4>
-          <span class="todo-status-badge status-${statusClass}">${iconCheck} ${escapeHtml(todo.status)}</span>
+          <button type="button" class="todo-status-badge todo-status-btn status-${statusClass}" aria-label="${escapeHtml(todo.title)} : ${escapeHtml(todo.status)}. Toucher pour ${isDone ? 'remettre à faire' : 'marquer fait'}">${iconCheck} ${escapeHtml(todo.status)}</button>
         </div>
         <div class="todo-meta-row">
           <span class="badge-category cat-${todo.category}">${todo.category}</span>
@@ -1253,6 +1336,24 @@ function renderTodos() {
     // Clic sur n'importe quel point de la tuile pour ouvrir la modale d'édition complète
     card.addEventListener('click', () => {
       openEditTodoModal(todo);
+    });
+
+    // Statut en un tap, sans ouvrir la fiche (REQ-2.5)
+    card.querySelector('.todo-status-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (state.isReadOnly) return;
+      const previous = todo.status;
+      TodoService.toggleDone(state.trip.todos, todo.id);
+      saveTripData();
+      renderAll();
+      showToast(todo.status === 'Fait' ? `« ${todo.title} » : fait.` : `« ${todo.title} » : à faire.`, {
+        type: 'success',
+        undoCallback: () => {
+          TodoService.updateTodoStatus(state.trip.todos, todo.id, previous);
+          saveTripData();
+          renderAll();
+        }
+      });
     });
 
     // Arrêt de propagation sur la suppression avec Undo
@@ -1887,7 +1988,18 @@ function setupEventListeners() {
   if (elements.btnQuickMentionContact) {
     elements.btnQuickMentionContact.addEventListener('click', (e) => {
       e.stopPropagation();
-      toggleQuickContactDropdown();
+      openContactPicker({
+        selectedIds: state.quickAddContactIds,
+        onChange: (ids) => { state.quickAddContactIds = ids; state.selectedContactForQuickAdd = ids[0] || null; },
+        onDone: (ids) => {
+          const first = (state.trip.contacts || []).find(c => c.id === ids[0]);
+          if (first && !elements.inputQuickActivityTitle.value.toLowerCase().includes(first.name.toLowerCase())) {
+            const cur = elements.inputQuickActivityTitle.value.trim();
+            elements.inputQuickActivityTitle.value = cur ? `${cur} avec ${first.name}` : `Rdv avec ${first.name}`;
+          }
+          elements.inputQuickActivityTitle.focus();
+        }
+      });
     });
   }
 
@@ -1901,17 +2013,21 @@ function setupEventListeners() {
     });
   }
 
-  elements.formQuickAddActivity.addEventListener('submit', (e) => {
-    e.preventDefault();
+  const handleQuickAdd = (asIdea) => {
     const title = elements.inputQuickActivityTitle.value.trim();
-    if (!title) return;
+    if (!title) {
+      elements.inputQuickActivityTitle.focus();
+      return;
+    }
 
     const day = (state.trip.days || []).find(d => d.dayNumber === state.activeDayNumber);
-    if (!day) return;
+    if (!asIdea && !day) return;
 
     // Détermination des contacts à lier
     let contactIds = [];
-    if (state.selectedContactForQuickAdd) {
+    if (state.quickAddContactIds.length > 0) {
+      contactIds = [...state.quickAddContactIds];
+    } else if (state.selectedContactForQuickAdd) {
       contactIds = [state.selectedContactForQuickAdd];
     } else {
       // Détection automatique si un contact est explicitement nommé
@@ -1922,9 +2038,10 @@ function setupEventListeners() {
       }
     }
 
-    ActivityService.addActivity(state.trip, { dayId: day.id, title, contactIds });
+    ActivityService.addActivity(state.trip, { dayId: asIdea ? undefined : day.id, title, contactIds });
     elements.inputQuickActivityTitle.value = '';
     state.selectedContactForQuickAdd = null;
+    state.quickAddContactIds = [];
 
     if (elements.activityTemplateAutocomplete) {
       elements.activityTemplateAutocomplete.style.display = 'none';
@@ -1935,7 +2052,19 @@ function setupEventListeners() {
 
     saveTripData();
     renderAll();
+    if (asIdea) {
+      if (elements.ideasPanel) elements.ideasPanel.open = true;
+      showToast(`« ${title} » ajoutée aux idées.`, { type: 'success' });
+    }
+  };
+
+  elements.formQuickAddActivity.addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleQuickAdd(false);
   });
+  if (elements.btnQuickAddIdea) {
+    elements.btnQuickAddIdea.addEventListener('click', () => handleQuickAdd(true));
+  }
 
   // 8. Modification de la Ville Étape (remplace prompt())
   elements.btnEditCity.addEventListener('click', () => {
@@ -2011,12 +2140,8 @@ function setupEventListeners() {
         }
       }
 
-      const checkedContacts = Array.from(
-        elements.editActivityContactsList.querySelectorAll('input[name="contact-chk"]:checked')
-      ).map(chk => chk.value);
-      checkedContacts.push(newContact.id);
-
-      renderContactsInModal(elements.editActivityCategory.value, checkedContacts);
+      state.enrichContactIds.push(newContact.id);
+      renderEnrichContacts();
 
       elements.inlineContactName.value = '';
       elements.inlineContactBox.style.display = 'none';
@@ -2025,19 +2150,10 @@ function setupEventListeners() {
     });
   }
 
-  elements.editActivityCategory.addEventListener('change', () => {
-    const selectedContacts = Array.from(
-      elements.editActivityContactsList.querySelectorAll('input[name="contact-chk"]:checked')
-    ).map(chk => chk.value);
-    renderContactsInModal(elements.editActivityCategory.value, selectedContacts);
-  });
-
   elements.formEnrichActivity.addEventListener('submit', (e) => {
     e.preventDefault();
     const actId = elements.editActivityId.value;
-    const selectedContacts = Array.from(
-      elements.editActivityContactsList.querySelectorAll('input[name="contact-chk"]:checked')
-    ).map(chk => chk.value);
+    const selectedContacts = [...state.enrichContactIds];
 
     ActivityService.updateActivity(state.trip, actId, {
       title: elements.editActivityTitle.value,
@@ -2051,11 +2167,17 @@ function setupEventListeners() {
 
     // Déplacement direct de jour si modifié
     if (elements.editActivityDay) {
-      const targetDayNumber = parseInt(elements.editActivityDay.value, 10);
+      const rawDay = elements.editActivityDay.value;
       const currentDay = (state.trip.days || []).find(d => (d.activities || []).some(a => a.id === actId));
-      if (currentDay && currentDay.dayNumber !== targetDayNumber) {
-        TripService.moveActivityToDay(state.trip, actId, targetDayNumber);
-        state.activeDayNumber = targetDayNumber;
+      if (rawDay === '') {
+        // Aucun jour : l'activité retourne aux idées
+        if (currentDay) ActivityService.unplaceActivity(state.trip, actId);
+      } else {
+        const targetDayNumber = parseInt(rawDay, 10);
+        if (!currentDay || currentDay.dayNumber !== targetDayNumber) {
+          TripService.moveActivityToDay(state.trip, actId, targetDayNumber);
+          state.activeDayNumber = targetDayNumber;
+        }
       }
     }
 
@@ -2408,35 +2530,15 @@ function setupEventListeners() {
   }
   setupShareDialog();
 
-  // Intégration Native Contact Picker API
-  elements.btnImportNativeContacts.addEventListener('click', async () => {
-    if ('contacts' in navigator && 'ContactsManager' in window) {
-      try {
-        const props = ['name', 'tel'];
-        const selected = await navigator.contacts.select(props, { multiple: true });
-        if (selected && selected.length > 0) {
-          selected.forEach(c => {
-            const name = (c.name && c.name[0]) || 'Contact Répertoire';
-            const phone = (c.tel && c.tel[0]) || '';
-            ContactService.addContact(state.trip, {
-              name,
-              phone,
-              relationship: 'Amis'
-            });
-          });
-          saveTripData();
-          renderAll();
-          showToast(`${selected.length} contact(s) importé(s) depuis votre carnet !`, { type: 'success' });
-        }
-      } catch (err) {
-        console.warn('Annulation ou refus d\'importation des contacts', err);
-      }
-    } else {
-      showToast("Sélecteur natif indisponible sur cet appareil. Formulaire manuel ouvert.", { type: 'info' });
-      elements.formAddContact.reset();
-      openAccessibleDialog(elements.dialogAddContact);
-    }
-  });
+  // Import du répertoire : une seule boîte, trois sources, un écran de tri (ADR-008)
+  elements.btnImportNativeContacts.addEventListener('click', () => openImportDialog('trip'));
+  setupContactPicker();
+  setupImportDialog();
+  setupIdeas();
+  setupHeaderMenu();
+  if (elements.btnWizImportContacts) {
+    elements.btnWizImportContacts.addEventListener('click', () => openImportDialog('wizard'));
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -2735,6 +2837,384 @@ function setupTemplateAutocomplete() {
     }
   });
 }
+
+// --------------------------------------------------------------------------
+// v2.1 : Jour courant & prochaine activité (REQ-7.5, REQ-7.6)
+// --------------------------------------------------------------------------
+function renderNowBanner() {
+  const el = elements.nextActivityBanner;
+  if (!el || !state.trip) return;
+  let text = '';
+  const current = NowService.getCurrentDay(state.trip, new Date());
+  if (current.phase === 'before' && current.daysUntilStart > 0) {
+    text = `⏳ J-${current.daysUntilStart} · ${current.daysUntilStart === 1 ? 'départ demain' : `départ dans ${current.daysUntilStart} jours`}`;
+  } else if (current.phase === 'during' && state.activeDayNumber === current.dayNumber) {
+    const next = NowService.getNextActivity(state.trip, new Date());
+    if (next) {
+      text = `⏰ Prochaine : ${next.activity.title} ${next.inMinutes <= 0 ? 'maintenant' : `dans ${NowService.formatDuration(next.inMinutes)}`}`;
+    }
+  }
+  el.hidden = !text;
+  el.textContent = text;
+}
+
+// --------------------------------------------------------------------------
+// v2.1 : Idées, activités sans jour (REQ-2.4, ADR-007)
+// --------------------------------------------------------------------------
+function renderIdeas() {
+  if (!elements.ideasPanel) return;
+  const ideas = state.trip.ideas || [];
+  elements.ideasPanel.hidden = state.isReadOnly;
+  elements.ideasCount.textContent = ideas.length;
+  const list = elements.ideasList;
+  list.innerHTML = '';
+
+  if (ideas.length === 0) {
+    list.innerHTML = '<div class="empty-block-hint">Aucune idée pour l\'instant. Tapez un titre puis « 💡 Idée ».</div>';
+    return;
+  }
+
+  ideas.forEach(idea => {
+    const card = document.createElement('div');
+    card.className = 'idea-card clickable-tile';
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `Détail de l'idée ${idea.title}`);
+    const contacts = (idea.contactIds || []).map(cid => (state.trip.contacts || []).find(x => x.id === cid)).filter(Boolean);
+    card.innerHTML = `
+      <div class="idea-main">
+        <h4 class="activity-title">${escapeHtml(idea.title)}</h4>
+        <div class="idea-meta">
+          <span class="badge-category cat-${idea.category || 'Autre'}">${idea.category || 'Autre'}</span>
+          ${idea.location ? `<span>📍 ${escapeHtml(idea.location)}</span>` : ''}
+          ${contacts.length ? `<span>👤 ${escapeHtml(contacts.map(c => c.name).join(', '))}</span>` : ''}
+        </div>
+      </div>
+      <div class="idea-actions">
+        <button type="button" class="btn btn-secondary btn-sm btn-place-idea">Placer</button>
+        <button type="button" class="icon-action-btn btn-del-idea" title="Supprimer l'idée" aria-label="Supprimer ${escapeHtml(idea.title)}">🗑️</button>
+      </div>
+    `;
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-place-idea')) {
+        e.stopPropagation();
+        openPlaceIdeaDialog(idea);
+        return;
+      }
+      if (e.target.closest('.btn-del-idea')) {
+        e.stopPropagation();
+        const deleted = { ...idea };
+        ActivityService.deleteActivity(state.trip, idea.id);
+        saveTripData();
+        renderAll();
+        showToast(`Idée "${deleted.title}" supprimée.`, {
+          type: 'info',
+          undoCallback: () => {
+            ActivityService.addActivity(state.trip, deleted);
+            saveTripData();
+            renderAll();
+          }
+        });
+        return;
+      }
+      openEnrichModal(idea);
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.target !== card) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openEnrichModal(idea);
+      }
+    });
+    list.appendChild(card);
+  });
+}
+
+function openPlaceIdeaDialog(idea) {
+  elements.placeIdeaId.value = idea.id;
+  elements.placeIdeaTitle.textContent = `Placer « ${idea.title} »`;
+  elements.placeIdeaTime.value = idea.time || '';
+  elements.placeIdeaDay.innerHTML = '';
+  (state.trip.days || []).forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.dayNumber;
+    opt.textContent = `Jour ${d.dayNumber} • ${formatDateFr(d.date)} (${d.city || 'Sans étape'})`;
+    opt.selected = d.dayNumber === state.activeDayNumber;
+    elements.placeIdeaDay.appendChild(opt);
+  });
+  openAccessibleDialog(elements.dialogPlaceIdea);
+}
+
+function setupIdeas() {
+  if (!elements.formPlaceIdea) return;
+  const close = () => closeAccessibleDialog(elements.dialogPlaceIdea);
+  elements.btnCancelPlaceIdea.addEventListener('click', close);
+  elements.btnClosePlaceIdea.addEventListener('click', close);
+  elements.formPlaceIdea.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = elements.placeIdeaId.value;
+    const dayNumber = parseInt(elements.placeIdeaDay.value, 10);
+    const time = elements.placeIdeaTime.value.trim();
+    const activity = ActivityService.placeIdea(state.trip, id, dayNumber, { time });
+    state.activeDayNumber = dayNumber;
+    saveTripData();
+    close();
+    renderAll();
+    showToast(`« ${activity.title} » placée au jour ${dayNumber}.`, {
+      type: 'success',
+      undoCallback: () => {
+        ActivityService.unplaceActivity(state.trip, id);
+        saveTripData();
+        renderAll();
+      }
+    });
+  });
+}
+
+// --------------------------------------------------------------------------
+// v2.1 : Menu d'en-tête « ⋯ » (REQ-UX-2)
+// --------------------------------------------------------------------------
+function setupHeaderMenu() {
+  const btn = elements.btnHeaderMenu;
+  const menu = elements.headerMenu;
+  if (!btn || !menu) return;
+
+  const setOpen = (open) => {
+    menu.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+  };
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setOpen(menu.hidden);
+    if (!menu.hidden) menu.querySelector('[role="menuitem"]')?.focus();
+  });
+
+  menu.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-menu-action]');
+    if (!item) return;
+    setOpen(false);
+    const targets = {
+      'share': elements.btnHeaderShare,
+      'new-trip': elements.btnHeaderNewTrip,
+      'profile': elements.userDisplayPill,
+      'logout': elements.btnLogoutHeader
+    };
+    targets[item.dataset.menuAction]?.click();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!menu.hidden && !e.target.closest('.header-menu-wrap')) setOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !menu.hidden) {
+      setOpen(false);
+      btn.focus();
+    }
+  });
+}
+
+// --------------------------------------------------------------------------
+// v2.1 : Sélecteur de contacts à recherche (REQ-3.5)
+// --------------------------------------------------------------------------
+function getRecentContactIds() {
+  const acts = [...(state.trip.ideas || [])];
+  (state.trip.days || []).forEach(d => acts.push(...(d.activities || [])));
+  acts.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  const seen = [];
+  acts.forEach(a => (a.contactIds || []).forEach(id => { if (!seen.includes(id)) seen.push(id); }));
+  return seen;
+}
+
+function openContactPicker({ selectedIds = [], onChange, onDone }) {
+  state.picker = { selected: [...selectedIds], onChange, onDone };
+  elements.contactPickerSearch.value = '';
+  renderContactPicker();
+  openAccessibleDialog(elements.dialogContactPicker);
+  setTimeout(() => elements.contactPickerSearch.focus(), 50);
+}
+
+function renderContactPicker() {
+  const picker = state.picker;
+  if (!picker) return;
+  const query = elements.contactPickerSearch.value;
+  const matches = filterContacts(state.trip.contacts || [], query, getRecentContactIds());
+  const list = elements.contactPickerList;
+  list.innerHTML = '';
+
+  const emit = () => { if (picker.onChange) picker.onChange([...picker.selected]); };
+
+  matches.forEach(c => {
+    const li = document.createElement('li');
+    const on = picker.selected.includes(c.id);
+    li.innerHTML = `<button type="button" class="picker-item" aria-pressed="${on}">
+      <span class="picker-check" aria-hidden="true">${on ? '✓' : ''}</span>
+      <span class="picker-name">${escapeHtml(c.name)}</span>
+      <small>${escapeHtml(c.relationship || '')}</small>
+    </button>`;
+    li.querySelector('button').addEventListener('click', () => {
+      picker.selected = on ? picker.selected.filter(id => id !== c.id) : [...picker.selected, c.id];
+      emit();
+      renderContactPicker();
+    });
+    list.appendChild(li);
+  });
+
+  const trimmed = query.trim();
+  const exact = matches.some(c => c.name.toLowerCase() === trimmed.toLowerCase());
+  if (trimmed && !exact) {
+    const li = document.createElement('li');
+    li.innerHTML = `<button type="button" class="picker-item picker-create"><span class="picker-check" aria-hidden="true">＋</span><span class="picker-name">Créer « ${escapeHtml(trimmed)} »</span></button>`;
+    li.querySelector('button').addEventListener('click', () => {
+      const day = (state.trip.days || []).find(d => d.dayNumber === state.activeDayNumber);
+      const created = ContactService.addContact(state.trip, { name: trimmed, relationship: 'Autre', city: day?.city || '' });
+      picker.selected = [...picker.selected, created.id];
+      saveTripData();
+      elements.contactPickerSearch.value = '';
+      emit();
+      renderContactPicker();
+      renderContacts();
+    });
+    list.appendChild(li);
+  }
+
+  if (!list.children.length) {
+    list.innerHTML = '<li class="empty-block-hint">Aucun contact. Tapez un nom pour en créer un.</li>';
+  }
+}
+
+function setupContactPicker() {
+  if (!elements.dialogContactPicker) return;
+  elements.contactPickerSearch.addEventListener('input', renderContactPicker);
+  const finish = () => {
+    const picker = state.picker;
+    state.picker = null;
+    closeAccessibleDialog(elements.dialogContactPicker);
+    if (picker && picker.onDone) picker.onDone([...picker.selected]);
+  };
+  elements.btnContactPickerDone.addEventListener('click', finish);
+  elements.btnCloseContactPicker.addEventListener('click', finish);
+}
+
+// --------------------------------------------------------------------------
+// v2.1 : Import de contacts et tri par relation (REQ-3.6, ADR-008)
+// --------------------------------------------------------------------------
+function openImportDialog(context) {
+  const existing = context === 'wizard' ? state.wizardContactsList : (state.trip?.contacts || []);
+  state.importCtx = { context, existing, rows: [] };
+  elements.importSources.hidden = false;
+  elements.importSort.hidden = true;
+  elements.importBulkText.value = '';
+  elements.importVcfFile.value = '';
+  elements.btnImportNative.hidden = !('contacts' in navigator && 'ContactsManager' in window);
+  renderImportSort();
+  openAccessibleDialog(elements.dialogImportContacts);
+}
+
+function loadImportRows(imported) {
+  if (!imported.length) {
+    showToast('Aucun contact trouvé dans cette source.', { type: 'warning' });
+    return;
+  }
+  state.importCtx.rows = buildSortRows(imported, state.importCtx.existing, 'Amis');
+  elements.importSources.hidden = true;
+  elements.importSort.hidden = false;
+  renderImportSort();
+}
+
+function renderImportSort() {
+  const ctx = state.importCtx;
+  const list = elements.importSortList;
+  list.innerHTML = '';
+  const rows = ctx ? ctx.rows : [];
+
+  rows.forEach((row, index) => {
+    const li = document.createElement('li');
+    li.className = `import-row${row.ignored ? ' is-ignored' : ''}`;
+    const chips = IMPORT_RELATIONSHIPS.map(rel =>
+      `<button type="button" class="rel-chip" data-rel="${escapeHtml(rel)}" aria-pressed="${row.relationship === rel}">${escapeHtml(rel)}</button>`
+    ).join('');
+    li.innerHTML = `
+      <div class="import-row-head">
+        <div><strong>${escapeHtml(row.name)}</strong>${row.phone ? ` <small>${escapeHtml(row.phone)}</small>` : ''}${row.duplicate ? ' <small class="dup-tag">Déjà présent</small>' : ''}</div>
+        <button type="button" class="btn btn-secondary btn-sm btn-ignore-row" aria-pressed="${row.ignored}">${row.ignored ? 'Rétablir' : 'Ignorer'}</button>
+      </div>
+      <div class="rel-chip-group" role="group" aria-label="Relation de ${escapeHtml(row.name)}">${chips}</div>`;
+    li.querySelector('.btn-ignore-row').addEventListener('click', () => {
+      row.ignored = !row.ignored;
+      renderImportSort();
+    });
+    li.querySelector('.rel-chip-group').addEventListener('click', (e) => {
+      const chip = e.target.closest('.rel-chip');
+      if (!chip) return;
+      row.relationship = chip.dataset.rel;
+      renderImportSort();
+    });
+    list.appendChild(li);
+  });
+
+  const kept = rows.filter(r => !r.ignored).length;
+  elements.btnImportConfirm.disabled = kept === 0;
+  elements.btnImportConfirm.textContent = kept ? `Ajouter ${kept} contact${kept > 1 ? 's' : ''}` : 'Ajouter';
+}
+
+function setupImportDialog() {
+  if (!elements.dialogImportContacts) return;
+  const close = () => closeAccessibleDialog(elements.dialogImportContacts);
+  elements.btnCancelImport.addEventListener('click', close);
+  elements.btnCloseImportContacts.addEventListener('click', close);
+
+  elements.btnImportNative.addEventListener('click', async () => {
+    try {
+      const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+      loadImportRows((picked || []).map(c => ({
+        name: (c.name && c.name[0]) || '',
+        phone: (c.tel && c.tel[0]) || '',
+        city: ''
+      })).filter(c => c.name));
+    } catch (err) {
+      console.warn('Sélection du répertoire annulée ou refusée', err);
+    }
+  });
+
+  elements.importVcfFile.addEventListener('change', async () => {
+    const file = elements.importVcfFile.files && elements.importVcfFile.files[0];
+    if (!file) return;
+    try {
+      loadImportRows(parseVCard(await file.text()));
+    } catch (err) {
+      showToast('Fichier illisible.', { type: 'danger' });
+    }
+  });
+
+  elements.btnImportBulk.addEventListener('click', () => loadImportRows(parseBulk(elements.importBulkText.value)));
+
+  elements.btnImportAllFriends.addEventListener('click', () => {
+    (state.importCtx?.rows || []).forEach(r => { if (!r.ignored) r.relationship = 'Amis'; });
+    renderImportSort();
+  });
+  elements.btnImportIgnoreNoPhone.addEventListener('click', () => {
+    (state.importCtx?.rows || []).forEach(r => { if (!r.phone) r.ignored = true; });
+    renderImportSort();
+  });
+
+  elements.btnImportConfirm.addEventListener('click', () => {
+    const ctx = state.importCtx;
+    if (!ctx) return;
+    const contacts = toContacts(ctx.rows);
+    if (ctx.context === 'wizard') {
+      contacts.forEach(c => state.wizardContactsList.push({ name: c.name, relationship: c.relationship, city: c.city }));
+      renderWizardContactsList();
+    } else {
+      contacts.forEach(c => ContactService.addContact(state.trip, c));
+      saveTripData();
+      renderAll();
+    }
+    close();
+    showToast(`${contacts.length} contact${contacts.length > 1 ? 's' : ''} ajouté${contacts.length > 1 ? 's' : ''}.`, { type: 'success' });
+  });
+}
+
 
 function toggleQuickContactDropdown() {
   if (!elements.quickContactDropdown) return;

@@ -252,6 +252,8 @@
             </div>
           </div>
 
+          <button type="button" class="btn btn-secondary" id="btn-wiz-import-contacts">📥 Importer depuis mon répertoire</button>
+
           <!-- Liste des contacts ajoutés avec badges et croix de suppression -->
           <div class="wiz-added-contacts-wrapper">
             <label class="dest-section-label">Contacts prêts pour ce voyage :</label>
@@ -320,11 +322,20 @@
             <span class="user-email-text" id="user-email-text">Mode Démo</span>
           </div>
           <button type="button" id="sync-indicator" class="sync-indicator" aria-live="polite" hidden></button>
+          <div class="header-menu-wrap">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-header-menu" aria-haspopup="true" aria-expanded="false" aria-controls="header-menu" aria-label="Menu">⋯</button>
+            <div class="header-menu" id="header-menu" role="menu" hidden>
+              <button type="button" role="menuitem" data-menu-action="share">🔗 Partager</button>
+              <button type="button" role="menuitem" data-menu-action="new-trip">✈️ Nouveau voyage</button>
+              <button type="button" role="menuitem" data-menu-action="profile">👤 Profil</button>
+              <button type="button" role="menuitem" data-menu-action="logout">🚪 Déconnexion</button>
+            </div>
+          </div>
           <button class="btn btn-secondary btn-sm" id="btn-header-share" title="Choisir ce que vous partagez et gérer le lien en lecture seule">
             🔗 Partager
           </button>
           <button class="btn btn-secondary btn-sm" id="btn-header-new-trip" title="Configurer un nouveau voyage avec l'assistant">
-            ✈️ Configurer Voyage
+            ✈️ Nouveau
           </button>
           <button class="btn btn-secondary btn-sm" id="btn-logout-header" title="Se déconnecter ou retourner à l'accueil">
             🚪 Déconnexion
@@ -359,6 +370,16 @@
       <!-- ONGLET 1 : PROGRAMME JOUR PAR JOUR -->
       <!-- ========================================== -->
       <section id="tab-planning" class="tab-pane active" role="tabpanel">
+
+        <!-- Idées : activités sans jour (ADR-007) -->
+        <details class="ideas-panel" id="ideas-panel">
+          <summary>💡 Idées <span class="badge" id="ideas-count">0</span></summary>
+          <p class="ideas-hint">Des envies sans jour fixé. Touchez « Placer » quand vous savez quand.</p>
+          <div class="ideas-list" id="ideas-list"></div>
+        </details>
+
+        <!-- Prochaine activité / compte à rebours (REQ-7.5, 7.6) -->
+        <div class="next-activity-banner" id="next-activity-banner" role="status" hidden></div>
         
         <!-- Barre de filtres par catégorie d'activité -->
         <div class="activity-filter-bar">
@@ -414,8 +435,9 @@
                 aria-label="Ajouter une idée d'activité"
               />
               <button type="button" class="btn btn-secondary btn-mention-contact" id="btn-quick-mention-contact" title="Mentionner ou associer un contact">
-                👤 @Contact
+                👤 Avec qui
               </button>
+              <button type="button" class="btn btn-secondary" id="btn-quick-add-idea" title="Garder cette activité en idée, sans choisir de jour">💡 Idée</button>
               <button type="submit" class="btn btn-primary">Ajouter</button>
             </form>
 
@@ -708,8 +730,8 @@
 
         <div class="form-row">
           <div class="form-group flex-2">
-            <label for="edit-activity-day">📅 Jour du séjour *</label>
-            <select id="edit-activity-day" required>
+            <label for="edit-activity-day">📅 Jour du séjour</label>
+            <select id="edit-activity-day">
               <!-- Rempli dynamiquement : Jour 1 • 01 Nov (Douala), etc. -->
             </select>
           </div>
@@ -791,7 +813,7 @@
                 </select>
               </div>
               <div class="form-group flex-auto">
-                <button type="button" class="btn btn-sm btn-primary" id="btn-save-inline-contact">
+                <button type="button" class="btn btn-sm btn-secondary" id="btn-save-inline-contact">
                   Ajouter & Cocher ✓
                 </button>
               </div>
@@ -1020,6 +1042,77 @@
           </div>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- Sélecteur de contacts à recherche (REQ-3.5) -->
+  <dialog id="dialog-contact-picker" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3>👥 Avec qui ?</h3>
+        <button class="dialog-close" id="btn-close-contact-picker" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <label for="contact-picker-search" class="sr-only">Rechercher un contact</label>
+      <input type="search" id="contact-picker-search" placeholder="Rechercher un contact…" autocomplete="off" />
+      <ul class="picker-list" id="contact-picker-list" aria-label="Contacts"></ul>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-primary" id="btn-contact-picker-done">Terminer</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Placer une idée sur un jour (REQ-2.4) -->
+  <dialog id="dialog-place-idea" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 id="place-idea-title">Placer l'idée</h3>
+        <button class="dialog-close" id="btn-close-place-idea" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <form id="form-place-idea" class="dialog-form">
+        <input type="hidden" id="place-idea-id" />
+        <div class="form-group">
+          <label for="place-idea-day">Jour</label>
+          <select id="place-idea-day" required></select>
+        </div>
+        <div class="form-group">
+          <label for="place-idea-time">Horaire (facultatif)</label>
+          <input type="text" id="place-idea-time" placeholder="Ex: 13:00 ou Soirée" />
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-place-idea">Annuler</button>
+          <button type="submit" class="btn btn-primary">Placer</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Import de contacts et tri par relation (REQ-3.6, ADR-008) -->
+  <dialog id="dialog-import-contacts" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3>📥 Importer mes contacts</h3>
+        <button class="dialog-close" id="btn-close-import-contacts" aria-label="Fermer la boîte de dialogue">&times;</button>
+      </div>
+      <div id="import-sources" class="import-sources">
+        <p class="subtitle">Rien n'est envoyé : le tri se fait sur votre appareil, seuls les contacts conservés sont enregistrés.</p>
+        <button type="button" class="btn btn-secondary" id="btn-import-native" hidden>📱 Répertoire du téléphone</button>
+        <label class="btn btn-secondary" for="import-vcf-file">📄 Fichier vCard (.vcf)</label>
+        <input type="file" id="import-vcf-file" accept=".vcf,text/vcard,text/x-vcard" class="sr-only" />
+        <label for="import-bulk-text">Ou une liste, un contact par ligne</label>
+        <textarea id="import-bulk-text" rows="3" placeholder="Paul&#10;Marie, 6 99 00 00 00"></textarea>
+        <button type="button" class="btn btn-secondary" id="btn-import-bulk">Charger la liste</button>
+      </div>
+      <div id="import-sort" class="import-sort" hidden>
+        <div class="import-sort-tools">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-import-all-friends">Tout en Amis</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-import-ignore-nophone">Ignorer sans téléphone</button>
+        </div>
+        <ul class="import-sort-list" id="import-sort-list"></ul>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-import">Annuler</button>
+        <button type="button" class="btn btn-primary" id="btn-import-confirm" disabled>Ajouter</button>
+      </div>
     </div>
   </dialog>
 

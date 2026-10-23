@@ -119,5 +119,18 @@ export class GeographyData {
     const found = GeographyData.findCountry(countryName);
     return found ? found.defaultCurrency : 'EUR';
   }
+
+  /**
+   * Fuseau horaire IANA du pays de destination (null si inconnu)
+   */
+  static getTimeZoneForCountry(countryName) {
+    const found = GeographyData.findCountry(countryName);
+    return found ? (TIME_ZONES_BY_CODE[found.code] || null) : null;
+  }
 }
 
+const TIME_ZONES_BY_CODE = {
+  CM: 'Africa/Douala', SN: 'Africa/Dakar', CI: 'Africa/Abidjan', CA: 'America/Toronto',
+  CN: 'Asia/Shanghai', JP: 'Asia/Tokyo', FR: 'Europe/Paris', IT: 'Europe/Rome',
+  ES: 'Europe/Madrid', US: 'America/New_York', MA: 'Africa/Casablanca'
+};

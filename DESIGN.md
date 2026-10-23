@@ -119,6 +119,16 @@ L'interface adopte la Direction Artistique **"Surface Mobile Ergonomique & Carte
 - **Convertisseur de poche** : Deux champs synchronisés en temps réel avec bouton d'inversion franc `⇄`.
 - **Rappels prioritaires** : Puces horizontales en tête de planning pour les démarches critiques.
 
+## Règles de composition (v2.1, vérifiées par `tests/ui/`)
+
+Elles répondent au premier retour d'usage : « beaucoup d'encombrement sur mobile, l'en-tête est à revoir ».
+
+- **REQ-UX-1 · Une action primaire par écran.** Chaque écran et chaque modale n'a qu'un bouton `button-primary` ; le reste est secondaire ou dans un menu.
+- **REQ-UX-2 · En-tête mobile sobre (< 768 px).** Ligne 1 : marque, indicateur de synchro, menu « ⋯ » (Partager, Nouveau voyage, Profil, Déconnexion). Ligne 2 : titre du voyage et dates, chacun sur une ligne avec ellipse. Les onglets n'existent que dans la barre basse. Sur ordinateur, la barre d'onglets haute est conservée. Hauteur maximale de l'en-tête : 15 % de l'écran.
+- **REQ-UX-3 · Densité et texte.** Au plus 4 contrôles interactifs visibles dans l'en-tête ; libellés de 1 à 2 mots ; aucun texte coupé ou chevauché (ellipse). Toute cible tactile ≥ 44 px.
+- **REQ-UX-4 · Tokens uniquement.** Couleurs, rayons, ombres et tailles viennent des variables `:root`. Le CSS ajouté depuis la v2.1 n'a aucune valeur en dur ; les valeurs historiques sont plafonnées par un test (cliquet) et à résorber.
+- **Listes d'actions.** Statut = un tap sur la tuile (pastille ≥ 44 px) avec annulation par toast ; sélection de personnes = feuille basse à recherche, pas de nuage de cases ; une longue liste se filtre, elle ne se parcourt pas.
+
 ## Do's and Don'ts
 
 ### Do's
