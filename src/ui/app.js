@@ -300,7 +300,9 @@ const elements = {
 // ==========================================================================
 let lastFocusedElement = null;
 
-export function showToast(message, { type = 'info', undoCallback = null, duration = 5000 } = {}) {
+export function showToast(message, options = {}) {
+  const opts = typeof options === 'string' ? { type: options } : (options || {});
+  const { type = 'info', undoCallback = null, duration = 5000 } = opts;
   const container = document.getElementById('toast-container');
   if (!container) return;
 
@@ -2654,26 +2656,6 @@ function logoutUser() {
   localStorage.removeItem('capvoyage_session');
   localStorage.removeItem('capvoyage_trip_cache');
   showLandingView();
-}
-
-// Notification Toast
-let toastTimeout = null;
-function showToast(message, type = '') {
-  let toast = document.getElementById('capvoyage-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'capvoyage-toast';
-    toast.className = 'toast-notification';
-    document.body.appendChild(toast);
-  }
-
-  toast.textContent = message;
-  toast.className = `toast-notification ${type} active`;
-
-  if (toastTimeout) clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    toast.classList.remove('active');
-  }, 4000);
 }
 
 // Lancement au chargement du DOM
