@@ -31,6 +31,7 @@ test_*.js
 # IDE & Assistant
 .agent/
 .gemini/
+.claude/
 
 # Système d'exploitation
 .DS_Store
