@@ -19,6 +19,8 @@ import { NowService } from '../domain/NowService.js';
 import { parseVCard, parseBulk, buildSortRows, toContacts, filterContacts, IMPORT_RELATIONSHIPS } from '../domain/ContactImport.js';
 
 const DEMO_TRIP_KEY = 'capvoyage_demo_trip';
+const APP_VERSION = '2.1';
+const UPDATE_CHECK_MS = 30 * 60 * 1000;
 const SYNC_RETRY_MS = 30000;
 
 // État global réactif de l'application
@@ -38,6 +40,9 @@ const state = {
   enrichContactIds: [],  // Contacts cochés dans la fiche d'activité (sélecteur REQ-3.5)
   quickAddContactIds: [], // Contacts choisis pour l'ajout rapide
   picker: null,          // Contexte du sélecteur de contacts ouvert
+  swRegistration: null,  // Enregistrement du Service Worker (mises à jour, ADR-009)
+  build: null,           // Identifiant de build du front chargé
+  updateAvailable: false, // Une version plus récente est disponible
   importCtx: null,       // Contexte de l'import de contacts { context, rows }
   wizardData: {
     country: 'Cameroun',
@@ -329,6 +334,13 @@ const elements = {
   btnImportIgnoreNoPhone: document.getElementById('btn-import-ignore-nophone'),
   btnImportConfirm: document.getElementById('btn-import-confirm'),
 
+  // 14 ter. Mises à jour (ADR-009)
+  updateBanner: document.getElementById('update-banner'),
+  btnUpdateNow: document.getElementById('btn-update-now'),
+  appVersionLabel: document.getElementById('app-version-label'),
+  profileVersionLabel: document.getElementById('profile-version-label'),
+  btnProfileRefresh: document.getElementById('btn-profile-refresh'),
+
   // 15. Navigation Mobile & Badges synchronisés
   mobileNavBtns: document.querySelectorAll('.mobile-nav-btn'),
   mobileBadgeTodos: document.getElementById('mobile-badge-todos'),
@@ -468,21 +480,123 @@ async function initApp() {
   registerServiceWorker();
 }
 
+// --------------------------------------------------------------------------
+// Mises à jour de l'application (ADR-009)
+// --------------------------------------------------------------------------
 function registerServiceWorker() {
-  if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-    // Recharger une fois quand une nouvelle version du SW prend la main (pas au premier install)
-    const hadController = !!navigator.serviceWorker.controller;
-    let reloading = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!hadController || reloading) return;
-      reloading = true;
-      window.location.reload();
-    });
+  renderVersionLabels();
+  if (!('serviceWorker' in navigator) || !window.location.protocol.startsWith('http')) return;
 
-    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(err => {
+  // Répond au « PING » du nouveau Service Worker : « mon code sait gérer les mises à jour,
+  // inutile de me recharger de force ».
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'PING' && event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ type: 'PONG', build: state.build });
+    }
+  });
+
+  // Un nouveau Service Worker a pris la main : proposer l'actualisation (jamais de rechargement surprise)
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) markUpdateAvailable();
+  });
+
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+    .then((registration) => { state.swRegistration = registration; })
+    .catch(err => {
       console.warn('Enregistrement ServiceWorker non disponible:', err);
     });
+
+  // Revérification : retour au premier plan (PWA reprise sans navigation), retour du réseau, toutes les 30 min
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible') return;
+    if (!state.updateAvailable) await checkForUpdate();
+    // Retour sur l'appli sans rien d'ouvert ni de saisi : on recharge discrètement, sinon la barre reste affichée
+    if (state.updateAvailable && isIdleForReload()) applyUpdate();
+  });
+  window.addEventListener('online', () => checkForUpdate());
+  setInterval(() => checkForUpdate(), UPDATE_CHECK_MS);
+  checkForUpdate();
+
+  if (elements.btnUpdateNow) elements.btnUpdateNow.addEventListener('click', () => applyUpdate());
+  if (elements.btnProfileRefresh) elements.btnProfileRefresh.addEventListener('click', () => hardRefresh());
+}
+
+function renderVersionLabels() {
+  const text = `Version ${APP_VERSION}${state.build ? ` · build ${state.build}` : ''}`;
+  if (elements.appVersionLabel) elements.appVersionLabel.textContent = text;
+  if (elements.profileVersionLabel) elements.profileVersionLabel.textContent = text;
+}
+
+async function fetchBuildId() {
+  try {
+    const res = await fetch('/api/version', { cache: 'no-store' });
+    if (!res.ok) return null;
+    return (await res.json()).build || null;
+  } catch (err) {
+    return null;
   }
+}
+
+async function checkForUpdate() {
+  if (!navigator.onLine) return;
+  if (state.swRegistration) state.swRegistration.update().catch(() => {});
+  const build = await fetchBuildId();
+  if (!build) return;
+  if (state.build === null) {
+    state.build = build;
+    renderVersionLabels();
+  } else if (build !== state.build) {
+    markUpdateAvailable();
+  }
+}
+
+function markUpdateAvailable() {
+  state.updateAvailable = true;
+  if (elements.updateBanner) elements.updateBanner.hidden = false;
+}
+
+// Rien d'ouvert, aucune saisie en cours, aucune modification en attente de synchro
+function isIdleForReload() {
+  const active = document.activeElement;
+  const typing = active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName);
+  const pending = state.syncQueue && state.syncQueue.getStatus() === SyncStatus.PENDING;
+  return !document.querySelector('dialog[open]') && !typing && !pending;
+}
+
+// Termine la synchro en attente (3 s au plus) avant de recharger : aucune modification perdue
+async function flushBeforeReload() {
+  await Promise.race([
+    flushSync().catch(() => {}),
+    new Promise(resolve => setTimeout(resolve, 3000))
+  ]);
+}
+
+async function applyUpdate() {
+  await flushBeforeReload();
+  window.location.reload();
+}
+
+// Actualisation complète : désinscrit le Service Worker et vide les caches de l'app (jamais le localStorage)
+async function hardRefresh() {
+  if (!navigator.onLine) {
+    showToast('Connectez-vous à Internet pour actualiser l\'application.', { type: 'warning' });
+    return;
+  }
+  await flushBeforeReload();
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(r => r.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(k => k.startsWith('capvoyage-cache-')).map(k => caches.delete(k)));
+    }
+  } catch (err) {
+    console.warn('Actualisation partielle', err);
+  }
+  window.location.reload();
 }
 
 function showLandingView() {
@@ -3000,6 +3114,10 @@ function setupHeaderMenu() {
       'profile': elements.userDisplayPill,
       'logout': elements.btnLogoutHeader
     };
+    if (item.dataset.menuAction === 'refresh') {
+      hardRefresh();
+      return;
+    }
     targets[item.dataset.menuAction]?.click();
   });
 

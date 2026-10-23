@@ -1,6 +1,7 @@
 import http from 'http';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { createHash } from 'crypto';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { AuthService } from './domain/AuthService.js';
 import { TripService } from './domain/TripService.js';
@@ -109,9 +110,32 @@ export function createServer({
   allowedOrigin = process.env.ALLOWED_ORIGIN || '*',
   trustFlyClientIp = !!process.env.FLY_APP_NAME,
   ratesFetch = globalThis.fetch,
-  now = () => Date.now()
+  now = () => Date.now(),
+  uiDir = UI_DIR,
+  domainDir = DOMAIN_DIR
 } = {}) {
   const dbService = new DbService(dbPath);
+
+  // Identifiant de build (ADR-009) : empreinte du contenu des fichiers servis au navigateur.
+  // Recalculée seulement si la taille ou la date d'un fichier change.
+  let buildCache = { signature: '', build: '' };
+  async function getBuildId() {
+    const files = [];
+    for (const dir of [uiDir, domainDir]) {
+      for (const name of (await fs.readdir(dir)).sort()) {
+        const full = path.join(dir, name);
+        const st = await fs.stat(full);
+        if (st.isFile()) files.push({ full, key: `${path.basename(dir)}/${name}:${st.size}:${Math.floor(st.mtimeMs)}` });
+      }
+    }
+    const signature = files.map(f => f.key).join('|');
+    if (signature !== buildCache.signature) {
+      const hash = createHash('sha1');
+      for (const f of files) hash.update(f.key.split(':')[0]).update(await fs.readFile(f.full));
+      buildCache = { signature, build: hash.digest('hex').slice(0, 10) };
+    }
+    return buildCache.build;
+  }
 
   // Migrations idempotentes au démarrage
   if (dataDir) {
@@ -206,6 +230,16 @@ export function createServer({
         database: 'sqlite-wal',
         timestamp: new Date().toISOString()
       });
+    }
+
+    // --- VERSION DU FRONT (détection de mise à jour, ADR-009) ---
+    if (pathname === '/api/version' && req.method === 'GET') {
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        ...getSecurityHeaders()
+      });
+      return res.end(JSON.stringify({ build: await getBuildId() }));
     }
 
     // --- AUTH ---
@@ -416,11 +450,13 @@ export function createServer({
   async function serveStatic(req, res, pathname) {
     let filePath;
     if (pathname.startsWith('/domain/')) {
-      filePath = path.join(DOMAIN_DIR, pathname.replace('/domain/', ''));
-      if (!filePath.startsWith(DOMAIN_DIR)) throw new HttpError(403, 'Accès refusé');
+      filePath = path.join(domainDir, pathname.replace('/domain/', ''));
+      if (!filePath.startsWith(domainDir)) throw new HttpError(403, 'Accès refusé');
     } else {
-      filePath = path.join(UI_DIR, pathname === '/' ? 'index.html' : pathname);
-      if (!filePath.startsWith(UI_DIR)) throw new HttpError(403, 'Accès refusé');
+      // /reset : page de secours « Actualiser CapVoyage » (ADR-009)
+      const target = pathname === '/' ? 'index.html' : (pathname === '/reset' ? 'reset.html' : pathname);
+      filePath = path.join(uiDir, target);
+      if (!filePath.startsWith(uiDir)) throw new HttpError(403, 'Accès refusé');
     }
 
     try {

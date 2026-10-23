@@ -104,7 +104,11 @@ export async function launchBrowser(chromePath) {
       async waitFor(expression, timeoutMs = 10000) {
         const start = Date.now();
         for (;;) {
-          const ok = await page.evaluate(`Boolean(${expression})`).catch(() => false);
+          // Une évaluation lancée pendant une navigation peut ne jamais répondre : on abandonne après 3 s et on réessaie
+          const ok = await Promise.race([
+            page.evaluate(`Boolean(${expression})`).catch(() => false),
+            new Promise(r => setTimeout(() => r(false), 3000))
+          ]);
           if (ok) return true;
           if (Date.now() - start > timeoutMs) throw new Error(`Délai dépassé en attendant : ${expression}`);
           await new Promise(r => setTimeout(r, 100));
@@ -113,6 +117,19 @@ export async function launchBrowser(chromePath) {
       async goto(url) {
         await send('Page.navigate', { url }, sessionId);
         await page.waitFor(`document.readyState === 'complete' && location.href.startsWith(${JSON.stringify(url.split('?')[0])})`);
+      },
+      // Attend qu'une expression ASYNCHRONE (promesse) devienne vraie
+      async until(asyncExpression, timeoutMs = 10000) {
+        const start = Date.now();
+        for (;;) {
+          const ok = await Promise.race([
+            page.evaluate(`(async () => Boolean(await (${asyncExpression})))()`).catch(() => false),
+            new Promise(r => setTimeout(() => r(false), 3000))
+          ]);
+          if (ok) return true;
+          if (Date.now() - start > timeoutMs) throw new Error(`Délai dépassé en attendant : ${asyncExpression}`);
+          await new Promise(r => setTimeout(r, 100));
+        }
       },
       async addInitScript(source) {
         await send('Page.addScriptToEvaluateOnNewDocument', { source }, sessionId);

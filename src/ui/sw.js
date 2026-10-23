@@ -5,8 +5,15 @@
 // le réseau fait foi dès qu'il est disponible, le cache ne sert que hors-ligne.
 // (L'ancienne stratégie cache-first continuait de servir un app.js cassé
 // après correction, rendant l'interface inerte.)
+//
+// Mises à jour (ADR-009) :
+// - l'installation ne peut plus échouer à cause d'un seul fichier (précache tolérant) ;
+// - à l'activation d'une nouvelle version, les fenêtres ouvertes dont le code est trop ancien
+//   pour gérer la mise à jour elles-mêmes sont rechargées une fois.
 
-const CACHE_NAME = 'capvoyage-cache-v8';
+const CACHE_PREFIX = 'capvoyage-cache-';
+const CACHE_NAME = CACHE_PREFIX + 'v9';
+const PING_TIMEOUT_MS = 1500;
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -31,25 +38,59 @@ const ASSETS_TO_CACHE = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      // cache: 'reload' contourne le cache HTTP du navigateur pour précharger des versions fraîches
-      return cache.addAll(ASSETS_TO_CACHE.map(url => new Request(url, { cache: 'reload' })));
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // Chaque fichier est précaché isolément : un échec réseau ne doit jamais empêcher
+      // l'installation (sinon l'ancienne version resterait active indéfiniment).
+      // cache: 'reload' contourne le cache HTTP du navigateur pour précharger des versions fraîches.
+      await Promise.allSettled(ASSETS_TO_CACHE.map(async (url) => {
+        const response = await fetch(new Request(url, { cache: 'reload' }));
+        if (!response.ok) throw new Error(`${url} : HTTP ${response.status}`);
+        await cache.put(url, response);
+      }));
     }).then(() => self.skipWaiting())
   );
 });
 
+// Demande à une fenêtre si son code sait gérer les mises à jour (réponse PONG) ; sinon elle est « muette ».
+function isClientResponsive(client) {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => resolve(false), PING_TIMEOUT_MS);
+    channel.port1.onmessage = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    try {
+      client.postMessage({ type: 'PING' }, [channel.port2]);
+    } catch (err) {
+      clearTimeout(timer);
+      resolve(false);
+    }
+  });
+}
+
+// Recharge une fois les fenêtres au code trop ancien pour gérer elles-mêmes la mise à jour.
+// ATTENTION : ne jamais l'attendre dans waitUntil() de l'activation. Une navigation n'est servie
+// qu'une fois le Service Worker activé : attendre `navigate()` ici bloquerait la page indéfiniment.
+async function reloadMuteClients() {
+  const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  await Promise.all(windows.map(async (client) => {
+    if (!(await isClientResponsive(client))) {
+      try { await client.navigate(client.url); } catch (err) { /* fenêtre fermée entre-temps */ }
+    }
+  }));
+}
+
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    const ours = keys.filter((key) => key.startsWith(CACHE_PREFIX));
+    const isUpgrade = ours.some((key) => key !== CACHE_NAME);
+    await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
+    await self.clients.claim();
+    // Mise à jour d'une version déjà installée (et non première installation)
+    if (isUpgrade) reloadMuteClients().catch(() => {});
+  })());
 });
 
 self.addEventListener('fetch', (event) => {

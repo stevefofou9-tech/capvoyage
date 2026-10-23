@@ -31,6 +31,7 @@ pie title Répartition de l'avancement des phases
 | **Phase 14** | Refonte visuelle « Carte Solaire » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | `DESIGN.md`, `style.css` (Public Sans + Atkinson Hyperlegible, palette solaire) — remplace la palette de la phase 12 |
 | **Phase 15** | Chantier SDD « Recommandations de l'audit » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | Discovery, PRD v2.0, ADR-001 à 006, cahier v2.0 ; sécurité serveur, partage paramétrable, synchro hors-ligne, mobile, CI + parcours Chrome, sauvegardes |
 | **Phase 16** | Chantier SDD « Premiers retours utilisateurs » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | Discovery validée, PRD v2.1, US-1.3/3.4/3.5/4.3/4.4 et EPIC 9, ADR-007/008, cahier modules 20 à 24 |
+| **Phase 17** | Mise à jour fiable de la PWA (anciens clients bloqués) | 🟢 **Terminé (à déployer)** | 23/10/2026 | 23/10/2026 | ADR-009, SW v9, `/api/version`, `/reset`, barre « Nouvelle version », tests TC-PWA |
 
 ---
 
@@ -291,3 +292,13 @@ pie title Répartition de l'avancement des phases
   - [x] Lot 6 : import du répertoire + tri à la configuration (R3)
   - [x] Lot 7 : alarmes dans l'export `.ics` (R6)
 - [x] **Recette** : navigateur desktop et 375 px.
+
+---
+
+### Phase 17 : Mise à jour fiable de la PWA (🟢 Terminé, à déployer)
+- [x] **Diagnostic** : serveur hors de cause ; 4 mécanismes côté appareil (SW ≤ v5 sans écouteur, PWA en arrière-plan, précache atomique, rechargement surprise).
+- [x] **ADR-009** et REQ-6.4 renforcé.
+- [x] **Service Worker v9** : précache tolérant, rattrapage des anciens clients (PING/navigate, sans bloquer l'activation).
+- [x] **Application** : détection (retour au premier plan, réseau, 30 min), barre « Nouvelle version disponible », rechargement discret si inactif, entrée « Actualiser l'app », version et build affichés.
+- [x] **Serveur** : `GET /api/version`, page de secours `/reset` (données locales conservées).
+- [x] **Tests** : TC-PWA-001 à 005 (reproduction du bug avec un SW v5 réel).

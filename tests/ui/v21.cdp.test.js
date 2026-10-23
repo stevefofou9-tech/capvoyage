@@ -86,7 +86,7 @@ describe('Suite Ergonomie v2.1 (TC-UX, TC-IDEA, TC-QS, TC-CTX, TC-NOW, Chrome he
     })()`);
     assert.equal(menu.hidden, false);
     assert.equal(menu.expanded, 'true');
-    assert.equal(menu.labels.length, 4);
+    assert.equal(menu.labels.length, 5);
     assert.ok(menu.minH >= 44);
     for (const word of ['Partager', 'Nouveau', 'Profil', 'Déconnexion']) {
       assert.ok(menu.labels.some(l => l.includes(word)), `${word} absent du menu`);

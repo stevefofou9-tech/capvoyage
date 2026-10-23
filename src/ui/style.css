@@ -2944,4 +2944,35 @@ body.mode-readonly .icon-action-btn {
   .idea-card { flex-direction: column; align-items: stretch; }
   .idea-actions { justify-content: space-between; }
 }
+/* Mise à jour disponible (ADR-009) */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: calc(100vw - 2rem);
+  background: var(--text-main);
+  color: var(--text-inverse);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 0.6rem 0.5rem 1rem;
+  box-shadow: var(--shadow-lg);
+  font-weight: 700;
+  z-index: 1100;
+}
+.update-banner[hidden] { display: none; }
+.update-banner .btn { min-height: 44px; }
+.header-menu-version { padding: 0.4rem 0.85rem 0.5rem; font-size: 0.78rem; color: var(--text-light); }
+.profile-version-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin: 0.75rem 0; color: var(--text-light); }
+.profile-version-row .btn-link { min-height: 44px; }
+.reset-page { display: flex; min-height: 100vh; align-items: center; justify-content: center; background: var(--bg-main); padding: 1rem; }
+.reset-card { max-width: 28rem; background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: var(--radius-xl); padding: 1.5rem; box-shadow: var(--shadow-md); }
+.reset-card h1 { font-size: 1.3rem; margin: 0 0 0.75rem; }
+.reset-reassure { color: var(--text-muted); font-size: 0.9rem; }
+.reset-card .btn { min-height: var(--touch-target-min); margin-top: 0.5rem; }
+@media (max-width: 768px) {
+  .update-banner { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+}
 /* v2.1 (FIN) */

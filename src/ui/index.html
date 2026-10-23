@@ -328,7 +328,9 @@
               <button type="button" role="menuitem" data-menu-action="share">🔗 Partager</button>
               <button type="button" role="menuitem" data-menu-action="new-trip">✈️ Nouveau voyage</button>
               <button type="button" role="menuitem" data-menu-action="profile">👤 Profil</button>
+              <button type="button" role="menuitem" data-menu-action="refresh">🔄 Actualiser l'app</button>
               <button type="button" role="menuitem" data-menu-action="logout">🚪 Déconnexion</button>
+              <div class="header-menu-version" id="app-version-label" aria-live="polite"></div>
             </div>
           </div>
           <button class="btn btn-secondary btn-sm" id="btn-header-share" title="Choisir ce que vous partagez et gérer le lien en lecture seule">
@@ -1158,6 +1160,10 @@
         </div>
       </div>
 
+      <div class="profile-version-row">
+        <small id="profile-version-label"></small>
+        <button type="button" class="btn-link" id="btn-profile-refresh">🔄 Actualiser l'app</button>
+      </div>
       <div class="dialog-actions space-between">
         <button type="button" class="btn btn-outline-danger" id="btn-profile-logout">
           🚪 Déconnexion
@@ -1274,6 +1280,12 @@
   </dialog>
 
   <!-- Conteneur des Toasts de notifications & Undo non bloquants -->
+  <!-- Mise à jour disponible (ADR-009) -->
+  <div id="update-banner" class="update-banner" role="status" hidden>
+    <span>✨ Nouvelle version disponible</span>
+    <button type="button" class="btn btn-secondary btn-sm" id="btn-update-now">Actualiser</button>
+  </div>
+
   <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
 
   <!-- Script applicatif modulaire -->
