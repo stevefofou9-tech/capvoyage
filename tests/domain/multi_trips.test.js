@@ -32,22 +32,7 @@ describe('Suite Multi-Voyages & Profil Utilisateur (AuthService)', () => {
     }, /Voyage introuvable ou non associé à ce compte/);
   });
 
-  test('MUT-02 : Suppression d’un voyage et réaffectation du voyage actif', () => {
-    const users = [
-      {
-        id: 'u-1',
-        email: 'steve@capvoyage.com',
-        sessionToken: 'tok-steve',
-        currentTripId: 'trip-japon',
-        trips: ['trip-cameroun', 'trip-japon']
-      }
-    ];
-
-    const delRes = AuthService.deleteTripFromUser(users, 'tok-steve', 'trip-japon');
-    assert.equal(delRes.success, true);
-    assert.deepEqual(delRes.remainingTrips, ['trip-cameroun']);
-    assert.equal(delRes.currentTripId, 'trip-cameroun');
-  });
+  // MUT-02 (suppression de voyage) retiré : fonctionnalité hors périmètre (PRD v2.0 §7)
 
   test('MUT-03 : Carnet de contacts global rattaché au compte', () => {
     const users = [

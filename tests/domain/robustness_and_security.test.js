@@ -1,6 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { TripService } from '../../src/domain/TripService.js';
 import { ActivityTemplates, searchTemplates, resolveTemplateTitle } from '../../src/domain/ActivityTemplates.js';
@@ -35,7 +36,7 @@ describe('Suite Robustesse, Sécurité & Exportations (ROB-SEC)', () => {
   });
 
   test('ROB-03 : Portabilité de la persistance fichier sans chemin absolu rigide', async () => {
-    const tempFile = path.join(__dirname, '..', '..', 'data', 'test_portability.json');
+    const tempFile = path.join(os.tmpdir(), `capvoyage_test_portability_${Date.now()}.json`);
     const trip = TripService.createTrip({
       country: 'Cameroun',
       startDate: '2026-11-01',

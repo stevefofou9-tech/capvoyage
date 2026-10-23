@@ -5,7 +5,6 @@ import { ActivityService } from '../../src/domain/ActivityService.js';
 import { ContactService } from '../../src/domain/ContactService.js';
 import { BudgetEngine } from '../../src/domain/BudgetEngine.js';
 import { TodoService } from '../../src/domain/TodoService.js';
-import { StorageService } from '../../src/domain/StorageService.js';
 
 describe('Suite Intégration : Cycle de Vie Complet d\'un Voyage au Cameroun', () => {
 
@@ -128,16 +127,5 @@ describe('Suite Intégration : Cycle de Vie Complet d\'un Voyage au Cameroun', (
     assert.ok(budgetSummary.totalSpentBase > 190 && budgetSummary.totalSpentBase < 192);
     assert.ok(budgetSummary.remainingBudgetBase > 2300);
     assert.equal(budgetSummary.isOverBudget, false);
-
-    // 7. Export complet & Sauvegarde
-    const exportedJson = StorageService.exportToJson(trip);
-    const reimported = StorageService.parseAndValidate(exportedJson);
-    assert.equal(reimported.title, 'Grand Tour Cameroun 2026');
-
-    // 8. Génération du récapitulatif pour impression
-    const printable = StorageService.generatePrintableSummary(trip);
-    assert.ok(printable.includes('GRAND TOUR CAMEROUN 2026') || printable.includes('Grand Tour Cameroun 2026'));
-    assert.ok(printable.includes('Chutes de la Lobé, Kribi'));
-    assert.ok(printable.includes('Oncle Paul'));
   });
 });

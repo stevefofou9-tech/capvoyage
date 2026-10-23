@@ -22,14 +22,6 @@ export class StorageService {
   }
 
   /**
-   * Exporte les données du voyage en chaîne JSON formatée
-   */
-  static exportToJson(trip) {
-    StorageService.validateTripSchema(trip);
-    return JSON.stringify(trip, null, 2);
-  }
-
-  /**
    * Parse et valide un fichier JSON importé
    */
   static parseAndValidate(jsonString) {
@@ -79,54 +71,5 @@ export class StorageService {
       }
       throw err;
     }
-  }
-
-  /**
-   * Génère un récapitulatif textuel propre prêt pour impression / PDF
-   */
-  static generatePrintableSummary(trip) {
-    StorageService.validateTripSchema(trip);
-
-    const lines = [];
-    lines.push(`================================================================`);
-    lines.push(` PLANNING VOYAGE : ${trip.title.toUpperCase()}`);
-    lines.push(` Destination : ${trip.country} | Du ${trip.startDate} au ${trip.endDate}`);
-    lines.push(`================================================================\n`);
-
-    lines.push(`--- PROGRAMME JOUR PAR JOUR ---`);
-    (trip.days || []).forEach(day => {
-      lines.push(`\n[Jour ${day.dayNumber} - ${day.date}] ${day.city ? `Étape : ${day.city}` : ''}`);
-      if (!day.activities || day.activities.length === 0) {
-        lines.push(`  (Aucune activité planifiée)`);
-      } else {
-        day.activities.forEach(act => {
-          const time = act.time ? `[${act.time}] ` : '';
-          const loc = act.location ? ` @ ${act.location}` : '';
-          const status = act.status ? ` (${act.status})` : '';
-          lines.push(`  - ${time}${act.title}${loc} [${act.category}]${status}`);
-        });
-      }
-    });
-
-    lines.push(`\n--- RÉPERTOIRE DES CONTACTS ---`);
-    if (!trip.contacts || trip.contacts.length === 0) {
-      lines.push(`  (Aucun contact enregistré)`);
-    } else {
-      trip.contacts.forEach(c => {
-        lines.push(`  - ${c.name} (${c.relationship}) - Tél: ${c.phone || 'N/A'} - Ville: ${c.city || 'N/A'}`);
-      });
-    }
-
-    lines.push(`\n--- PRÉPARATIFS & FORMALITÉS ---`);
-    if (!trip.todos || trip.todos.length === 0) {
-      lines.push(`  (Aucune tâche)`);
-    } else {
-      trip.todos.forEach(t => {
-        const check = t.status === 'Fait' ? '[X]' : '[ ]';
-        lines.push(`  ${check} [${t.category}] ${t.title} (${t.status})`);
-      });
-    }
-
-    return lines.join('\n');
   }
 }

@@ -179,13 +179,6 @@ const elements = {
   btnCancelActivity: document.getElementById('btn-cancel-activity'),
 
   // 9. Modale Déplacement de Jour (conservée pour rétrocompatibilité)
-  dialogMoveActivity: document.getElementById('dialog-move-activity'),
-  formMoveActivity: document.getElementById('form-move-activity'),
-  moveActivityId: document.getElementById('move-activity-id'),
-  moveActivityName: document.getElementById('move-activity-name'),
-  selectTargetDay: document.getElementById('select-target-day'),
-  btnCloseMoveDialog: document.getElementById('btn-close-move-dialog'),
-  btnCancelMove: document.getElementById('btn-cancel-move'),
 
   // 10. Onglet Préparatifs & To-Dos
   btnOpenAddTodo: document.getElementById('btn-open-add-todo'),
@@ -1205,23 +1198,6 @@ function renderContactsInModal(category, selectedContactIds = []) {
   });
 }
 
-function openMoveModal(activity) {
-  elements.moveActivityId.value = activity.id;
-  elements.moveActivityName.textContent = `"${activity.title}"`;
-
-  const sel = elements.selectTargetDay;
-  sel.innerHTML = '';
-  (state.trip.days || []).forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d.id;
-    opt.textContent = `Jour ${d.dayNumber} - ${formatDateFr(d.date)} (${d.city || 'Sans étape'})`;
-    if (d.dayNumber === state.activeDayNumber) opt.selected = true;
-    sel.appendChild(opt);
-  });
-
-  openAccessibleDialog(elements.dialogMoveActivity);
-}
-
 // --------------------------------------------------------------------------
 // Onglet Préparatifs & To-Dos
 // --------------------------------------------------------------------------
@@ -2116,21 +2092,6 @@ function setupEventListeners() {
   if (elements.btnCloseProfileDialog) {
     elements.btnCloseProfileDialog.addEventListener('click', () => elements.dialogUserProfile.close());
   }
-
-  // 10. Déplacement d'Activité
-  elements.formMoveActivity.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const actId = elements.moveActivityId.value;
-    const targetDayId = elements.selectTargetDay.value;
-
-    ActivityService.moveActivity(state.trip, actId, targetDayId);
-    elements.dialogMoveActivity.close();
-    saveTripData();
-    renderAll();
-  });
-
-  elements.btnCloseMoveDialog.addEventListener('click', () => elements.dialogMoveActivity.close());
-  elements.btnCancelMove.addEventListener('click', () => elements.dialogMoveActivity.close());
 
   // 11. Gestion du Budget (Clic sur le budget pour modification)
   elements.kpiBudgetCard.addEventListener('click', () => {

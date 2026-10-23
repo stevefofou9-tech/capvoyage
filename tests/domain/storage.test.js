@@ -1,6 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { TripService } from '../../src/domain/TripService.js';
 import { ActivityService } from '../../src/domain/ActivityService.js';
@@ -33,7 +34,7 @@ describe('Suite 6 : Persistance & Mode Hors-Ligne (TC-STO)', () => {
 
   test('TC-STO-001 : Sérialisation et désérialisation intégrale (JSON)', () => {
     const originalTrip = createFullTrip();
-    const jsonStr = StorageService.exportToJson(originalTrip);
+    const jsonStr = JSON.stringify(originalTrip);
 
     assert.ok(typeof jsonStr === 'string');
     const reimported = StorageService.parseAndValidate(jsonStr);
@@ -58,21 +59,9 @@ describe('Suite 6 : Persistance & Mode Hors-Ligne (TC-STO)', () => {
     }, /Champ obligatoire manquant/);
   });
 
-  test('TC-STO-003 : Préparation de l\'export d\'impression (Print/PDF)', () => {
+  test('TC-STO-003 : Sauvegarde et rechargement fichier (dossier temporaire)', async () => {
     const trip = createFullTrip();
-    const printable = StorageService.generatePrintableSummary(trip);
-
-    assert.ok(printable.includes('PLANNING VOYAGE : VOYAGE AU CAMEROUN 2026'));
-    assert.ok(printable.includes('Destination : Cameroun'));
-    assert.ok(printable.includes('[Jour 1 - 2026-11-01] Étape : Douala'));
-    assert.ok(printable.includes('Dîner famille'));
-    assert.ok(printable.includes('Oncle Paul'));
-    assert.ok(printable.includes('Fièvre Jaune'));
-  });
-
-  test('TC-STO-004 : Sauvegarde et rechargement fichier (File Persistence)', async () => {
-    const trip = createFullTrip();
-    const tempFile = path.join(__dirname, '..', '..', 'data', 'test_trip.json');
+    const tempFile = path.join(os.tmpdir(), `capvoyage_test_trip_${Date.now()}.json`);
 
     await StorageService.saveToFile(trip, tempFile);
     const loaded = await StorageService.loadFromFile(tempFile);

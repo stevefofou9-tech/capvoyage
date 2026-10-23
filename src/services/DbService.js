@@ -250,13 +250,6 @@ export class DbService {
     return trip;
   }
 
-  deleteTrip(tripId) {
-    if (!tripId) return false;
-    const stmt = this.db.prepare('DELETE FROM trips WHERE id = ?');
-    const res = stmt.run(tripId);
-    return res.changes > 0;
-  }
-
   // ==========================================
   // PROTECTION BRUTE-FORCE & RATE LIMITING
   // ==========================================

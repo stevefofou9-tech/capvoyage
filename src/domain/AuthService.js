@@ -219,23 +219,6 @@ export class AuthService {
   }
 
   /**
-   * Supprime un voyage de la liste de l'utilisateur
-   */
-  static deleteTripFromUser(users, token, tripId) {
-    const user = AuthService.getUser(users, token);
-    if (!user) {
-      throw new Error('Utilisateur non authentifié');
-    }
-    if (user.trips) {
-      user.trips = user.trips.filter(id => id !== tripId);
-    }
-    if (user.currentTripId === tripId) {
-      user.currentTripId = user.trips && user.trips.length > 0 ? user.trips[0] : null;
-    }
-    return { success: true, remainingTrips: user.trips, currentTripId: user.currentTripId };
-  }
-
-  /**
    * Retourne le carnet d'adresses global de l'utilisateur
    */
   static getGlobalContacts(users, token) {
