@@ -1,10 +1,10 @@
 # 🧪 Cahier de Tests & Recette (Test Plan Specification)
 ## Projet : Planning Voyage PAYS (Travel Planner)
 **Méthodologie :** Spec-Driven Development (SDD) & Validation par Scénarios  
-**Référence PRD :** `docs/PRD.md` (v2.0.0) | `docs/user_stories.md` (v2.0.0) | `docs/adr/`  
+**Référence PRD :** `docs/PRD.md` (v2.1.0) | `docs/user_stories.md` (v2.1.0) | `docs/adr/`  
 **Cas pilote de test :** Voyage de 21 jours au Cameroun (Douala -> Yaoundé -> Kribi)  
 **Date :** 18/10/2026 · **Révision v2.0 :** 23/10/2026  
-**Statut :** v2.0 exécutée. Les modules 16 à 19 (🆕) ont été écrits avec le code ; ils passent tous (voir la CI).
+**Statut :** v2.0 exécutée. Les modules 16 à 19 passent tous (voir la CI). **Modules 20 à 24 (🆕 v2.1) : spécifiés le 23/10/2026, écrits avant le code de chaque lot (tests d'abord, ils échouent tant que le lot n'est pas livré).**
 
 ---
 
@@ -40,6 +40,11 @@ Ce cahier de tests définit l'ensemble des cas d'essais nécessaires pour valide
 | REQ-SHARE-1 : Partage paramétrable 🆕 | EPIC-7 (US-7.1 à 7.3) | `TC-SHARE-xxx` (domaine) + `TC-API-008` à `012` | 7 + 5 scénarios |
 | Module 8 : Sécurité (REQ-SEC-1 à 5) 🆕 | EPIC-8 (US-8.1 à 8.3) | `TC-API-xxx` | 24 scénarios (dont partage) |
 | NFR-1, REQ-6.4 : Parcours navigateur 🆕 | EPIC-6/7/8 | `TC-UI-xxx` | 9 scénarios |
+| REQ-UX-1 à 4, NFR-1 : Ergonomie 🆕 v2.1 | EPIC-9 (US-9.1) | `TC-UX-xxx` | 8 scénarios |
+| REQ-2.1, REQ-2.4 : Idées 🆕 v2.1 | EPIC-3 (US-3.4) | `TC-IDEA-xxx` | 10 scénarios |
+| REQ-2.5 : Statut en un tap 🆕 v2.1 | EPIC-1 (US-1.3), EPIC-3 (US-3.5) | `TC-QS-xxx` | 8 scénarios |
+| REQ-3.5, REQ-3.6 : Sélecteur et import 🆕 v2.1 | EPIC-4 (US-4.3, US-4.4) | `TC-CTX-xxx` | 11 scénarios |
+| REQ-7.5 à 7.7 : Jour courant et rappel 🆕 v2.1 | EPIC-9 (US-9.2, US-9.3) | `TC-NOW-xxx` | 9 scénarios |
 | **Total automatisé** | | | **Calculé par la CI** (`npm test` affiche `ℹ tests N`) ; aucun chiffre n'est écrit en dur dans la documentation |
 
 ---
@@ -452,6 +457,82 @@ Exigences : NFR-1, REQ-6.4, REQ-SEC-3, REQ-SHARE-1. `frontend_integrity.test.js`
 | `TC-UI-007` | Cibles tactiles visibles à 375 px | Toutes ≥ 44 px de haut (sauf liste d'exceptions documentée) |
 | `TC-UI-008` | Ouverture d'un lien partagé (Programme seul) | Bandeau « Lecture seule » ; onglets Préparatifs, Budget et Contacts masqués |
 | `TC-UI-009` | Simulation hors-ligne (`fetch` vers `/api` bloqué), puis ajout d'activité, puis rétablissement | Indicateur « En attente de synchro », puis « Enregistré » |
+
+### MODULE 20 : ERGONOMIE & RÈGLES DE DESIGN (Préfixe : TC-UX) 🆕 v2.1 — `tests/ui/`
+Exigences : REQ-UX-1 à 4, NFR-1, US-9.1. Chrome headless (CDP), ignoré si Chrome absent. Mesures faites en démo.
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-UX-001` | Viewport 375 × 812, en-tête | Contrôles interactifs de l'en-tête ≤ 4 ; présence du menu « ⋯ » ; hauteur de l'en-tête ≤ 15 % de l'écran |
+| `TC-UX-002` | Viewport 375 × 812, onglets | Les onglets haute barre sont masqués ; la barre basse contient les 4 onglets |
+| `TC-UX-003` | Menu « ⋯ » ouvert | Contient Partager, Nouveau voyage, Profil, Déconnexion ; chaque entrée ≥ 44 px ; fermeture à Échap et au clic extérieur |
+| `TC-UX-004` | Viewport 1280 × 800 | Barre d'onglets haute visible ; barre basse masquée |
+| `TC-UX-005` | Aucun chevauchement à 360 et 375 px | Aucune paire d'éléments interactifs de l'en-tête dont les rectangles se recoupent ; `scrollWidth <= clientWidth` |
+| `TC-UX-006` | Libellés de boutons | Chaque bouton d'en-tête a un libellé de 1 à 2 mots |
+| `TC-UX-007` | Une action primaire | Chaque `dialog` ouvert contient au plus un `.btn-primary` visible |
+| `TC-UX-008` | Garde-fou tokens (statique) | `style.css` : pas de couleur hexadécimale ni de rayon hors des variables `:root` (liste d'exceptions documentée) |
+
+### MODULE 21 : IDÉES — ACTIVITÉS SANS JOUR (Préfixe : TC-IDEA) 🆕 v2.1 — `tests/domain/ideas.test.js`
+Exigences : REQ-2.1, REQ-2.4, US-3.4, ADR-007.
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-IDEA-001` | `addActivity` sans `dayId` | Activité dans `trip.ideas`, sans `dayId`, statut `À planifier` ; aucune erreur |
+| `TC-IDEA-002` | `addActivity` sans titre ni jour | Erreur « titre obligatoire » (le titre reste le seul champ requis) |
+| `TC-IDEA-003` | `placeIdea` sur le Jour 6 | Retirée de `ideas`, présente dans le jour, `dayId` fixé, tous les champs et le statut conservés |
+| `TC-IDEA-004` | `unplaceActivity` | Retirée du jour, ajoutée à `ideas`, `dayId` supprimé, champs conservés |
+| `TC-IDEA-005` | Voyage ancien sans `ideas` | Lu comme `ideas: []` ; réécriture sans perte |
+| `TC-IDEA-006` | Dépense rattachée à une idée | Acceptée ; le solde est correct |
+| `TC-IDEA-007` | Export `.ics` et briefing | Les idées sont absentes ; les activités datées inchangées |
+| `TC-IDEA-008` | Réduction du séjour avec des idées | Les idées sont conservées |
+| `TC-SHARE-IDEA` | Vue partagée avec idées | `buildSharedView` ne contient aucune idée, quelles que soient les sections |
+| `TC-IDEA-UI` | Parcours CDP : ajout « Idées », placement sur un jour | Compteur de la section mis à jour, activité visible dans le jour, aucune erreur console |
+
+### MODULE 22 : STATUT EN UN TAP (Préfixe : TC-QS) 🆕 v2.1 — `tests/domain/` + `tests/ui/`
+Exigences : REQ-2.5, US-1.3, US-3.5.
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-QS-001` | `TodoService.toggleDone` sur `À faire` | Passe à `Fait` ; taux de complétion recalculé |
+| `TC-QS-002` | `toggleDone` sur `Fait` | Revient à `À faire` ; `En cours` devient `Fait` |
+| `TC-QS-003` | Règle du ✓ d'activité (`isCheckable`) | Vrai pour le jour courant et les jours passés ; faux pour un jour futur et pour une idée |
+| `TC-QS-004` | Marquer `Effectué` | Statut mis à jour ; autres champs inchangés |
+| `TC-QS-005` | UI : tap sur la pastille de tâche | Statut changé, **aucune** modale ouverte, toast « Annuler » visible |
+| `TC-QS-006` | UI : tap sur le reste de la tuile | La fiche d'édition s'ouvre |
+| `TC-QS-007` | UI : « Annuler » dans les 5 s | Statut précédent restauré |
+| `TC-QS-008` | Cible tactile de la pastille | ≥ 44 × 44 px à 375 px |
+
+### MODULE 23 : CONTACTS — SÉLECTEUR ET IMPORT (Préfixe : TC-CTX) 🆕 v2.1 — `tests/domain/contact_import.test.js`
+Exigences : REQ-3.5, REQ-3.6, US-4.3, US-4.4, ADR-008.
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-CTX-001` | `parseVCard` : fichier de 3 fiches (FN, TEL) | 3 contacts `{ name, phone }` |
+| `TC-CTX-002` | `parseVCard` : lignes pliées, `N` sans `FN`, accents `QUOTED-PRINTABLE` | Noms corrects, aucune exception |
+| `TC-CTX-003` | `parseVCard` : texte non vCard ou vide | Liste vide, aucune exception |
+| `TC-CTX-004` | `parseBulk` : `Paul`, `Marie, 6 99 00 00 00`, lignes vides | 2 contacts, vide ignoré, espaces nettoyés |
+| `TC-CTX-005` | Détection des doublons (nom normalisé ou téléphone) | Marqués « déjà présent », décochés par défaut |
+| `TC-CTX-006` | `toContacts` avec 12 importés, 2 ignorés, 1 en `Famille`, défaut `Ami` | 10 contacts, relations correctes |
+| `TC-CTX-007` | Relation invalide | Remplacée par `Autre` |
+| `TC-CTX-008` | Filtre du sélecteur : « pa » | Contacts correspondants uniquement, insensible casse/accents, récents d'abord |
+| `TC-CTX-UI1` | Assistant : charger un .vcf puis trier | Écran de tri affiché ; après validation, les contacts conservés sont dans le voyage |
+| `TC-CTX-UI2` | Sélecteur d'activité : filtrer, taper, « + Nouveau » | Pastilles ajoutées, `contactIds` à jour, sélecteur ouvert entre deux taps |
+| `TC-CTX-UI3` | Navigateur sans Contact Picker | Bouton natif absent ; vCard et saisie en lot proposés |
+
+### MODULE 24 : JOUR COURANT ET RAPPEL (Préfixe : TC-NOW) 🆕 v2.1 — `tests/domain/now.test.js`
+Exigences : REQ-7.5, REQ-7.6, REQ-7.7, US-9.2, US-9.3. Horloge et fuseau **injectés** (aucun test ne dépend de la date réelle).
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-NOW-001` | Séjour 01–21/11, date locale 08/11 | Jour 8 |
+| `TC-NOW-002` | Avant le départ (25/10) | Jour 1 + compte à rebours « J-7 » |
+| `TC-NOW-003` | Après le retour (30/11) | Dernier jour |
+| `TC-NOW-004` | 23:30 UTC le 07/11 pour un séjour à Douala (UTC+1) | Jour 8 (fuseau du lieu), et non Jour 7 |
+| `TC-NOW-005` | Prochaine activité à 13:00, il est 11:30 | « dans 1 h 30 » |
+| `TC-NOW-006` | Toutes les activités du jour sont passées / sans heure | Aucun rappel |
+| `TC-NOW-007` | Idée horodatée | Ignorée par le rappel |
+| `TC-NOW-008` | `.ics` | Chaque activité horodatée contient `BEGIN:VALARM` avec `TRIGGER:-PT1H` ; les activités sans heure n'en ont pas |
+| `TC-NOW-UI` | CDP : horloge simulée au jour 8 | Le Programme s'ouvre sur le Jour 8 et affiche « Prochaine : … » |
 
 ---
 

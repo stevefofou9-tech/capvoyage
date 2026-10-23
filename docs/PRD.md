@@ -1,14 +1,16 @@
 # 📄 Product Requirements Document (PRD)
 ## Projet : CapVoyage (ex « Planning Voyage PAYS »)
 **Méthodologie :** Spec-Driven Development (SDD)
-**Version :** 2.0.0
+**Version :** 2.1.0
 **Date :** 23/10/2026
-**Statut :** v2.0 validée (23/10/2026) et implémentée
+**Statut :** v2.0 implémentée ; **v2.1 spécifiée et validée (23/10/2026), développement à venir**
 
 > **Historique**
 > - v1.0.0 (18/10/2026) : périmètre initial (modules 1 à 6).
 > - V2 à V4 (19–22/10) : auth sans mot de passe, assistant, multi-voyages, partage, PWA, export `.ics`. Ces fonctions étaient livrées mais non formalisées ici ; elles le sont désormais (module 7).
 > - **v2.0.0 (23/10/2026)** : retrait de l'export/import JSON, de l'impression/PDF, du réordonnancement et de la suppression de voyage (§7). Ajout des exigences de sécurité, de partage paramétrable et de synchronisation hors-ligne issues de [l'audit du 23/10](audit_2026-10-23.md) (voir [discovery](sdd/01_discovery.md)).
+
+> - **v2.1.0 (23/10/2026)** : premiers retours d'usage ([discovery](sdd/02_discovery_retours_utilisateurs.md)) : règles de design mesurables (module 9), activités sans jour / « Idées » (REQ-2.1 révisé, REQ-2.4), statut en un tap (REQ-2.5), sélecteur de contacts (REQ-3.5), import du répertoire à la configuration (REQ-3.6), ouverture sur le jour courant et rappel (REQ-7.5 à 7.7).
 
 ---
 
@@ -61,7 +63,7 @@ CapVoyage est un planificateur de voyage axé sur :
 - **REQ-1.3 :** L'utilisateur attribue une étape / ville principale à chaque journée (ex : `Jour 1-5 : Douala`).
 
 ### Module 2 : Activités avec Enregistrement Progressif
-- **REQ-2.1 (enregistrement minimal) :** l'ajout d'une activité ne requiert qu'un **titre** et un **jour associé**.
+- **REQ-2.1 (enregistrement minimal, révisé v2.1) :** l'ajout d'une activité ne requiert qu'un **titre**. Le **jour est optionnel** : sans jour, l'activité est une **idée** (REQ-2.4). Le statut reste manuel : « sans jour » est un état distinct du statut (« À planifier » reste le statut initial).
 - **REQ-2.2 (enrichissement progressif) :** tout au long du voyage, l'utilisateur peut ajouter ou modifier :
   - **Catégorie :** Famille, Amis, Sorties, Loisir, Travail, Logistique, Découverte, Santé/Bien-être.
   - **Horaire :** heure précise (ex : 14:30) ou créneau libre (Matin, Après-midi, Soirée).
@@ -69,6 +71,13 @@ CapVoyage est un planificateur de voyage axé sur :
   - **Participants (« Avec qui ») :** un ou plusieurs contacts du carnet.
   - **Notes / détails.**
   - **Statut :** `À planifier`, `Confirmé`, `Effectué`, `Annulé`.
+- **REQ-2.4 (Idées, nouveau v2.1) :** l'utilisateur dispose d'un **bac à idées** : activités sans jour.
+  - L'ajout rapide propose « Ajouter au jour N » ou « Ajouter aux idées ».
+  - Les idées sont listées dans une section repliable en tête du Programme (pas d'onglet supplémentaire), avec leur compteur.
+  - L'action « Placer » affecte une idée à un jour (et un créneau facultatif) ; l'inverse, « Remettre aux idées », est possible depuis la fiche. Aucun détail n'est perdu.
+  - Les idées sont **exclues** de l'export `.ics`, du briefing du jour et du rappel de prochaine activité ; elles **ne sont pas transmises** au lecteur d'un lien de partage.
+  - Une dépense peut être rattachée à une idée.
+- **REQ-2.5 (statut en un tap, nouveau v2.1) :** sur la liste, sans ouvrir la fiche : une tâche (Module 4) bascule `À faire ↔ Fait` d'un tap ; une activité **du jour courant ou passée** peut être marquée `Effectué` d'un bouton ✓. Chaque bascule est annulable (toast, 5 s). `En cours` et `Annulé` restent accessibles depuis la fiche.
 - **REQ-2.3 :** l'utilisateur peut **déplacer une activité vers un autre jour**, depuis le sélecteur de jour de la fiche d'activité. L'ordre d'affichage dans une journée est déterminé par le bloc temporel et l'heure ; il n'est pas réordonnable manuellement (voir §7).
 
 ### Module 3 : Carnet de Contacts dédié (« Avec qui »)
@@ -76,6 +85,8 @@ CapVoyage est un planificateur de voyage axé sur :
 - **REQ-3.2 :** chaque fiche comprend : nom, relation (Famille, Ami, Guide, Chauffeur, Collègue, Autre), téléphone/WhatsApp, ville, notes.
 - **REQ-3.3 :** association de plusieurs contacts à une activité.
 - **REQ-3.4 :** vue synthétique par contact, listant toutes ses activités.
+- **REQ-3.5 (sélecteur de contacts, nouveau v2.1) :** l'association de contacts à une activité (fiche et ajout rapide) passe par un **sélecteur à recherche** en feuille basse : champ de filtre, contacts récents en tête, tap = ajout/retrait d'une pastille, multi-sélection, « + Nouveau » en bas. Il remplace le nuage de cases et le menu `@Contact`.
+- **REQ-3.6 (import du répertoire à la configuration, nouveau v2.1) :** l'étape « contacts » de l'assistant (et l'onglet Contacts) permet de charger des contacts depuis : (a) le sélecteur natif quand le navigateur le fournit (Chrome Android), (b) un fichier **vCard (.vcf)**, (c) une **saisie en lot** (un nom par ligne). Les sources alimentent un **écran de tri unique** où chaque contact reçoit sa **relation** en un tap (actions « Tout en Ami » et « Ignorer »). Rien n'est enregistré avant validation ; seuls les contacts conservés entrent dans le voyage.
 
 ### Module 4 : To-Do Pré-Voyage & Formalités
 - **REQ-4.1 :** tâches à accomplir avant le départ, par catégorie :
@@ -107,12 +118,22 @@ CapVoyage est un planificateur de voyage axé sur :
 - **REQ-7.2 (multi-voyages) :** un compte possède plusieurs voyages et bascule de l'un à l'autre. Un assistant en 3 étapes crée un voyage (destination, dates et budget, contacts initiaux).
 - **REQ-7.3 (mode démo) :** un visiteur sans compte explore le voyage exemple « Cameroun ».
 - **REQ-7.4 (export calendrier) :** export du programme au format `.ics` (RFC 5545).
+- **REQ-7.5 (ouverture sur le jour courant, v2.1) :** pendant le séjour, le Programme s'ouvre sur **aujourd'hui** ; avant le départ sur le Jour 1 avec un compte à rebours ; après le retour sur le dernier jour. La date du jour est calculée dans le **fuseau du lieu du séjour**.
+- **REQ-7.6 (rappel dans l'application, v2.1) :** à l'ouverture et chaque minute, le jour courant affiche « Prochaine : <titre> dans <durée> » pour la prochaine activité horodatée (hors idées). Aucune permission requise, fonctionne hors-ligne.
+- **REQ-7.7 (alarmes calendrier, v2.1) :** l'export `.ics` ajoute une alarme (`VALARM`) 1 h avant chaque activité horodatée. Pas de notification push (voir §7).
 - **REQ-SHARE-1 (partage paramétrable) :**
   - Le propriétaire **active ou désactive** le lien de partage. Désactivé, le lien ne donne plus accès à rien.
   - Il **choisit les sections partagées** parmi : Programme, Préparatifs, Budget, Contacts. **Par défaut, seul le Programme est partagé.**
   - Il peut **régénérer** le lien, ce qui invalide l'ancien.
   - Le lecteur voit les sections partagées en **lecture seule**, avec un bandeau explicite ; les onglets non partagés sont masqués.
   - Les données d'une section non partagée **ne sont jamais transmises** au lecteur. Quand « Contacts » n'est pas partagé, les activités du Programme n'affichent pas les participants.
+
+### Module 9 : Ergonomie & Règles de design (nouveau v2.1)
+Ces règles sont inscrites dans `DESIGN.md` et vérifiées par des tests.
+- **REQ-UX-1 (une action primaire par écran) :** chaque écran et chaque modale n'a qu'un bouton primaire ; les autres actions sont secondaires ou dans un menu.
+- **REQ-UX-2 (en-tête mobile sobre) :** sous 768 px, l'en-tête ne porte que l'identité (titre du voyage, dates sur une ligne, indicateur de synchro) et **un menu « ⋯ »** regroupant Partager, Nouveau voyage, Profil, Déconnexion. Les 4 onglets ne figurent **que** dans la barre basse. Sur ordinateur (≥ 768 px), la barre d'onglets haute est conservée.
+- **REQ-UX-3 (densité et texte) :** au plus 4 contrôles interactifs dans l'en-tête, aucun texte coupé ou chevauché (ellipse si trop long), libellés de bouton de 1 à 2 mots (« Nouveau », « Partager »).
+- **REQ-UX-4 (cohérence) :** espacements, rayons et tailles de texte proviennent exclusivement des tokens de `DESIGN.md` ; aucune valeur isolée.
 
 ### Module 8 : Sécurité & Confidentialité (nouveau, v2.0)
 - **REQ-SEC-1 (propriété) :** un voyage n'est lisible et modifiable que par son propriétaire authentifié. L'identifiant de voyage et de propriétaire envoyés par le client ne sont jamais utilisés pour décider de l'accès.
@@ -149,7 +170,7 @@ erDiagram
 3. **Trip** (`id`, `userId`, `country`, `title`, `startDate`, `endDate`, `baseCurrency`, `totalBudget`, `version`, `createdAt`, `updatedAt`)
 4. **Sharing** (`enabled`, `token`, `sections { planning, todos, budget, contacts }`, `updatedAt`) — *nouveau v2.0, remplace `shareToken`*
 5. **Day** (`id`, `dayNumber`, `date`, `city`, `notes`)
-6. **Activity** (`id`, `dayId`, `title`, `category`, `time`, `location`, `contactIds[]`, `status`, `notes`, `createdAt`)
+6. **Activity** (`id`, `dayId` *(optionnel depuis v2.1 : absent = idée, stockée dans `trip.ideas[]`, voir ADR-007)*, `title`, `category`, `time`, `location`, `contactIds[]`, `status`, `notes`, `createdAt`)
 7. **Contact** (`id`, `name`, `relationship`, `phone`, `city`, `notes`)
 8. **Expense** (`id`, `activityId`, `label`, `amount`, `currency`, `category`, `date`, `convertedAmountBase`)
 9. **TodoItem** (`id`, `title`, `category`, `dueDate`, `priority`, `status`)
@@ -258,10 +279,55 @@ Fonctionnalité: Mode démo
     Et les données du serveur sont inchangées
 ```
 
+### Scénario 8 : Bac à idées (REQ-2.1, REQ-2.4)
+```gherkin
+Fonctionnalité: Activités sans jour
+  Scénario: Ajouter une idée puis la placer
+    Quand j'ajoute "Restaurant de poisson à Kribi" avec "Ajouter aux idées"
+    Alors elle apparaît dans la section "Idées" et dans aucun jour
+    Quand je la place sur le Jour 6
+    Alors elle quitte les idées, apparaît sur le Jour 6 avec tous ses détails
+  Scénario: Les idées restent privées
+    Étant donné une idée et un lien de partage actif
+    Alors le lecteur ne reçoit aucune idée
+    Et l'export .ics ne contient pas l'idée
+```
+
+### Scénario 9 : Statut en un tap (REQ-2.5)
+```gherkin
+Fonctionnalité: Validation rapide
+  Scénario: Cocher une tâche sans l'ouvrir
+    Quand je touche la pastille de statut de la tâche "Visa"
+    Alors son statut devient "Fait", la progression augmente et la fiche ne s'ouvre pas
+    Et un toast "Annuler" est proposé pendant 5 secondes
+  Scénario: Activité future
+    Étant donné une activité d'un jour à venir
+    Alors aucun bouton ✓ n'est affiché
+```
+
+### Scénario 10 : Import du répertoire (REQ-3.6)
+```gherkin
+Fonctionnalité: Contacts à la configuration
+  Scénario: Import vCard et tri
+    Quand je charge un fichier .vcf de 12 contacts dans l'assistant
+    Alors un écran de tri me présente les 12 contacts
+    Quand j'ignore 2 contacts, choisis "Tout en Ami" puis passe "Oncle Paul" en "Famille"
+    Alors 10 contacts sont créés, dont "Oncle Paul" avec la relation "Famille"
+```
+
+### Scénario 11 : Ouverture sur le jour courant (REQ-7.5, REQ-7.6)
+```gherkin
+Fonctionnalité: Aujourd'hui d'abord
+  Scénario: Pendant le séjour
+    Étant donné un séjour du 01/11 au 21/11 et la date locale du 08/11
+    Alors le Programme s'ouvre sur le Jour 8
+    Et pour une activité à 13:00, "Prochaine : <titre> dans 1 h 30" s'affiche à 11:30
+```
+
 ---
 
 ## 6. Exigences Non-Fonctionnelles (NFR)
-- **NFR-1 (mobile d'abord) :** à 360 px de large, aucun défilement horizontal ; l'en-tête occupe au plus 25 % de la hauteur d'écran ; les cibles tactiles mesurent au moins 44 px.
+- **NFR-1 (mobile d'abord) :** à 360 px de large, aucun défilement horizontal ; l'en-tête occupe au plus 25 % de la hauteur d'écran (cible v2.1 : 15 %) ; les cibles tactiles mesurent au moins 44 px ; les règles REQ-UX-1 à 4 sont respectées.
 - **NFR-2 :** démarrage sans latence perceptible, interface fluide sans rechargement de page.
 - **NFR-3 :** zéro perte de données (sauvegarde locale immédiate et synchronisation garantie, REQ-6.1).
 - **NFR-4 :** tests automatisés couvrant les règles métier, l'API HTTP (sécurité incluse) et un parcours navigateur de bout en bout ; exécutés en CI à chaque push.
@@ -278,5 +344,7 @@ Fonctionnalité: Mode démo
 | Impression / récapitulatif PDF du planning | Jugée inutile (« Imprimer ne sert à rien ») ; le partage paramétrable et l'export `.ics` couvrent le besoin de diffusion | REQ-6.3, US-6.2 |
 | Réordonnancement manuel des activités dans une journée | L'ordre est porté par les blocs temporels et l'heure (temporalité lâche) | REQ-2.3 (partie « changer l'ordre ») |
 | Suppression d'un voyage | Non demandée ; pas d'interface prévue | — |
+| Notifications push / Web Push et notifications locales planifiées | Non fiables sans l'application ouverte ; le push impose une infrastructure serveur. Remplacés par le rappel dans l'application et les alarmes `.ics` (REQ-7.6, 7.7) | v2.1 |
+| Synchronisation continue du répertoire, dédoublonnage automatique des contacts | Un import ponctuel validé par l'utilisateur suffit | v2.1 |
 
 La sauvegarde **opérationnelle** de la base de production (NFR-6) n'est pas concernée.

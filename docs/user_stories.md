@@ -1,7 +1,7 @@
 # 📋 Backlog des User Stories (Spec-Driven Development)
 ## Projet : Planning Voyage PAYS (Travel Planner)
 **Méthodologie :** SDD / MoSCoW (Must, Should, Could, Won't)  
-**Version :** 2.0.0 (23/10/2026, alignée sur le PRD v2.0)
+**Version :** 2.1.0 (23/10/2026, alignée sur le PRD v2.1 ; ajouts v2.1 marqués 🆕)
 
 ---
 
@@ -17,6 +17,9 @@
 | **EPIC-6** | Hors-Ligne & Synchronisation | 🔴 MUST HAVE |
 | **EPIC-7** | Partage Paramétrable | 🔴 MUST HAVE |
 | **EPIC-8** | Sécurité, Comptes & Démo | 🔴 MUST HAVE |
+| **EPIC-9** 🆕 | Ergonomie mobile & Aujourd'hui d'abord (premiers retours) | 🔴 MUST HAVE |
+
+> **Amendements v2.1 (retours d'usage)** : US-1.3 (statut en un tap), US-3.1 révisée, US-3.4 (idées), US-3.5 (✓ activité), US-4.3 (sélecteur de contacts), US-4.4 (import du répertoire), EPIC-9 (US-9.1 à 9.3). Discovery : [`sdd/02_discovery_retours_utilisateurs.md`](sdd/02_discovery_retours_utilisateurs.md).
 
 > **Hors périmètre (v2.0) :** export/import JSON, impression/PDF, réordonnancement manuel des activités, suppression de voyage (voir PRD §7). L'ancienne US-6.2 est retirée.
 
@@ -57,6 +60,24 @@ Scénario: Ajout et complétion d'une tâche personnalisée
 
 ---
 
+### US-1.3 🆕 : Valider une tâche sans l'ouvrir (REQ-2.5)
+> **En tant que** voyageur qui coche ses préparatifs en marchant,
+> **Je veux** passer une tâche à « Fait » d'un seul tap sur la liste,
+> **Afin de** ne pas ouvrir une fiche pour un simple geste.
+
+```gherkin
+Scénario: Bascule rapide
+  Étant donné la tâche "Visa" à l'état "À faire"
+  Quand je touche sa pastille de statut
+  Alors elle passe à "Fait", la progression augmente et la fiche ne s'ouvre pas
+  Et un toast "Annuler" reste disponible 5 secondes
+Scénario: Ouverture de la fiche conservée
+  Quand je touche le reste de la tuile
+  Alors la fiche d'édition s'ouvre (le statut "En cours" y reste disponible)
+```
+
+---
+
 ## EPIC 2 : Configuration du Voyage & Calendrier des Jours
 
 ### US-2.1 : Création du voyage avec génération automatique des journées
@@ -90,7 +111,7 @@ Scénario: Définition des villes étapes
 
 ## EPIC 3 : Enregistrement Progressif & Activités
 
-### US-3.1 : Saisie ultra-rapide sans friction (Enregistrement minimal)
+### US-3.1 : Saisie ultra-rapide sans friction (Enregistrement minimal) — *révisée v2.1 : le jour est optionnel (voir US-3.4)*
 > **En tant que** voyageur en situation de mobilité,  
 > **Je veux** pouvoir enregistrer une activité en tapant seulement son nom sur une journée sans aucun autre champ requis,  
 > **Afin de** capturer instantanément une idée ou une opportunité avant de l'oublier.
@@ -138,6 +159,40 @@ Scénario: Replanification d'une activité
   Et tous ses détails (lieu, heure, contacts, notes) restent strictement préservés
 ```
 
+### US-3.4 🆕 : Garder des idées sans choisir de jour (REQ-2.1, REQ-2.4)
+> **En tant que** voyageur qui collecte des envies avant de connaître son planning,
+> **Je veux** ajouter une activité sans lui affecter de jour, puis la placer plus tard,
+> **Afin de** ne pas inventer une date pour ne rien oublier.
+
+```gherkin
+Scénario: Ajouter aux idées
+  Quand je saisis "Restaurant de poisson à Kribi" et choisis "Ajouter aux idées"
+  Alors l'activité apparaît dans la section repliable "Idées" avec son compteur
+  Et elle n'est dans aucun jour, ni dans l'export .ics, ni dans le briefing du jour
+Scénario: Placer une idée
+  Quand j'utilise "Placer" et choisis le Jour 6
+  Alors elle quitte les idées et apparaît sur le Jour 6 avec tous ses détails
+  Et "Remettre aux idées" depuis sa fiche la détache de nouveau du jour
+Scénario: Confidentialité
+  Étant donné un lien de partage actif
+  Alors le lecteur ne reçoit aucune idée
+```
+
+### US-3.5 🆕 : Marquer une activité comme effectuée d'un tap (REQ-2.5)
+> **En tant que** voyageur en déplacement,
+> **Je veux** valider une activité terminée sans ouvrir sa fiche,
+> **Afin de** garder le programme à jour en une seconde.
+
+```gherkin
+Scénario: Activité du jour
+  Étant donné une activité du jour courant
+  Quand je touche son bouton ✓
+  Alors son statut devient "Effectué" et un toast "Annuler" est proposé 5 secondes
+Scénario: Activité future
+  Étant donné une activité d'un jour à venir
+  Alors aucun bouton ✓ n'est affiché
+```
+
 ---
 
 ## EPIC 4 : Carnet de Contacts & Réseau Local ("Avec qui")
@@ -169,6 +224,36 @@ Scénario: Consultation des activités liées à un contact
   Étant donné le contact "Oncle Paul" lié aux activités du Jour 2 et du Jour 12
   Quand je filtre par le contact "Oncle Paul"
   Alors seules les activités impliquant "Oncle Paul" sont mises en surbrillance ou filtrées
+```
+
+### US-4.3 🆕 : Choisir les participants d'une activité en un geste (REQ-3.5)
+> **En tant que** voyageur,
+> **Je veux** retrouver et ajouter des contacts à une activité depuis un sélecteur avec recherche,
+> **Afin de** ne pas parcourir une longue liste de cases.
+
+```gherkin
+Scénario: Sélection par recherche
+  Quand j'ouvre "Avec qui" et tape "pa"
+  Alors seuls les contacts correspondants s'affichent, les récents en premier
+  Et un tap sur "Oncle Paul" l'ajoute en pastille sans fermer le sélecteur
+  Et "+ Nouveau" en bas crée un contact et le coche aussitôt
+```
+
+### US-4.4 🆕 : Charger mon répertoire dès la configuration (REQ-3.6)
+> **En tant que** voyageur qui crée un voyage,
+> **Je veux** importer mes contacts existants et leur donner une catégorie tout de suite,
+> **Afin de** ne pas les ressaisir un par un.
+
+```gherkin
+Scénario: Import vCard puis tri
+  Étant donné l'étape "contacts" de l'assistant
+  Quand je charge un fichier .vcf de 12 contacts
+  Alors un écran de tri les liste avec une relation à choisir en un tap
+  Quand j'ignore 2 contacts, applique "Tout en Ami" et passe "Oncle Paul" en "Famille"
+  Alors 10 contacts sont créés et rien n'est enregistré avant ma validation
+Scénario: Navigateur sans sélecteur natif
+  Étant donné un iPhone ou un ordinateur
+  Alors l'import vCard et la saisie en lot (un nom par ligne) sont proposés, avec le même écran de tri
 ```
 
 ---
@@ -321,4 +406,55 @@ Scénario: Démo isolée
   Alors elle n'est visible que sur mon appareil
   Et les données du serveur sont inchangées
   Et un bouton "Créer mon compte" me permet de quitter la démo
+```
+
+---
+
+## EPIC 9 🆕 : Ergonomie mobile & Aujourd'hui d'abord
+
+### US-9.1 : Un écran mobile clair et sobre (REQ-UX-1 à 4)
+> **En tant que** voyageur sur téléphone,
+> **Je veux** un en-tête sobre et des écrans sans encombrement,
+> **Afin de** lire et agir d'une main sans que rien ne se chevauche.
+
+```gherkin
+Scénario: En-tête mobile
+  Étant donné un écran de 375 px
+  Alors l'en-tête affiche le titre du voyage, les dates sur une ligne, l'indicateur de synchro et un menu "⋯"
+  Et Partager, Nouveau voyage, Profil et Déconnexion sont dans ce menu
+  Et les onglets n'apparaissent que dans la barre basse
+  Et l'en-tête occupe au plus 15 % de la hauteur, sans texte coupé ni chevauché
+Scénario: Ordinateur
+  Étant donné un écran de 1280 px
+  Alors la barre d'onglets haute est conservée
+Scénario: Une action primaire
+  Alors chaque écran et chaque modale n'a qu'un seul bouton primaire
+```
+
+### US-9.2 : S'ouvrir sur aujourd'hui (REQ-7.5)
+> **En tant que** voyageur en séjour,
+> **Je veux** voir d'abord la journée en cours,
+> **Afin de** ne pas chercher le bon jour à chaque ouverture.
+
+```gherkin
+Scénario: Pendant, avant, après
+  Étant donné un séjour du 01/11 au 21/11
+  Quand la date locale du lieu est le 08/11 Alors le Jour 8 est affiché
+  Quand elle est avant le 01/11 Alors le Jour 1 est affiché avec un compte à rebours
+  Quand elle est après le 21/11 Alors le dernier jour est affiché
+```
+
+### US-9.3 : Savoir ce qui vient (REQ-7.6, REQ-7.7)
+> **En tant que** voyageur,
+> **Je veux** voir la prochaine activité et être alerté par mon calendrier,
+> **Afin de** ne pas rater un rendez-vous, même sans réseau.
+
+```gherkin
+Scénario: Prochaine activité
+  Étant donné une activité à 13:00 et l'heure locale 11:30
+  Alors le jour courant affiche "Prochaine : <titre> dans 1 h 30"
+  Et les idées n'y figurent jamais
+Scénario: Alarmes calendrier
+  Quand j'exporte le .ics
+  Alors chaque activité horodatée contient une alarme 1 h avant
 ```
