@@ -2,9 +2,9 @@
 
 ## Vue d'Ensemble de l'Architecture de Production
 
-CapVoyage est une application web conçue selon les principes du **Spec-Driven Development (SDD)** et de l'architecture **Offline-First**. En production, elle repose sur un socle performant et autonome :
+CapVoyage est une application web conçue selon les principes du **Spec-Driven Development (SDD)**, utilisable hors-ligne avec synchronisation versionnée (ADR-003). En production, elle repose sur un socle performant et autonome :
 - **Moteur d'application :** Node.js 24 LTS (ES Modules natifs).
-- **Persistance :** Moteur relationnel SQLite natif (`node:sqlite`) en mode **WAL (Write-Ahead Logging)** assurant des écritures concurrentes non-bloquantes, complété par un miroir de sauvegarde atomique JSON.
+- **Persistance :** Moteur relationnel SQLite natif (`node:sqlite`) en mode **WAL (Write-Ahead Logging)**, **source de vérité unique** (ADR-001). Les anciens fichiers JSON (`users.json`, `trips/`) sont importés automatiquement au démarrage puis ne sont plus écrits.
 - **Authentification Sécurisée :** Codes magiques passwordless à 6 chiffres transmis par e-mail via l'API transactionnelle (Resend ou SMTP), protégés par rate-limiting et révocation après 5 erreurs.
 - **Partage :** Consultation en lecture seule d'un séjour par jeton public `?share=...` résolu côté serveur avec verrouillage des écritures.
 - **Client & PWA :** Interface responsive installable sur smartphone (iOS / Android) avec Service Worker et cache local.
@@ -113,7 +113,7 @@ flyctl tokens create deploy -x 999999h --app capvoyage
 ### 2.3 Fonctionnement du Pipeline CI/CD Automatique
 
 Le fichier [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) orchestre le déploiement sans intervention humaine :
-1. **Étape `test` :** Les 89 tests automatisés sont exécutés en parallèle sur Node 22 et Node 24.
+1. **Étape `test` :** `node --check` des modules servis au navigateur, puis toutes les suites (`npm test` : domaine, intégration, API HTTP, parcours Chrome headless) sur Node 22 et Node 24.
 2. **Étape `deploy` :** Uniquement en cas de succès à 100% des tests et lors d'un `git push` sur `main` ou `master` :
    - L'action `superfly/flyctl-actions/setup-flyctl` installe `flyctl`.
    - La commande `flyctl deploy --remote-only` compile et déploie le conteneur sur l'infrastructure Fly.io.
@@ -140,8 +140,8 @@ Pour permettre aux utilisateurs de recevoir leur code de connexion sans mot de p
 3. Générez une clé API et renseignez-la dans `RESEND_API_KEY`.
 4. Renseignez l'adresse d'expédition validée dans `EMAIL_FROM` (ex: `CapVoyage <auth@votre-domaine.com>`).
 
-> [!NOTE]
-> Si aucune clé API n'est fournie (ou en local), CapVoyage fonctionne en mode simulation : le code est affiché dans les logs du serveur (`docker logs`) sans bloquer le processus.
+> [!WARNING]
+> **En production, `RESEND_API_KEY` est obligatoire.** Sans clé, le code n'est écrit que dans les logs du serveur et n'est pas renvoyé au navigateur (`devCode` masqué en production) : **personne ne peut se connecter**. Vérifiez avec `fly secrets list`. En local (hors production), le code est affiché à l'écran.
 
 ---
 
@@ -150,21 +150,35 @@ Pour permettre aux utilisateurs de recevoir leur code de connexion sans mot de p
 Grâce à SQLite WAL, la sauvegarde de la base en production se fait sans interruption de service :
 
 ### 4.1 Sauvegarde manuelle instantanée
+Le script `scripts/backup-db.js` (inclus dans l'image) produit une copie cohérente par `VACUUM INTO` et ne conserve que les N plus récentes :
 ```bash
-# Sauvegarde sécurisée SQLite en cours de fonctionnement
-docker exec capvoyage-app node -e "
-  const { DatabaseSync } = require('node:sqlite');
-  const db = new DatabaseSync('/app/data/capvoyage.db');
-  db.exec(\"VACUUM INTO '/app/data/backup_$(date +%Y%m%d_%H%M%S).db'\");
-  console.log('Sauvegarde SQLite terminée !');
-"
+# Docker / VPS
+docker exec capvoyage-app node scripts/backup-db.js /app/data/backups 7
+
+# Fly.io
+fly ssh console -C "node /app/scripts/backup-db.js /app/data/backups 7"
 ```
 
-### 4.2 Automatisation via Cron (Exemple quotidien à 3h du matin)
-Ajoutez cette ligne dans votre crontab (`crontab -e`) :
-```bash
-0 3 * * * docker exec capvoyage-app node -e "const { DatabaseSync } = require('node:sqlite'); new DatabaseSync('/app/data/capvoyage.db').exec(\"VACUUM INTO '/app/data/backup_daily.db'\");"
-```
+### 4.2 Automatisation quotidienne
+- **VPS (cron, 3 h du matin) :**
+  ```bash
+  0 3 * * * docker exec capvoyage-app node scripts/backup-db.js /app/data/backups 7
+  ```
+- **Fly.io :** les snapshots de volume sont quotidiens (`fly volumes snapshots list`). Créez-en un manuellement avant chaque déploiement qui migre la base : `fly volumes snapshots create <volume-id>`.
+
+> Les sauvegardes stockées sur le même volume ne protègent pas contre la perte du volume : copiez-les régulièrement ailleurs (`fly ssh sftp get`, stockage objet).
+
+### 4.3 Restauration
+Arrêtez l'application, remplacez `/app/data/capvoyage.db` par la sauvegarde choisie (supprimez `capvoyage.db-wal` et `-shm`), puis redémarrez.
+
+---
+
+## 4bis. Migrations automatiques au démarrage
+Toutes idempotentes, sans intervention :
+- import unique des anciens fichiers JSON (ADR-001) ;
+- table `sessions` et reprise des anciens jetons de connexion (ADR-004) ;
+- partage : un ancien lien reste actif mais ne montre plus que le Programme (ADR-006) ;
+- seed démo `trip-cameroun-seed` créé s'il est absent.
 
 ---
 

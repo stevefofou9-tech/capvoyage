@@ -1,6 +1,6 @@
 # ADR-001 : SQLite, source de vérité unique
 
-**Statut :** Proposé (jalon SDD du 23/10/2026) · **Date :** 23/10/2026
+**Statut :** Accepté et implémenté (23/10/2026) · **Date :** 23/10/2026
 
 ## Contexte
 Chaque écriture part aujourd'hui à la fois dans SQLite (`DbService`) **et** dans des fichiers JSON miroirs (`data/users.json`, `data/trips/trip_<id>.json`, `data/trips/trip_<userId>.json`). Les lectures se replient d'une source sur l'autre (`loadUsers`, `GET /api/trip`, `?share=`). Le voyage démo est lu **et réécrit** dans `data/trip_cameroun.json`, un fichier suivi par git (audit A3, A8, S3).

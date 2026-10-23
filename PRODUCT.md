@@ -10,7 +10,7 @@ web
 
 Voyageurs internationaux, membres de la diaspora, familles et nomades préparant et vivant des séjours de moyenne à longue durée (2 à 4 semaines) à l'étranger, particulièrement dans des destinations exigeantes ou hors zone euro (ex: Cameroun avec circuit Douala, Yaoundé, Kribi ; Sénégal ; Côte d'Ivoire ; etc.).
 Situation : En mobilité, souvent sur smartphone, sous fort ensoleillement, avec une connectivité intermittente, des environnements à cash dominant (FCFA, etc.) et une coordination logistique forte via WhatsApp.
-Le "Job" : Libérer l'esprit de l'angoisse administrative (visas, vaccins obligatoires), structurer le rythme quotidien sans rigidité, et garder la maîtrise du budget et des contacts locaux en un seul point fiable 100% hors-ligne.
+Le "Job" : Libérer l'esprit de l'angoisse administrative (visas, vaccins obligatoires), structurer le rythme quotidien sans rigidité, et garder la maîtrise du budget et des contacts locaux en un seul point fiable, utilisable hors-ligne et synchronisé sans perte.
 
 ## Product Purpose
 
@@ -36,8 +36,8 @@ Contrairement aux outils de gestion de projet d'entreprise (Notion, Trello) ou a
   - Carnet de contacts avec bouton direct WhatsApp (`https://wa.me/...`) et liaison multi-contacts aux activités.
   - Budget multi-devises en temps réel (EUR, XAF/XOF, CAD, CNY, USD) avec convertisseur de poche et actualisation des cours.
   - Formalités et rappels automatiques (Fièvre jaune, Visas).
-  - Partage de planning en lecture seule par lien magique (`?share=...`).
-  - Fonctionnement 100% hors-ligne (PWA, Service Worker, cache local).
+  - Fonctionnement hors-ligne (PWA, Service Worker) avec file de synchronisation versionnée et indicateur « Enregistré / En attente / Conflit ».
+  - Partage paramétrable : lien activable/désactivable, sections choisies (Programme seul par défaut).
 - **Contraintes techniques :**
   - Architecture vanilla zéro framework (HTML5, CSS moderne, ES6 modules) pour une légèreté et réactivité absolues.
   - Zéro dépendance tierce à l'exécution.
@@ -53,7 +53,7 @@ Contrairement aux outils de gestion de projet d'entreprise (Notion, Trello) ou a
 
 - Spécifications complètes dans `docs/PRD.md`, `docs/architecture_technique.md`, `docs/guide_utilisateur.md`.
 - Cas concret de référence validé : Voyage de 21 jours au Cameroun (Douala, Yaoundé, Kribi).
-- 89 tests automatisés couvrant 19 suites fonctionnelles (`node --test`).
+- Suites automatisées `node --test` : domaine, intégration, API HTTP (sécurité) et parcours navigateur ; le total est affiché par la CI.
 
 ## Product Principles
 

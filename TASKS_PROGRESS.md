@@ -1,7 +1,8 @@
 # 📋 Registre de Progrès des Tâches (Task Progress Log)
 ## Projet : CapVoyage - Planification Jour par Jour & Préparation de Séjours
 *Méthodologie : Spec-Driven Development (SDD)*  
-*Dernière mise à jour : 22/10/2026*
+*Dernière mise à jour : 23/10/2026*  
+*Le nombre de tests n'est plus recopié ici : il est affiché par `npm test` et la CI.*
 
 ---
 
@@ -26,6 +27,9 @@ pie title Répartition de l'avancement des phases
 | **Phase 10** | Ergonomie Tactile V4 & Recommandations d'Audit | 🟢 **Terminé (82/82 Green)** | 22/10/2026 | 22/10/2026 | Contact rapide @, tuiles 100% interactives, pastilles villes, .ics, PWA, taux auto, partage magique |
 | **Phase 11** | Mise en Production, Persistance SQLite WAL (Option B) & Sécurité | 🟢 **Terminé (89/89 Green)** | 22/10/2026 | 22/10/2026 | `DbService` (SQLite WAL, tables, index, auto-migration), `EmailService` (Resend/logs), Rate limiting, Graceful shutdown, Healthcheck, Docker & CI/CD |
 | **Phase 12** | Refonte Design System V4 & Accessibilité WCAG AAA | 🟢 **Terminé (89/89 Green)** | 22/10/2026 | 22/10/2026 | Spécification "Compagnon Nomade de Précision", palette Vert Forêt / Ambre / Craie, Space Grotesk + Inter, éradication des boîtes natives (`confirm`, `alert`, `prompt`), Toasts avec Undo 5s, Bottom Nav mobile & Bottom Sheet 44px, score linter 60 -> 2 findings |
+| **Phase 13** | Audit complet & correctif « clic inerte » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | `docs/audit_2026-10-23.md` ; Service Worker network-first, `no-cache` + ETag, test d'intégrité du front |
+| **Phase 14** | Refonte visuelle « Carte Solaire » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | `DESIGN.md`, `style.css` (Public Sans + Atkinson Hyperlegible, palette solaire) — remplace la palette de la phase 12 |
+| **Phase 15** | Chantier SDD « Recommandations de l'audit » | 🟢 **Terminé** | 23/10/2026 | 23/10/2026 | Discovery, PRD v2.0, ADR-001 à 006, cahier v2.0 ; sécurité serveur, partage paramétrable, synchro hors-ligne, mobile, CI + parcours Chrome, sauvegardes |
 
 ---
 
@@ -252,3 +256,20 @@ pie title Répartition de l'avancement des phases
   - Réduction spectaculaire des anomalies du détecteur : de **60 anomalies** à **0 défaut fonctionnel ou de contraste** (seules restent 2 mentions esthétiques de polices courantes).
   - Capture visuelle validée sur desktop et mobile (`screenshots/mobile_planning.png`).
   - **89/89 tests automatisés 100% Green**.
+
+---
+
+### Phase 15 : Chantier SDD « Recommandations de l'audit » (🟢 Terminé)
+- [x] **Discovery** : [`docs/sdd/01_discovery.md`](docs/sdd/01_discovery.md) — problèmes utilisateur, dettes, dé-scoping.
+- [x] **Exigences** : PRD v2.0 (hors périmètre : export/import JSON, impression/PDF, réordonnancement, suppression de voyage ; nouveautés REQ-SHARE-1, REQ-SEC-1 à 5, REQ-6.1 réécrit, NFR-1 chiffré), user stories EPIC 6 à 8.
+- [x] **Architecture** : ADR-001 (SQLite seule source), ADR-002 (autorisation serveur, CSP, anti-abus), ADR-003 (synchro versionnée), ADR-004 (sessions), ADR-005 (`createServer`), ADR-006 (partage paramétrable).
+- [x] **Plan de test** : modules TC-SYNC, TC-SHARE, TC-API, TC-UI.
+- [x] **Développement** :
+  - Sécurité : propriété des voyages vérifiée par le serveur, démo locale, `/api/reset` supprimé, sessions multi-appareils expirantes, `Fly-Client-IP` + limite par e-mail, aléa cryptographique, CSP.
+  - Partage : lien on/off, choix des sections, régénération, vue filtrée sans identifiants.
+  - Hors-ligne : `SyncQueue` (file coalescente, envoi unique, conflit 409, « Restaurer ma version »), indicateur de synchro.
+  - Données : plus de miroirs JSON, seed démo pur à id stable, `/api/rates` (proxy Frankfurter).
+  - Nettoyage : code des fonctionnalités retirées, modale « Déplacer » inatteignable.
+  - Mobile : zéro débordement à 375 px, en-tête ≤ 25 %, cibles ≥ 44 px, bandeau « Créer mon compte » en démo.
+  - CI : `node --check` + toutes les suites dont le parcours Chrome headless (CDP) ; `scripts/backup-db.js`.
+- [x] **Recette** : navigateur desktop et 375 px (démo, connexion, assistant, hors-ligne, conflit, partage on/off/sections), tests 100 % verts.

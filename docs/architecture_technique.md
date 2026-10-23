@@ -2,7 +2,7 @@
 ## Projet : CapVoyage
 **Approche :** Spec-Driven Development (SDD) & Domain-Driven Design (DDD)
 **Version :** 2.0.0 (23/10/2026) · **Référence :** [PRD v2.0](PRD.md) · **Décisions :** [`docs/adr/`](adr/)
-**Statut :** v2.0 soumise à validation. Les sections marquées 🆕 décrivent la cible du chantier « recommandations de l'audit ».
+**Statut :** v2.0 validée et implémentée (23/10/2026). Les marques 🆕 signalent ce qu'a apporté le chantier « recommandations de l'audit ».
 
 ---
 

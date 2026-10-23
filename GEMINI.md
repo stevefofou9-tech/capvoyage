@@ -20,7 +20,8 @@ Ce fichier définit les invariants de développement, les standards d'ergonomie 
 
 ### 1.2 Formulaires & Sécurité HTML5
 - **Interdiction absolue du `required` sur champs cachés :** Ne JAMAIS ajouter l'attribut HTML5 `required` sur un `<input type="hidden">`. Les navigateurs bloquent silencieusement l'envoi du formulaire avec l'erreur *"An invalid form control is not focusable"* sans afficher aucun message à l'utilisateur. La validation des champs cachés doit être gérée explicitement en JavaScript avec retour visuel clair.
-- **Cache-Control pour les actifs statiques :** Le serveur HTTP Node.js doit systématiquement injecter l'en-tête `Cache-Control: no-cache, no-store, must-revalidate` sur les fichiers `.js` et `.css` pour garantir l'exécution immédiate des versions à jour lors des tests et du développement.
+- **Cache-Control pour les actifs statiques :** Les fichiers `.js` et `.css` ne sont pas versionnés dans leur nom : le serveur les sert en `Cache-Control: no-cache` avec un `ETag` (revalidation à chaque chargement, réponse `304` sans corps). Ne jamais mettre de `max-age` sur ces fichiers. Le Service Worker est *network-first* : le cache ne sert qu'hors-ligne, et tout changement de stratégie impose d'incrémenter `CACHE_NAME`.
+- **Syntaxe vérifiée avant commit :** `node --check` sur `src/ui/*.js` et `src/domain/*.js` (un `SyntaxError` dans un module rend toute l'interface inerte). La suite `tests/ui/` le vérifie automatiquement.
 
 ### 1.3 Ergonomie Tactile & Tuiles Cliquables
 - **Surface de tap maximale :** Les tuiles de listes (activités du planning, contacts du carnet, tâches pré-voyage) doivent être entièrement cliquables pour ouvrir directement leur modale d'édition.
@@ -54,7 +55,7 @@ flowchart TD
 ```
 
 ### 2.1 Volet 1 : Revue Statique & Domaine Métier
-- Exécution de l'intégralité des suites de tests automatisées native Node.js (`& "C:\Program Files\nodejs\node.exe" --test tests/domain/*.test.js tests/integration/*.test.js`).
+- Exécution de l'intégralité des suites de tests automatisées (`npm test` : `tests/domain`, `tests/integration`, `tests/api`, `tests/ui`).
 - Contrôle de non-régression (100% Green obligatoire).
 - Vérification de l'échappement XSS systématique (`escapeHtml`).
 - Vérification des limites de charge HTTP (plafond 5 Mo anti-DoS).

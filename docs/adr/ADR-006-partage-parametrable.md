@@ -1,6 +1,6 @@
 # ADR-006 : Partage paramétrable et activable
 
-**Statut :** Proposé (jalon SDD du 23/10/2026) · **Date :** 23/10/2026
+**Statut :** Accepté et implémenté (23/10/2026) · **Date :** 23/10/2026
 
 ## Contexte
 Demande de Steve (23/10) : « personnaliser les sections du lien de partage et pouvoir le on/off ».

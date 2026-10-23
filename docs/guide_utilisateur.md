@@ -1,4 +1,5 @@
-# 📖 Guide Utilisateur - Planning Voyage PAYS
+# 📖 Guide Utilisateur - CapVoyage
+*Version 2.0 — 23/10/2026*
 ## Application de Planification de Séjour & Carnet de Bord Intelligent
 *Cas concret illustré : Préparation et déroulement d'un voyage au Cameroun (2 à 3 semaines)*
 
@@ -18,7 +19,7 @@ flowchart LR
     M1["1. To-Do Pré-Voyage<br/>(Visas, Vaccins, Valise)"] --> M2["2. Programme Jour/Jour<br/>(Enregistrement progressif)"]
     M2 --> M3["3. Carnet de Contacts<br/>('Avec qui')"]
     M2 --> M4["4. Budget & Devises<br/>(EUR <-> XAF)"]
-    M2 --> M5["5. Mode Nomade<br/>(Hors-ligne & Export)"]
+    M2 --> M5["5. Mode Nomade<br/>(Hors-ligne & Partage)"]
 ```
 
 ---
@@ -78,7 +79,7 @@ Plus tard, en cliquant sur l'activité pour la modifier, vous pouvez ajouter :
 - **Statut :** Passez-le à `"Confirmé"`.
 
 #### 3. Déplacer une activité :
-Un imprévu météo ou un retard ? Vous pouvez déplacer une activité d'un jour à un autre sans perdre aucune information.
+Un imprévu météo ou un retard ? Ouvrez la fiche de l'activité et choisissez un autre jour dans la liste **Jour** : elle y est déplacée sans perdre aucune information. Dans une journée, l'ordre d'affichage suit les blocs (Matin, Après-midi, Soirée) et l'heure.
 
 ---
 
@@ -89,9 +90,24 @@ Pendant le séjour, chaque dépense peut être rattachée ou non à une activit�
 
 ---
 
-### Étape 6 : Mode Hors-Ligne & Sauvegarde
-- **Utilisation sans réseau :** L'application stocke tout en local. Si le réseau mobile coupe à Kribi ou sur la route de Yaoundé, l'application continue de fonctionner parfaitement.
-- **Bouton Exporter :** Téléchargez un fichier `.json` de sauvegarde de tout votre voyage ou générez une vue propre prête à être imprimée ou exportée en PDF.
+### Étape 6 : Mode Hors-Ligne & Synchronisation
+- **Utilisation sans réseau :** chaque modification est enregistrée immédiatement sur votre téléphone. Si le réseau coupe à Kribi ou sur la route de Yaoundé, l'application continue de fonctionner.
+- **Indicateur de synchro** (en haut de l'écran) :
+  - `✓ Enregistré` : tout est sauvegardé sur votre compte ;
+  - `⏳ En attente de synchro` : vos modifications partiront automatiquement au retour du réseau (appuyez dessus pour réessayer tout de suite) ;
+  - `⚠️ Conflit` : le voyage a été modifié entre-temps sur un autre appareil. La version la plus récente s'affiche ; appuyez sur l'indicateur ou sur « Restaurer ma version » pour remettre la vôtre.
+- **Plusieurs appareils :** connectez-vous avec la même adresse e-mail sur votre téléphone et votre ordinateur ; les deux restent connectés (30 jours sans utilisation avant reconnexion).
+
+---
+
+### Étape 7 : Partager son voyage avec ses proches
+Bouton **🔗 Partager** :
+1. Activez le lien.
+2. Choisissez ce que vous partagez : **Programme** (coché par défaut), **Préparatifs**, **Budget**, **Contacts**. Les sections non cochées ne sont jamais envoyées à vos proches (sans « Contacts », ils ne voient pas non plus avec qui vous faites chaque activité).
+3. Copiez le lien et envoyez-le (WhatsApp, SMS…). Vos proches consultent le voyage **en lecture seule**, sans compte.
+4. Pour couper l'accès : désactivez le lien. Pour en donner un nouveau sans l'ancien : **Régénérer le lien**.
+
+Besoin de mettre le programme dans un agenda ? Utilisez **Exporter Calendrier (.ics)**.
 
 ---
 
@@ -101,4 +117,7 @@ Pendant le séjour, chaque dépense peut être rattachée ou non à une activit�
 *R :* Absolument ! Il suffit de créer un voyage avec le pays de votre choix (ex: Japon, Italie, Canada, Sénégal...), d'indiquer la monnaie locale (Yen, Dollar, XOF...) et d'ajuster vos étapes.
 
 **Q : Est-ce que mes données sont privées ?**  
-*R :* Oui, toutes les données restent stockées sur votre appareil en local. Aucun serveur externe n'a accès à vos contacts, dépenses ou plannings.
+*R :* Vos voyages sont enregistrés sur votre appareil et sur votre compte CapVoyage, accessibles uniquement après connexion avec votre adresse e-mail. Personne d'autre ne peut les lire ni les modifier ; un lien de partage ne montre que les sections que vous avez choisies, en lecture seule, et vous pouvez le couper à tout moment. En mode démo, rien n'est envoyé au serveur.
+
+**Q : Puis-je exporter ou imprimer mon voyage ?**  
+*R :* L'export JSON et l'impression ne sont pas proposés. Pour diffuser votre programme, utilisez le partage en lecture seule ou l'export calendrier `.ics`.

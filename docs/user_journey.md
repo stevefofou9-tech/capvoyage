@@ -32,7 +32,7 @@ journey
     section 5. Clôture & Bilan (J19 à J21+)
       Dernières activités & cadeaux famille: 5: Steve
       Bilan global des dépenses en EUR & FCFA: 5: Steve
-      Export et archivage du voyage: 5: Steve
+      Partage du programme avec la famille: 5: Steve
 ```
 
 ---
@@ -82,7 +82,7 @@ journey
 - **Objectif de l'utilisateur :** Réorganiser son planning suite à un décalage (météo, fatigue, transport retardé).
 - **Actions clés :**
   1. Le départ pour Kribi est repoussé de 24h.
-  2. Steve glisse les activités prévues à Kribi du Jour 14 au Jour 15.
+  2. Steve déplace les activités prévues à Kribi du Jour 14 au Jour 15 (liste « Jour » de chaque fiche d'activité).
   3. Il modifie la ville de l'étape du Jour 14 en `"Douala (prolongation)"`.
   4. Les contacts et notes attachés aux activités restent intacts.
 - **Émotions :** Légère contrariété face à l'imprévu, mais soulagement que l'outil soit souple.
@@ -96,8 +96,8 @@ journey
 - **Actions clés :**
   1. Consulte la balance finale du budget : total dépensé en FCFA, total équivalent en EUR, reste disponible.
   2. Vérifie la répartition par catégorie (Transport, Hébergement, Cadeaux/Famille, Sorties).
-  3. Exporte l'intégralité du carnet de bord en JSON de sauvegarde ou génère le récapitulatif PDF/impression.
+  3. Partage le programme à sa famille par un lien en lecture seule (Programme seul), puis le désactive à son retour.
 - **Émotions :** Sentiment de mission accomplie, clarté financière totale, nostalgie positive.
-- **Points de contact produit :** Graphique de synthèse budgétaire, bouton d'export de données, vue imprimable.
+- **Points de contact produit :** Graphique de synthèse budgétaire, fenêtre de partage paramétrable, export calendrier `.ics`.
 - **Critère de succès :** Zéro zone d'ombre sur les finances ; historique complet et propre des personnes et des lieux visités.
 

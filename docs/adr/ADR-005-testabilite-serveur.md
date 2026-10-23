@@ -1,6 +1,6 @@
 # ADR-005 : Serveur testable (`createServer`)
 
-**Statut :** Proposé (jalon SDD du 23/10/2026) · **Date :** 23/10/2026
+**Statut :** Accepté et implémenté (23/10/2026) · **Date :** 23/10/2026
 
 ## Contexte
 `src/server.js` ouvre la base et appelle `listen()` dès son import. Impossible donc de tester l'API en HTTP sans effet de bord (A6, T2).

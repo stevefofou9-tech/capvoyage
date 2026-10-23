@@ -1,4 +1,6 @@
 # 📋 Rapport d'Audit & Revue de Code Approfondie
+
+> ⚠️ **Document historique (22/10/2026).** Ses notes et compteurs ne reflètent plus l'état du projet : il est remplacé par [l'audit du 23/10/2026](audit_2026-10-23.md) et sa section « Suivi ».
 ## Application : CapVoyage - Planification Jour par Jour & Séjours à l'Étranger
 **Date de l'audit :** 22 octobre 2026  
 **Auditeur :** Antigravity Engine (Senior Software Architect & QA Specialist)  

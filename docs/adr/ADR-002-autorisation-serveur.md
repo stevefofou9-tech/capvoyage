@@ -1,6 +1,6 @@
 # ADR-002 : Autorisation côté serveur
 
-**Statut :** Proposé (jalon SDD du 23/10/2026) · **Date :** 23/10/2026
+**Statut :** Accepté et implémenté (23/10/2026) · **Date :** 23/10/2026
 
 ## Contexte
 `POST /api/trip` enregistre le corps reçu tel quel. `saveTrip` fait un upsert sur l'`id` fourni par le client et écrase `user_id`, ce qui permet d'écrire dans le voyage de n'importe qui (S1). Sans session, l'écriture part dans la démo partagée (S3). La « lecture seule » ne repose que sur un champ `isReadOnly` envoyé par le client (S2). `/api/reset` n'est pas authentifié.

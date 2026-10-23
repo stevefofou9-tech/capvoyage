@@ -1,6 +1,6 @@
 # SDD — Phase 1 : Discovery (chantier « Recommandations de l'audit »)
 
-**Date :** 23/10/2026 · **Entrée :** [`docs/audit_2026-10-23.md`](../audit_2026-10-23.md) · **Statut :** en attente de validation (jalon phases 1–4)
+**Date :** 23/10/2026 · **Entrée :** [`docs/audit_2026-10-23.md`](../audit_2026-10-23.md) · **Statut :** validée le 23/10/2026, chantier livré
 
 ---
 

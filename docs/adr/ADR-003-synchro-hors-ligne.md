@@ -1,6 +1,6 @@
 # ADR-003 : Synchronisation hors-ligne versionnée
 
-**Statut :** Proposé (jalon SDD du 23/10/2026) · **Date :** 23/10/2026
+**Statut :** Accepté et implémenté (23/10/2026) · **Date :** 23/10/2026
 
 ## Contexte
 `saveTripData()` écrit le cache local puis appelle `fetch` sans vérifier la réponse ni garder trace d'un échec. Au chargement suivant, `loadTripData()` remplace le cache local par la version serveur : **une modification faite hors-ligne est perdue** (A4). Deux appareils s'écrasent sans prévenir (A5).

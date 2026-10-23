@@ -3,7 +3,7 @@
 **Méthodologie :** Spec-Driven Development (SDD)
 **Version :** 2.0.0
 **Date :** 23/10/2026
-**Statut :** v2.0 soumise à validation (jalon SDD « recommandations de l'audit »)
+**Statut :** v2.0 validée (23/10/2026) et implémentée
 
 > **Historique**
 > - v1.0.0 (18/10/2026) : périmètre initial (modules 1 à 6).

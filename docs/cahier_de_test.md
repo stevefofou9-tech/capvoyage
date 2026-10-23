@@ -4,7 +4,7 @@
 **Référence PRD :** `docs/PRD.md` (v2.0.0) | `docs/user_stories.md` (v2.0.0) | `docs/adr/`  
 **Cas pilote de test :** Voyage de 21 jours au Cameroun (Douala -> Yaoundé -> Kribi)  
 **Date :** 18/10/2026 · **Révision v2.0 :** 23/10/2026  
-**Statut :** v2.0 spécifiée. Les modules 16 à 19 (🆕) sont écrits **avant** le code et doivent échouer tant que la phase de développement n'est pas faite.
+**Statut :** v2.0 exécutée. Les modules 16 à 19 (🆕) ont été écrits avec le code ; ils passent tous (voir la CI).
 
 ---
 

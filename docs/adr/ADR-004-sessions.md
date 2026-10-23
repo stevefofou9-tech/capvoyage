@@ -1,6 +1,6 @@
 # ADR-004 : Sessions multiples avec expiration
 
-**Statut :** Proposé (jalon SDD du 23/10/2026) · **Date :** 23/10/2026
+**Statut :** Accepté et implémenté (23/10/2026) · **Date :** 23/10/2026
 
 ## Contexte
 `users.session_token` ne stocke **qu'un seul** jeton par compte, sans expiration. Se connecter sur un deuxième appareil déconnecte le premier, et un jeton volé reste valable indéfiniment (S5).
