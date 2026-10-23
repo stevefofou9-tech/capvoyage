@@ -17,6 +17,7 @@ RUN mkdir -p /app/data && chown -R node:node /app
 # Copie des définitions de paquets et code source
 COPY --chown=node:node package.json ./
 COPY --chown=node:node src/ ./src/
+COPY --chown=node:node scripts/backup-db.js ./scripts/backup-db.js
 
 # Déclaration du volume persistant pour les données (SQLite, voyages, utilisateurs)
 VOLUME ["/app/data"]

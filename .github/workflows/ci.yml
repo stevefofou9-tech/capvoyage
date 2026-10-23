@@ -8,10 +8,11 @@ on:
 
 jobs:
   # -----------------------------------------------------------
-  # Étape 1 : Validation automatisée des tests (89/89 Tests)
+  # Étape 1 : Tests (domaine, intégration, API HTTP, navigateur)
+  # Le nombre de tests est affiché par `npm test` (ℹ tests N).
   # -----------------------------------------------------------
   test:
-    name: Test Suite (89 Tests Métier & Intégration)
+    name: Tests (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
 
     strategy:
@@ -27,12 +28,17 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Exécution des tests automatisés
+      - name: Vérification syntaxique des modules servis au navigateur
+        run: for f in src/ui/*.js src/domain/*.js; do node --check "$f"; done
+
+      - name: Exécution de toutes les suites (dont le parcours Chrome headless)
         run: npm test
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
 
   # -----------------------------------------------------------
-  # Étape 2 : Déploiement Continu Automatique vers Fly.io
-  # Conditionné au succès complet des tests unitaires et d'intégration
+  # Étape 2 : Déploiement continu vers Fly.io
+  # Conditionné au succès complet des tests
   # -----------------------------------------------------------
   deploy:
     name: Déploiement Continu sur Fly.io
