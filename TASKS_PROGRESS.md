@@ -302,3 +302,4 @@ pie title Répartition de l'avancement des phases
 - [x] **Application** : détection (retour au premier plan, réseau, 30 min), barre « Nouvelle version disponible », rechargement discret si inactif, entrée « Actualiser l'app », version et build affichés.
 - [x] **Serveur** : `GET /api/version`, page de secours `/reset` (données locales conservées).
 - [x] **Tests** : TC-PWA-001 à 005 (reproduction du bug avec un SW v5 réel).
+- [x] **Cause réelle constatée sur le Chrome de Steve** : cache HTTP du navigateur empoisonné (`style.css`/`app.js` du 22/10 avec `max-age=86400`). Correctif : URLs versionnées `?v=build` + `Clear-Site-Data: "cache"` (une fois par navigateur, `/reset` toujours), `TC-PWA-006`.

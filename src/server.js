@@ -19,6 +19,12 @@ const DOMAIN_DIR = path.join(__dirname, 'domain');
 
 const RATES_URL = 'https://api.frankfurter.dev/v1/latest?base=EUR';
 const RATES_CACHE_MS = 6 * 60 * 60 * 1000;
+// Époque de purge du cache HTTP des navigateurs (ADR-009) : tant qu'un navigateur n'a pas le cookie
+// correspondant, la première page HTML reçue demande la purge de SON cache HTTP (Clear-Site-Data: "cache").
+// Cela rattrape les JS/CSS mis en cache par l'ancienne politique `max-age=86400, stale-while-revalidate=604800`.
+// À incrémenter seulement en cas de nouvel incident de cache. « cache » ne touche ni localStorage ni cookies.
+const CACHE_EPOCH = '2026-10-23';
+const CACHE_EPOCH_COOKIE = 'cv_cache';
 const SHARE_INACTIVE_MESSAGE = "Ce lien de partage n'est plus actif";
 
 // Types MIME supportés
@@ -112,7 +118,8 @@ export function createServer({
   ratesFetch = globalThis.fetch,
   now = () => Date.now(),
   uiDir = UI_DIR,
-  domainDir = DOMAIN_DIR
+  domainDir = DOMAIN_DIR,
+  legacyStaticCaching = () => false // tests : rejoue l'ancienne politique de cache pour reproduire l'incident
 } = {}) {
   const dbService = new DbService(dbPath);
 
@@ -471,19 +478,41 @@ export function createServer({
       // Les fichiers ne sont pas fingerprintés (app.js, style.css...) : un max-age
       // figerait une version cassée chez l'utilisateur. On impose la revalidation
       // à chaque requête, rendue peu coûteuse par l'ETag (réponse 304 sans corps).
-      const etag = `W/"${fileStat.size.toString(16)}-${Math.floor(fileStat.mtimeMs).toString(16)}"`;
+      // Les pages HTML référencent app.js, style.css et reset.js avec l'identifiant de build (?v=...) :
+      // une version publiée a toujours une URL neuve, que le navigateur ne peut pas avoir en cache.
+      const versionAssets = ext === '.html' && !legacyStaticCaching();
+      const build = versionAssets ? await getBuildId() : null;
+      const etag = `W/"${fileStat.size.toString(16)}-${Math.floor(fileStat.mtimeMs).toString(16)}${build ? `-${build}` : ''}"`;
       const cacheHeaders = {
         'Cache-Control': 'no-cache',
         'ETag': etag,
         ...getSecurityHeaders()
       };
 
-      if (req.headers['if-none-match'] === etag) {
+      // Purge du cache HTTP du navigateur (ADR-009) : une fois par navigateur (cookie d'époque),
+      // et à chaque visite de /reset. Jamais de directive « storage » : le localStorage est conservé.
+      let clearCache = false;
+      if (legacyStaticCaching()) {
+        if (ext === '.js' || ext === '.css') cacheHeaders['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800';
+      } else if (ext === '.html') {
+        const cookies = req.headers.cookie || '';
+        const hasEpoch = cookies.split(/;\s*/).includes(`${CACHE_EPOCH_COOKIE}=${CACHE_EPOCH}`);
+        if (pathname === '/reset' || !hasEpoch) {
+          clearCache = true;
+          cacheHeaders['Clear-Site-Data'] = '"cache"';
+          cacheHeaders['Set-Cookie'] = `${CACHE_EPOCH_COOKIE}=${CACHE_EPOCH}; Max-Age=31536000; Path=/; SameSite=Lax; HttpOnly${isProduction ? '; Secure' : ''}`;
+        }
+      }
+
+      if (!clearCache && req.headers['if-none-match'] === etag) {
         res.writeHead(304, cacheHeaders);
         return res.end();
       }
 
-      const content = await fs.readFile(filePath);
+      let content = await fs.readFile(filePath);
+      if (versionAssets) {
+        content = Buffer.from(content.toString('utf-8').replace(/(href|src)="(style\.css|app\.js|reset\.js)"/g, `$1="$2?v=${build}"`), 'utf-8');
+      }
       res.writeHead(200, { 'Content-Type': contentType, ...cacheHeaders });
       return res.end(content);
     } catch (err) {

@@ -117,6 +117,7 @@ CapVoyage est un planificateur de voyage axé sur :
   - Un appareil resté sur une très ancienne version est mis à jour automatiquement, au plus une fois sans prévenir.
   - Une page de secours `/reset` et une entrée « Actualiser l'app » renouvellent l'application **sans effacer les données locales**.
   - La version et le numéro de build sont visibles (Profil et menu).
+  - Les fichiers du front sont référencés par des URLs versionnées (`?v=build`) : un cache HTTP périmé du navigateur ne peut jamais servir une ancienne version après une publication.
 
 ### Module 7 : Comptes, Multi-Voyages & Partage (formalisation V2–V4 + v2.0)
 - **REQ-7.1 (auth sans mot de passe) :** connexion par code à 6 chiffres envoyé par e-mail, valable 15 minutes, avec 5 essais au plus par code.

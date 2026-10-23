@@ -23,6 +23,17 @@ Après le déploiement de la v2.1, des utilisateurs sont restés sur l'ancienne 
 6. **Secours sans DevTools** : page `/reset` (`reset.html` + `reset.js`, compatible CSP) : vérifie la connexion, désinscrit les SW, supprime **uniquement** les caches `capvoyage-cache-*`, ne touche **jamais** au `localStorage` (voyage, session, file de synchro), puis redirige vers `/` (`?noredirect=1` pour rester sur la page). Hors connexion, elle n'efface rien (le cache est alors la seule copie utilisable).
 7. **Entrée « 🔄 Actualiser l'app »** dans le menu « ⋯ » et dans la fenêtre Profil, avec l'affichage « Version 2.1 · build xxxxxxxxxx » pour le support. Même logique que `/reset`, avec synchro terminée avant.
 
+## Addendum : cause réelle observée sur un Chrome bloqué (23/10, 21 h)
+
+Le test sur le Chrome de Steve a montré un cinquième mécanisme, **le plus répandu** : le **cache HTTP du navigateur** contenait `style.css` et `app.js` datés du **22/10 21:10 GMT** avec l'ancienne politique `Cache-Control: public, max-age=86400, stale-while-revalidate=604800`. Le navigateur les jugeait « frais » 24 h (puis servait la copie périmée jusqu'à 7 jours en revalidant en arrière-plan) **sans contacter le serveur**. L'`index.html` (no-cache) était neuf, mais chargeait l'ancien `style.css` (palette verte, police Inter) et l'ancien `app.js`, qui n'enregistrait donc jamais le nouveau Service Worker : aucun mécanisme du SW ne pouvait corriger cela. Le correctif de cache serveur du 23/10 n'agit que sur les réponses *futures*, pas sur les copies déjà stockées.
+
+Décisions complémentaires :
+8. **URLs versionnées** : le serveur réécrit `index.html` et `reset.html` pour référencer `app.js?v=<build>`, `style.css?v=<build>` et `reset.js?v=<build>`. Chaque publication a des URLs neuves, qu'aucun cache ne peut contenir : **le correctif agit dès la première visite**, sans aucune action.
+9. **Purge du cache HTTP** : `Clear-Site-Data: "cache"` est envoyé avec la première page HTML d'un navigateur (cookie technique `cv_cache=<époque>`, un an, `HttpOnly`) et à chaque visite de `/reset`. Jamais la directive `storage` : le `localStorage` est conservé. Cela nettoie aussi les copies périmées des autres fichiers.
+10. « Actualiser l'app » passe par `/reset` (donc purge le cache HTTP en plus des caches du SW).
+
+Remarque de test : dans un même onglet, Chrome garde aussi un cache mémoire qui respecte `max-age` ; la purge seule demande donc parfois une 2ᵉ ouverture, d'où l'intérêt des URLs versionnées (`TC-PWA-006`).
+
 ## Alternatives rejetées
 - `Clear-Site-Data` : efface aussi `localStorage`, donc des modifications non synchronisées.
 - Fichiers versionnés par empreinte (build) : chantier de build disproportionné pour le besoin.

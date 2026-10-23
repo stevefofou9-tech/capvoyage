@@ -577,26 +577,15 @@ async function applyUpdate() {
   window.location.reload();
 }
 
-// Actualisation complète : désinscrit le Service Worker et vide les caches de l'app (jamais le localStorage)
+// Actualisation complète : la page /reset désinscrit le Service Worker, vide les caches de l'app et le cache HTTP
+// du navigateur (Clear-Site-Data: "cache"), sans jamais toucher au localStorage (ADR-009)
 async function hardRefresh() {
   if (!navigator.onLine) {
-    showToast('Connectez-vous à Internet pour actualiser l\'application.', { type: 'warning' });
+    showToast("Connectez-vous à Internet pour actualiser l'application.", { type: 'warning' });
     return;
   }
   await flushBeforeReload();
-  try {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map(r => r.unregister()));
-    }
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.filter(k => k.startsWith('capvoyage-cache-')).map(k => caches.delete(k)));
-    }
-  } catch (err) {
-    console.warn('Actualisation partielle', err);
-  }
-  window.location.reload();
+  window.location.assign('/reset');
 }
 
 function showLandingView() {

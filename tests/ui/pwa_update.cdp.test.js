@@ -1,6 +1,6 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, rmSync, readdirSync, readFileSync, appendFileSync, mkdirSync } from 'node:fs';
+import { cpSync, mkdtempSync, rmSync, readdirSync, readFileSync, appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -152,5 +152,51 @@ describe('Suite Mises à jour PWA (TC-PWA, Chrome headless via CDP)', { skip: ch
     const reset = await fetch(server.base + '/reset');
     assert.equal(reset.status, 200);
     assert.match(await reset.text(), /Actualisation de CapVoyage/);
+  });
+
+  test('TC-PWA-006 : cache HTTP empoisonné par l ancienne politique (max-age) → purgé en une visite, données locales conservées', async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'capvoyage-poison-'));
+    const uiDir = path.join(root, 'ui');
+    mkdirSync(uiDir);
+    cpSync(REAL_DOMAIN, path.join(root, 'domain'), { recursive: true });
+    writeFileSync(path.join(uiDir, 'index.html'), '<!DOCTYPE html><html><body><script src="app.js"></script></body></html>');
+    writeFileSync(path.join(uiDir, 'reset.html'), '<!DOCTYPE html><html><body>reset</body></html>');
+    const writeApp = (v) => writeFileSync(path.join(uiDir, 'app.js'), `document.documentElement.dataset.v = '${v}';`);
+    let legacy = true;
+    writeApp('ancien');
+    const server = await startTestServer({ uiDir, domainDir: path.join(root, 'domain'), legacyStaticCaching: () => legacy });
+    cleanups.push(async () => {
+      await server.stop();
+      try { rmSync(root, { recursive: true, force: true }); } catch (e) { /* verrouillé sous Windows */ }
+    });
+
+    const page = await browser.newPage();
+    await page.goto(server.base + '/');
+    await page.waitFor(`document.documentElement.dataset.v === 'ancien'`);
+    await page.evaluate(`localStorage.setItem('capvoyage_sentinelle', 'mes données'); true`);
+
+    // L'ancien serveur a fait mettre app.js en cache 24 h : une nouvelle version n'est pas vue (le bug)
+    writeApp('nouveau');
+    await page.goto(server.base + '/');
+    await page.waitFor(`document.documentElement.dataset.v`);
+    assert.equal(await page.evaluate(`document.documentElement.dataset.v`), 'ancien', 'le cache HTTP empoisonné doit être reproduit');
+
+    // Nouveau serveur : la première page HTML demande la purge du cache HTTP
+    legacy = false;
+    await page.goto(server.base + '/');
+    await page.waitFor(`document.documentElement.dataset.v === 'nouveau'`, 10000);
+    assert.equal(await page.evaluate(`localStorage.getItem('capvoyage_sentinelle')`), 'mes données');
+
+    // Une seule fois par navigateur : avec le cookie, plus de purge (pas de coût à chaque page)
+    const withCookie = await fetch(server.base + '/', { headers: { cookie: 'cv_cache=2026-10-23' } });
+    const withoutCookie = await fetch(server.base + '/');
+    assert.equal(withCookie.headers.get('clear-site-data'), null);
+    assert.equal(withoutCookie.headers.get('clear-site-data'), '"cache"');
+    assert.match(withoutCookie.headers.get('set-cookie'), /cv_cache=2026-10-23/);
+    // jamais de directive « storage » : le localStorage ne doit pas être effacé
+    assert.ok(!/storage/.test(withoutCookie.headers.get('clear-site-data')));
+    // /reset purge toujours, même avec le cookie
+    const reset = await fetch(server.base + '/reset', { headers: { cookie: 'cv_cache=2026-10-23' } });
+    assert.equal(reset.headers.get('clear-site-data'), '"cache"');
   });
 });

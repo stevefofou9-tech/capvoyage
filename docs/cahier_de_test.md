@@ -45,7 +45,7 @@ Ce cahier de tests définit l'ensemble des cas d'essais nécessaires pour valide
 | REQ-2.5 : Statut en un tap 🆕 v2.1 | EPIC-1 (US-1.3), EPIC-3 (US-3.5) | `TC-QS-xxx` | 8 scénarios |
 | REQ-3.5, REQ-3.6 : Sélecteur et import 🆕 v2.1 | EPIC-4 (US-4.3, US-4.4) | `TC-CTX-xxx` | 11 scénarios |
 | REQ-7.5 à 7.7 : Jour courant et rappel 🆕 v2.1 | EPIC-9 (US-9.2, US-9.3) | `TC-NOW-xxx` | 9 scénarios |
-| REQ-6.4 renforcé : Mises à jour PWA 🆕 | EPIC-6 | `TC-PWA-xxx` | 5 scénarios |
+| REQ-6.4 renforcé : Mises à jour PWA 🆕 | EPIC-6 | `TC-PWA-xxx` | 6 scénarios |
 | **Total automatisé** | | | **Calculé par la CI** (`npm test` affiche `ℹ tests N`) ; aucun chiffre n'est écrit en dur dans la documentation |
 
 ---
@@ -546,6 +546,7 @@ Exigences : REQ-6.4, ADR-009. Service Workers réels, Chrome headless (ignoré s
 | `TC-PWA-002` | Build modifié côté serveur, application ouverte | Barre « Nouvelle version disponible » ; **aucun rechargement** tant qu'une fenêtre est ouverte ; rechargement discret au retour si inactif ; clic « Actualiser » recharge |
 | `TC-PWA-003` | Un fichier du précache répond 404 | Le SW s'installe et s'active quand même ; le précache contient tous les autres fichiers |
 | `TC-PWA-004` | `/reset?noredirect=1` | SW désinscrit, caches `capvoyage-cache-*` supprimés, `localStorage` **intact** |
+| `TC-PWA-006` | Cache HTTP empoisonné par l'ancienne politique (`max-age=86400`), nouvelle version publiée | Le bug est reproduit (page figée sur l'ancien `app.js`) ; avec le nouveau serveur, **une seule navigation** suffit à charger la nouvelle version ; `localStorage` conservé ; `Clear-Site-Data: "cache"` envoyé une seule fois par navigateur (cookie) et toujours sur `/reset`, jamais de directive `storage` |
 | `TC-PWA-005` | `/api/version` | Identifiant stable, `no-store`, **change** quand un fichier du front change ; `/reset` servi |
 
 ---
