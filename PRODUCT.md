@@ -67,3 +67,4 @@ Contrairement aux outils de gestion de projet d'entreprise (Notion, Trello) ou a
 - Conformité WCAG 2.1 AA & AAA sur les contrastes des textes critiques.
 - Cibles tactiles adaptées à la manipulation nomade d'une main ($\ge 44\text{px}$).
 - Clarté typographique pour lecture sous forte luminosité extérieure.
+
