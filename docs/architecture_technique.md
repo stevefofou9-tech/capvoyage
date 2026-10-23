@@ -1,207 +1,186 @@
 # 🏛️ Architecture Technique & Conception Système
-## Projet : Planning Voyage PAYS (Travel Planner)
-**Approche :** Spec-Driven Development (SDD) & Domain-Driven Design (DDD)  
-**Version :** 1.0.0  
-**Statut :** Spécifié (Phase 2)
+## Projet : CapVoyage
+**Approche :** Spec-Driven Development (SDD) & Domain-Driven Design (DDD)
+**Version :** 2.0.0 (23/10/2026) · **Référence :** [PRD v2.0](PRD.md) · **Décisions :** [`docs/adr/`](adr/)
+**Statut :** v2.0 soumise à validation. Les sections marquées 🆕 décrivent la cible du chantier « recommandations de l'audit ».
 
 ---
 
-## 1. Vue d'Ensemble de l'Architecture
+## 1. Vue d'Ensemble
 
-L'application est conçue selon une architecture modulaire et découplée, garantissant :
-1. **Une logique métier pure (Domain Engine)** testable à 100% sans dépendance au DOM ou au réseau.
-2. **Une persistance résiliente (Dual-Layer Storage)** : fonctionnement hors-ligne immédiat (LocalStorage) avec persistance miroir sur disque via API locale.
-3. **Une interface utilisateur réactive (UI Layer)** : composants modulaires, responsive (desktop, tablette, mobile).
+CapVoyage est une **PWA sans framework**, servie par un **serveur Node.js natif sans dépendance**, avec une base **SQLite** (`node:sqlite`, mode WAL). Elle est déployée sur **Fly.io** (une machine, un volume persistant).
+
+Ses trois principes :
+1. **Un cœur métier pur** (`src/domain/*`), sans DOM ni réseau, **partagé entre le navigateur et le serveur** et testé sous Node.
+2. **Le serveur comme seule autorité** sur l'identité, la propriété des voyages, les versions et le partage (ADR-002, ADR-006).
+3. **Le hors-ligne d'abord** : cache local immédiat et file de synchronisation versionnée (ADR-003).
 
 ```mermaid
 flowchart TD
-    subgraph UI ["Couche Présentation (UI Layer)"]
-        V1["Vue Planning & Timeline Jour/Jour"]
-        V2["Vue Enregistrement Progressif Activités"]
-        V3["Vue Budget & Multi-Devises"]
-        V4["Vue To-Do Pré-Voyage"]
-        V5["Vue Carnet Contacts ('Avec qui')"]
+    subgraph Client ["Navigateur (PWA)"]
+        UI["src/ui/app.js : vues Planning, Préparatifs, Budget, Contacts, Assistant, Partage"]
+        SW["src/ui/sw.js : network-first, cache hors-ligne"]
+        LS["localStorage : session, cache du voyage, file de synchro 🆕, voyage démo 🆕"]
     end
-
-    subgraph Domain ["Cœur Métier (Domain Engine - Pure JS/TS)"]
-        M1["TripService : Gestion des journées & étapes"]
-        M2["ActivityService : Cycle de vie & enrichissement progressif"]
-        M3["BudgetEngine : Calculs, soldes & conversions multi-devises"]
-        M4["TodoManager : Machine à états des formalités & échéances"]
-        M5["ContactManager : Répertoire et liaisons d'activités"]
+    subgraph Domain ["src/domain (pur, partagé client/serveur)"]
+        D1["TripService, ActivityService, BudgetEngine, TodoService, ContactService"]
+        D2["AuthService (codes, vérification)"]
+        D3["SyncQueue 🆕, partage : buildSharedView / normalizeSharing 🆕"]
+        D4["ReminderService, IcsService, ActivityTemplates, GeographyData, StorageService (schéma)"]
     end
-
-    subgraph Storage ["Couche Persistance (Data Layer)"]
-        S1["LocalStore Adapter (LocalStorage / Offline first)"]
-        S2["FileStore Adapter (JSON Persistance / API Backend)"]
-        S3["Export / Import Adapter (JSON Backup & PDF Print)"]
+    subgraph Server ["src/server.js : createServer() 🆕"]
+        R["Routes API : auth, trip, sharing 🆕, rates 🆕, user"]
+        DB["src/services/DbService.js : SQLite WAL"]
+        EM["src/services/EmailService.js : Resend"]
     end
-
     UI --> Domain
-    Domain --> Storage
+    UI -- "fetch /api (Bearer)" --> R
+    SW -. "met en cache" .-> UI
+    R --> Domain
+    R --> DB
+    R --> EM
+    R -- "proxy 6 h 🆕" --> FX["api.frankfurter.dev"]
 ```
 
 ---
 
-## 2. Modèle de Données & Schémas JSON
+## 2. Modèle de Données
 
-### 2.1 Entité `Trip` (Voyage)
+### 2.1 Stockage serveur (SQLite, source unique — ADR-001)
+
+| Table | Colonnes clés | Rôle |
+|---|---|---|
+| `users` | `id`, `email` (unique), `verification_code`, `code_expires_at`, `failed_attempts`, `current_trip_id`, `trips_json`, `global_contacts` | Comptes |
+| `sessions` 🆕 | `token` (PK), `user_id`, `created_at`, `last_seen_at`, `expires_at` | Sessions multi-appareils, 30 jours glissants (ADR-004) |
+| `trips` | `id`, `user_id`, `title`, `country`, dates, `base_currency`, `total_budget`, `share_token` (index, `NULL` si partage désactivé), `data` (JSON complet), `created_at`, `updated_at` | Voyages |
+| `rate_limits` | `key`, `attempts`, `first_attempt_at`, `blocked_until` | Anti-abus par IP **et** par e-mail |
+
+Le seed démo `trip-cameroun-seed` (`user_id = NULL`) est inséré au démarrage depuis `createInitialSeedTrip()` et n'est jamais réécrit par l'API.
+
+### 2.2 Document `Trip` (colonne `trips.data`)
 ```typescript
 interface Trip {
-  id: string;               // UUID unique
-  country: string;          // Nom du pays (ex: "Cameroun")
-  title: string;            // Titre du voyage (ex: "Séjour Cameroun 2026")
-  startDate: string;        // Format YYYY-MM-DD (ex: "2026-11-01")
-  endDate: string;          // Format YYYY-MM-DD (ex: "2026-11-21")
-  baseCurrency: string;     // Devise de référence (ex: "EUR")
-  totalBudget: number;      // Budget prévisionnel global en devise de référence
-  days: Day[];              // Liste des journées générées
-  contacts: Contact[];      // Répertoire des contacts
-  expenses: Expense[];      // Liste des dépenses
-  todos: TodoItem[];        // Tâches pré-voyage
-  currencies: Currency[];   // Devises configurées
-  createdAt: string;        // Timestamp ISO
-  updatedAt: string;        // Timestamp ISO
+  id: string;                 // UUID (serveur)
+  userId: string | null;      // propriétaire (serveur)
+  version: number;            // 🆕 incrémenté par le serveur à chaque écriture (ADR-003)
+  country: string;
+  title: string;
+  startDate: string;          // YYYY-MM-DD
+  endDate: string;            // YYYY-MM-DD
+  baseCurrency: string;       // ex : "EUR"
+  totalBudget: number;        // en devise de référence
+  days: Day[];
+  contacts: Contact[];
+  expenses: Expense[];
+  todos: TodoItem[];
+  currencies: Currency[];
+  ratesLastUpdated?: string;
+  sharing: Sharing;           // 🆕 remplace shareToken (ADR-006), écrit uniquement par le serveur
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Sharing {           // 🆕
+  enabled: boolean;
+  token: string | null;       // "share-<uuid>"
+  sections: { planning: boolean; todos: boolean; budget: boolean; contacts: boolean };
+  updatedAt: string | null;
 }
 ```
 
-### 2.2 Entité `Day` (Journée de planning)
+### 2.3 Sous-entités
 ```typescript
-interface Day {
-  id: string;               // Ex: "day-1"
-  dayNumber: number;        // Index chronologique (1, 2, 3...)
-  date: string;             // Format YYYY-MM-DD
-  city: string;             // Étape / Ville principale (ex: "Douala", "Kribi")
-  notes?: string;           // Note générale de la journée
-  activities: Activity[];   // Liste ordonnée des activités
-}
-```
-
-### 2.3 Entité `Activity` (Activité progressive)
-```typescript
-type ActivityCategory = 
-  | 'Famille'
-  | 'Amis'
-  | 'Loisir'
-  | 'Sorties'
-  | 'Travail'
-  | 'Logistique'
-  | 'Découverte'
-  | 'Autre';
+interface Day { id: string; dayNumber: number; date: string; city: string; notes?: string; activities: Activity[] }
 
 type ActivityStatus = 'À planifier' | 'Confirmé' | 'Effectué' | 'Annulé';
-
 interface Activity {
-  id: string;               // UUID
-  dayId: string;            // Référence à la journée
-  title: string;            // OBLIGATOIRE : libellé de l'activité
-  category: ActivityCategory;// Optionnel à la création, défaut 'Autre'
-  time?: string;            // Optionnel : heure ("14:30") ou créneau ("Matin")
-  location?: string;        // Optionnel : lieu, quartier, adresse
-  contactIds: string[];     // Optionnel : liste des IDs des personnes associées
-  status: ActivityStatus;   // Défaut : 'À planifier'
-  notes?: string;           // Optionnel : remarques libres
-  createdAt: string;
+  id: string; dayId: string;
+  title: string;              // seul champ obligatoire (avec le jour)
+  category: string;           // défaut 'Autre'
+  time?: string;              // "14:30" ; vide = bloc « À caler aujourd'hui »
+  location?: string; contactIds: string[]; status: ActivityStatus; notes?: string; createdAt: string;
 }
+
+interface Contact { id: string; name: string; relationship: string; phone?: string; city?: string; notes?: string }
+
+interface Currency { code: string; name: string; symbol: string; rateToBase: number }  // 1 base = rateToBase devise
+interface Expense { id: string; label: string; amount: number; currency: string; convertedBaseAmount: number;
+                    category: string; date: string; activityId?: string }
+
+interface TodoItem { id: string; title: string; category: string; dueDate?: string;
+                     priority: 'Haute' | 'Moyenne' | 'Basse'; status: 'À faire' | 'En cours' | 'Fait'; notes?: string }
 ```
 
-### 2.4 Entité `Contact` ("Avec qui")
-```typescript
-interface Contact {
-  id: string;               // UUID
-  name: string;             // OBLIGATOIRE : Nom de la personne
-  relationship: string;     // Ex: "Famille", "Ami", "Guide", "Chauffeur"
-  phone?: string;           // Téléphone / WhatsApp (ex: "+237 6...")
-  city?: string;            // Ville de résidence (ex: "Douala")
-  notes?: string;           // Notes / anecdotes
-}
-```
+### 2.4 Stockage client (localStorage)
 
-### 2.5 Entité `Expense` & `Currency`
-```typescript
-interface Currency {
-  code: string;             // Ex: "EUR", "XAF", "USD"
-  name: string;             // Ex: "Franc CFA BEAC"
-  symbol: string;           // Ex: "FCFA", "€"
-  rateToBase: number;       // Taux par rapport à la base (ex: 1 EUR = 655.957 XAF => rate = 655.957)
-}
-
-interface Expense {
-  id: string;
-  label: string;            // Intitulé (ex: "Billet train Camrail Yaoundé-Douala")
-  amount: number;           // Montant dans la devise de la dépense
-  currency: string;         // Code devise (ex: "XAF")
-  convertedBaseAmount: number; // Montant converti en devise de base (ex: EUR)
-  category: string;         // "Transport", "Hébergement", "Nourriture", etc.
-  date: string;             // YYYY-MM-DD
-  activityId?: string;      // Liaison facultative avec une activité
-}
-```
-
-### 2.6 Entité `TodoItem` (Préparation avant départ)
-```typescript
-type TodoCategory = 'Formalités' | 'Santé' | 'Bagages' | 'Finances' | 'Autre';
-type TodoStatus = 'À faire' | 'En cours' | 'Fait';
-
-interface TodoItem {
-  id: string;
-  title: string;            // Ex: "Vaccin Fièvre Jaune obligatoire"
-  category: TodoCategory;
-  dueDate?: string;         // YYYY-MM-DD
-  priority: 'Haute' | 'Moyenne' | 'Basse';
-  status: TodoStatus;
-  notes?: string;
-}
-```
+| Clé | Contenu |
+|---|---|
+| `capvoyage_session` | `{ token, email, isDemo }` |
+| `capvoyage_trip_cache` | Dernière version connue du voyage courant |
+| `capvoyage_sync_v1` 🆕 | `{ pending: { [tripId]: { trip, baseVersion, queuedAt } }, conflicts: { [tripId]: Trip } }` |
+| `capvoyage_demo_trip` 🆕 | Copie locale du voyage démo (jamais envoyée au serveur) |
 
 ---
 
-## 3. Services et Logique Métier (Domain Logic)
+## 3. Logique Métier (`src/domain`)
 
-### 3.1 Moteur de Calcul Budgétaire (`BudgetEngine`)
-- **Conversion de devises :**  
-  $$\text{Montant}_{\text{base}} = \frac{\text{Montant}_{\text{devise}}}{\text{rateToBase}}$$  
-  Exemple Cameroun : $32\,798 \text{ XAF} \div 655.957 = 50.00 \text{ EUR}$.
-- **Calculs agrégés :**
-  - $\text{Total Dépensé (Base)} = \sum \text{convertedBaseAmount}$
-  - $\text{Solde Restant (Base)} = \text{totalBudget} - \text{Total Dépensé}$
-  - $\text{Dépenses par catégorie}$ : groupement et pourcentages.
-
-### 3.2 Moteur de Planning & Enregistrement Progressif (`ActivityService`)
-- Permet l'instanciation immédiate d'une activité avec uniquement `title` et `dayId`.
-- Validation non-bloquante : aucun champ optionnel n'entrave l'ajout.
-- Méthode de patch progressif : `patchActivity(id, partialActivityData)`.
-- Re-ordonnancement d'activités au sein d'une même journée ou transfert inter-journées.
-
-### 3.3 Moteur de Préparation Pré-Voyage (`TodoManager`)
-- Seed automatique des formalités indispensables selon le pays choisi :
-  - Pour le Cameroun : Certificat international de vaccination fièvre jaune (obligatoire à l'arrivée), Visa d'entrée, prophylaxie antipaludique, répulsifs tropicaux, carte SIM locale, etc.
-- Calcul du taux de complétion pré-voyage : $(\text{Tâches Fait} / \text{Total Tâches}) \times 100$.
+- **`BudgetEngine`** : conversion `montant_base = montant / rateToBase` (32 798 XAF ÷ 655,957 = 50,00 EUR), total dépensé, solde, répartition par catégorie. `syncExchangeRates({ fetchFn })` reçoit le proxy serveur `/api/rates` 🆕.
+- **`ActivityService` / `TripService`** : création minimale (titre et jour), enrichissement progressif, **déplacement vers un autre jour** (`moveActivity`, `moveActivityToDay`). Pas de réordonnancement manuel : l'ordre suit le bloc temporel et l'heure.
+- **`TodoService`** : formalités initiales par pays et taux de complétion.
+- **`AuthService`** : codes à 6 chiffres (`crypto.randomInt` 🆕), 15 minutes, 5 essais au plus.
+- **Partage 🆕** : `TripService.normalizeSharing(trip)` (migration de `shareToken`) et `TripService.buildSharedView(trip)` (projection filtrée par sections, sans identifiants).
+- **`SyncQueue` 🆕** : file coalescente, envois un par un, gestion des conflits (ADR-003).
+- **`StorageService`** : validation de schéma (`validateTripSchema`, `parseAndValidate`). L'export JSON et l'impression ont été retirés (PRD §7).
 
 ---
 
-## 4. Stratégie de Persistance & Mode Hors-Ligne
+## 4. API HTTP
 
-1. **Storage Local (Zero-Dependency) :**
-   - Les données du voyage sont sérialisées en JSON et conservées dans `localStorage`.
-   - Tout changement (création/mise à jour d'activité, dépense, contact, to-do) déclenche une écriture synchrone avec debounce.
-2. **Persistance Disque & API Serveur :**
-   - Un endpoint simple Node.js / Express permet de lire et persister le fichier de voyage dans `data/trip_cameroun.json`.
-3. **Export / Import Manuel :**
-   - Bouton de sauvegarde exportant l'intégralité du voyage dans un fichier `.json` horodaté, ré-importable en 1 clic.
+| Méthode et route | Auth | Rôle |
+|---|---|---|
+| `GET /health` | — | Sonde Fly |
+| `POST /api/auth/request-code` | — | Envoi du code (limites IP et e-mail) |
+| `POST /api/auth/verify-code` | — | Création de session |
+| `GET /api/auth/me`, `POST /api/auth/logout` | Session | Profil, déconnexion de la session courante |
+| `GET /api/trip` | Session, `?share=` ou rien | Voyage courant, **vue partagée filtrée**, ou seed démo |
+| `POST /api/trip` 🆕 | Session + propriétaire | Corps `{ trip, baseVersion }` ; réponses `200`, `401`, `403`, `404` ou `409` |
+| `PUT /api/trip/sharing` 🆕 | Session + propriétaire | Activer/désactiver, choisir les sections, régénérer |
+| `POST /api/wizard/trip` | Session | Création d'un voyage |
+| `GET /api/user/trips`, `POST /api/user/trips/switch` | Session | Multi-voyages |
+| `GET` / `POST /api/user/contacts` | Session | Carnet global |
+| `GET /api/rates` 🆕 | — | Proxy Frankfurter (cache 6 h) |
+| ~~`POST /api/reset`~~, ~~`POST /api/trip/budget`~~ | — | **Supprimées** (ADR-002) |
+
+**En-têtes :** `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy` et `Permissions-Policy`, plus la **CSP** 🆕 (texte dans ADR-002). Les fichiers statiques sont servis en `Cache-Control: no-cache` avec un `ETag` (réponse `304`).
 
 ---
 
-## 5. Stratégie de Tests (Spec-Driven Testing)
+## 5. Persistance, Hors-Ligne & PWA
 
-Conformément au SDD, la suite de tests est organisée en 4 modules prioritaires :
-1. **Tests unitaires Métier (`tests/domain/`) :**
-   - `budget.test.js` : exactitude des calculs multi-devises, conversions et arrondis.
-   - `activity.test.js` : création minimale, enrichissement progressif, statuts et validation.
-   - `trip.test.js` : génération automatique du calendrier des jours, villes étapes.
-   - `todo.test.js` : gestion des catégories pré-voyage, calculs de progression.
-   - `contacts.test.js` : associations contacts <-> activités et intégrité référentielle.
-2. **Tests d'intégration (`tests/integration/`) :**
-   - Cycle complet d'un voyage : de la to-do pré-départ au déroulé du jour 1 à 21 avec dépenses et activités.
-3. **Tests de persistance (`tests/storage/`) :**
-   - Validation de la sauvegarde, de l'export JSON et de la restauration sans perte.
+1. **Service Worker** (`sw.js`) : stratégie *network-first* pour les fichiers de l'application ; le cache ne sert que hors-ligne. Chaque changement de `CACHE_NAME` purge l'ancien cache. Le client recharge la page une fois quand une nouvelle version prend la main.
+2. **Écriture** : à chaque modification, le cache local est mis à jour, puis l'instantané est mis en file (`SyncQueue`) et envoyé avec `baseVersion` (ADR-003).
+3. **Lecture** : la file est vidée d'abord, puis `GET /api/trip`. Sans réseau, le client lit le cache local.
+4. **Démo** : lecture du seed serveur une seule fois, puis travail sur `capvoyage_demo_trip`, sans aucune écriture serveur.
+5. **Sauvegarde opérationnelle** 🆕 : `scripts/backup-db.js` (`VACUUM INTO` horodaté) et snapshots de volume Fly.
+
+---
+
+## 6. Sécurité (synthèse — ADR-002, 004, 006)
+- Propriété vérifiée par le serveur ; les champs `id`, `userId`, `version` et `sharing` du client sont ignorés.
+- Le lien de partage est en lecture seule par construction ; la vue ne contient que les sections choisies.
+- Sessions expirantes (30 jours glissants), plusieurs par compte.
+- IP réelle lue dans `Fly-Client-IP` ; limites par IP et par e-mail.
+- Aléa cryptographique ; CSP ; échappement HTML systématique (`escapeHtml`) dans l'interface ; corps de requête limités à 5 Mo.
+
+---
+
+## 7. Stratégie de Tests
+
+| Dossier | Niveau | Outil |
+|---|---|---|
+| `tests/domain/` | Règles métier pures, dont la file de synchro 🆕 et le partage 🆕 | `node:test` |
+| `tests/integration/` | Scénario métier complet « Cameroun 21 jours » | `node:test` |
+| `tests/api/` 🆕 | HTTP réel sur `createServer()` + SQLite `:memory:` : sécurité, partage, versions, en-têtes | `node:test` + `fetch` |
+| `tests/ui/` | Intégrité du front (syntaxe, ids, stratégie du SW) ; smoke test navigateur Chrome headless via CDP 🆕 | `node:test` + `WebSocket` natif |
+
+Toutes les suites tournent en CI (`.github/workflows/ci.yml`) à chaque push, sur Node 22 et 24. Le détail des cas est dans [`cahier_de_test.md`](cahier_de_test.md).

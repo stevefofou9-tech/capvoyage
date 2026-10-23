@@ -1,7 +1,7 @@
 # 📋 Backlog des User Stories (Spec-Driven Development)
 ## Projet : Planning Voyage PAYS (Travel Planner)
 **Méthodologie :** SDD / MoSCoW (Must, Should, Could, Won't)  
-**Version :** 1.0.0
+**Version :** 2.0.0 (23/10/2026, alignée sur le PRD v2.0)
 
 ---
 
@@ -14,7 +14,11 @@
 | **EPIC-3** | Enregistrement Progressif & Gestion des Activités | 🔴 MUST HAVE |
 | **EPIC-4** | Carnet de Contacts & Réseau Local ("Avec qui") | 🔴 MUST HAVE |
 | **EPIC-5** | Suivi du Budget & Gestion Multi-Devises (EUR/XAF) | 🔴 MUST HAVE |
-| **EPIC-6** | Mode Hors-Ligne, Export & Sauvegarde | 🟡 SHOULD HAVE |
+| **EPIC-6** | Hors-Ligne & Synchronisation | 🔴 MUST HAVE |
+| **EPIC-7** | Partage Paramétrable | 🔴 MUST HAVE |
+| **EPIC-8** | Sécurité, Comptes & Démo | 🔴 MUST HAVE |
+
+> **Hors périmètre (v2.0) :** export/import JSON, impression/PDF, réordonnancement manuel des activités, suppression de voyage (voir PRD §7). L'ancienne US-6.2 est retirée.
 
 ---
 
@@ -201,31 +205,120 @@ Scénario: Saisie de dépense en FCFA
 
 ---
 
-## EPIC 6 : Mode Hors-Ligne, Sauvegarde & Export
+## EPIC 6 : Hors-Ligne & Synchronisation
 
-### US-6.1 : Utilisation complète sans réseau
-> **En tant que** voyageur en zone de faible connectivité (route, campagne, plage),  
-> **Je veux** pouvoir consulter, créer et modifier des activités ou des dépenses hors-ligne,  
-> **Afin de** ne jamais être bloqué par une coupure internet.
-
-**Critères d'acceptation (Gherkin) :**
-```gherkin
-Scénario: Fonctionnement hors-ligne
-  Étant donné que la connexion réseau est coupée (offline)
-  Quand j'ajoute une nouvelle activité et une dépense
-  Alors les données sont enregistrées immédiatement dans le stockage local du navigateur
-  Et aucune alerte d'erreur bloquante n'apparaît
-```
-
-### US-6.2 : Export JSON et impression / PDF
-> **En tant que** voyageur,  
-> **Je veux** télécharger une sauvegarde JSON de l'intégralité de mon voyage et générer un récapitulatif imprimable du planning,  
-> **Afin de** conserver mes données en sécurité ou les partager avec un proche.
+### US-6.1 : Utilisation complète sans réseau, sans perte
+> **En tant que** voyageur en zone de faible connectivité (route, campagne, plage),
+> **Je veux** consulter, créer et modifier des activités ou des dépenses hors-ligne et les retrouver au retour du réseau,
+> **Afin de** ne jamais être bloqué ni perdre ce que j'ai saisi.
 
 **Critères d'acceptation (Gherkin) :**
 ```gherkin
-Scénario: Export complet
-  Quand je clique sur "Exporter les données du voyage"
-  Alors un fichier JSON contenant le voyage, les journées, les activités, les contacts, les dépenses et les tâches est téléchargé
+Scénario: Saisie hors-ligne puis synchronisation
+  Étant donné que la connexion réseau est coupée
+  Quand j'ajoute une activité et une dépense
+  Alors elles sont enregistrées immédiatement sur l'appareil
+  Et l'indicateur affiche "En attente de synchro"
+  Quand le réseau revient
+  Alors elles sont envoyées au serveur et l'indicateur affiche "Enregistré"
+  Et après rechargement elles sont toujours présentes
 ```
 
+### US-6.2 : *Retirée en v2.0* (export JSON et impression/PDF hors périmètre)
+
+### US-6.3 : Travailler sur deux appareils sans s'écraser
+> **En tant que** voyageur utilisant téléphone et ordinateur,
+> **Je veux** être prévenu quand une modification d'un appareil entre en conflit avec l'autre,
+> **Afin de** ne jamais écraser silencieusement mon travail.
+
+```gherkin
+Scénario: Conflit de version
+  Étant donné mes deux appareils sur la même version du voyage
+  Quand l'ordinateur enregistre puis le téléphone enregistre sur l'ancienne version
+  Alors le téléphone affiche la version serveur, l'indicateur "Conflit"
+  Et l'action "Restaurer ma version" est proposée
+```
+
+---
+
+## EPIC 7 : Partage Paramétrable
+
+### US-7.1 : Choisir ce que je partage
+> **En tant que** voyageur,
+> **Je veux** choisir les sections partagées (Programme, Préparatifs, Budget, Contacts),
+> **Afin de** montrer mon programme à ma famille sans dévoiler mon budget ni les numéros de mes contacts.
+
+```gherkin
+Scénario: Partage du programme seul (réglage par défaut)
+  Quand j'active le partage sans modifier les sections
+  Alors seule la section "Programme" est cochée
+  Et le lecteur du lien ne reçoit ni préparatifs, ni budget, ni contacts, ni participants
+```
+
+### US-7.2 : Couper ou renouveler le lien
+> **En tant que** voyageur,
+> **Je veux** désactiver mon lien de partage ou en générer un nouveau,
+> **Afin de** reprendre le contrôle si le lien a circulé trop loin.
+
+```gherkin
+Scénario: Désactivation
+  Quand je désactive le partage
+  Alors l'ancien lien affiche "Ce lien de partage n'est plus actif"
+Scénario: Régénération
+  Quand je régénère le lien
+  Alors l'ancien lien n'est plus actif et le nouveau fonctionne
+```
+
+### US-7.3 : Consulter un voyage partagé
+> **En tant que** proche du voyageur,
+> **Je veux** ouvrir le lien sans compte et voir les sections partagées,
+> **Afin de** savoir quand et où le retrouver.
+
+```gherkin
+Scénario: Lecture seule
+  Quand j'ouvre un lien actif
+  Alors un bandeau "Lecture seule" est affiché
+  Et aucun bouton de modification n'est disponible
+  Et toute tentative d'écriture est refusée par le serveur
+```
+
+---
+
+## EPIC 8 : Sécurité, Comptes & Démo
+
+### US-8.1 : Mes voyages ne sont qu'à moi
+> **En tant que** voyageur,
+> **Je veux** être le seul à pouvoir lire et modifier mes voyages,
+> **Afin de** faire confiance à l'application.
+
+```gherkin
+Scénario: Écriture refusée sur le voyage d'un autre compte
+  Étant donné Bob connecté
+  Quand Bob envoie une modification portant l'identifiant du voyage d'Alice
+  Alors elle est refusée et le voyage d'Alice est inchangé
+```
+
+### US-8.2 : Rester connecté sur plusieurs appareils
+> **En tant que** voyageur,
+> **Je veux** rester connecté sur mon téléphone quand je me connecte sur mon ordinateur,
+> **Afin de** passer de l'un à l'autre sans ressaisir de code.
+
+```gherkin
+Scénario: Deux sessions simultanées
+  Quand je me connecte sur deux appareils
+  Alors les deux sessions restent valides
+  Et une session inutilisée depuis 30 jours expire
+```
+
+### US-8.3 : Une démo rien qu'à moi
+> **En tant que** prospect,
+> **Je veux** manipuler librement la démo Cameroun,
+> **Afin de** découvrir l'application sans être perturbé par d'autres visiteurs.
+
+```gherkin
+Scénario: Démo isolée
+  Quand j'ajoute une activité en démo
+  Alors elle n'est visible que sur mon appareil
+  Et les données du serveur sont inchangées
+  Et un bouton "Créer mon compte" me permet de quitter la démo
+```

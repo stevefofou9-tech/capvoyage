@@ -1,10 +1,10 @@
 # 🧪 Cahier de Tests & Recette (Test Plan Specification)
 ## Projet : Planning Voyage PAYS (Travel Planner)
 **Méthodologie :** Spec-Driven Development (SDD) & Validation par Scénarios  
-**Référence PRD :** `docs/PRD.md` (v1.0.0) | `docs/user_stories.md`  
+**Référence PRD :** `docs/PRD.md` (v2.0.0) | `docs/user_stories.md` (v2.0.0) | `docs/adr/`  
 **Cas pilote de test :** Voyage de 21 jours au Cameroun (Douala -> Yaoundé -> Kribi)  
-**Date :** 18/10/2026  
-**Statut :** Spécifié (Prêt pour exécution automatisée & manuelle)
+**Date :** 18/10/2026 · **Révision v2.0 :** 23/10/2026  
+**Statut :** v2.0 spécifiée. Les modules 16 à 19 (🆕) sont écrits **avant** le code et doivent échouer tant que la phase de développement n'est pas faite.
 
 ---
 
@@ -26,7 +26,7 @@ Ce cahier de tests définit l'ensemble des cas d'essais nécessaires pour valide
 | Module 2 : Activités Progressives | EPIC-3 : Enregistrement & Blocs | `TC-ACT-xxx` | 8 scénarios |
 | Module 3 : Contacts ("Avec qui") | EPIC-4 : Répertoire & Liaisons | `TC-CNT-xxx` | 5 scénarios |
 | Module 5 : Budget & Devises | EPIC-5 : Multi-Devises & Solde | `TC-BUD-xxx` | 7 scénarios |
-| Module 6 : Hors-Ligne & Persistance | EPIC-6 : Persistance & Fichiers | `TC-STO-xxx` | 4 scénarios |
+| Module 6 : Hors-Ligne & Persistance | EPIC-6 : Hors-Ligne & Synchronisation | `TC-STO-xxx` | 3 scénarios (export, import et impression retirés en v2.0) |
 | Module 7 : Authentification & Comptes | EPIC-7 : Passwordless & Démo | `AUT-xxx` | 6 scénarios |
 | Module 8 : Wizard Express, Alertes & V2 | EPIC-8 : V2 Améliorations UX | `TC-V2-xxx` | 7 scénarios |
 | Module 9 : Onboarding & Dynamic Config | EPIC-9 : Wizard & Cercles | `ONB-xxx` | 4 scénarios |
@@ -36,7 +36,11 @@ Ce cahier de tests définit l'ensemble des cas d'essais nécessaires pour valide
 | Module 13 : Multi-Voyages & Profil Utilisateur | EPIC-13 : Gestion Multi-Séjours | `MUT-xxx` | 3 scénarios |
 | Module 14 : Contacts Wizard & Ergonomie Directe | EPIC-14 : Direct UX & Devises V3 | `V3-xxx` | 3 scénarios |
 | Module 15 : Cycle de Vie Intégration E2E | EPIC-15 : E2E 21 Jours Cameroun | `E2E-xxx` | 1 scénario complet |
-| **Total Automatisé** | | | **72 cas de test (100% Green)** |
+| REQ-6.1, NFR-3 : Synchronisation hors-ligne 🆕 | EPIC-6 (US-6.1, US-6.3) | `TC-SYNC-xxx` | 8 scénarios |
+| REQ-SHARE-1 : Partage paramétrable 🆕 | EPIC-7 (US-7.1 à 7.3) | `TC-SHARE-xxx` (domaine) + `TC-API-008` à `012` | 7 + 5 scénarios |
+| Module 8 : Sécurité (REQ-SEC-1 à 5) 🆕 | EPIC-8 (US-8.1 à 8.3) | `TC-API-xxx` | 24 scénarios (dont partage) |
+| NFR-1, REQ-6.4 : Parcours navigateur 🆕 | EPIC-6/7/8 | `TC-UI-xxx` | 9 scénarios |
+| **Total automatisé** | | | **Calculé par la CI** (`npm test` affiche `ℹ tests N`) ; aucun chiffre n'est écrit en dur dans la documentation |
 
 ---
 
@@ -313,36 +317,21 @@ Ce cahier de tests définit l'ensemble des cas d'essais nécessaires pour valide
 
 ### MODULE 6 : PERSISTANCE & MODE HORS-LIGNE (Préfixe : TC-STO)
 
+> **v2.0 :** les anciens cas d'export JSON (`TC-STO-003`), d'import de sauvegarde (`TC-STO-004`) et d'impression/PDF (`TC-STO-005`) sont **supprimés** (PRD §7). Les numéros ci-dessous sont réalignés sur `tests/domain/storage.test.js`. Le cas hors-ligne (ancien `TC-STO-002`) est remplacé par le module 16 (`TC-SYNC`).
+
 #### `TC-STO-001` : Sérialisation et désérialisation intégrale (JSON)
-- **Exigence source :** REQ-6.1, REQ-6.2
-- **Étapes de test :**
-  1. Générer un voyage complet avec jours, activités progressives, contacts, dépenses et to-do.
-  2. Sérialiser en chaîne JSON.
-  3. Recharger et désérialiser dans une nouvelle instance.
-- **Résultat attendu :** 100% des objets, identifiants, relations et montants sont identiques bit-à-bit.
+- **Exigence source :** REQ-6.1
+- **Étapes :** générer un voyage complet (jours, activités, contacts, dépenses, tâches), le sérialiser (`JSON.stringify`) puis le relire avec `StorageService.parseAndValidate`.
+- **Résultat attendu :** tous les objets, identifiants, relations et montants sont identiques.
 
-#### `TC-STO-002` : Résilience hors-ligne (Simulation Offline)
-- **Exigence source :** REQ-6.1, US-6.1
-- **Étapes de test :**
-  1. Simuler l'absence de réseau (`navigator.onLine = false`).
-  2. Créer une activité et saisir une dépense.
-  3. Vérifier la sauvegarde dans le stockage local.
-- **Résultat attendu :** L'opération réussit sans erreur, sans blocage réseau.
+#### `TC-STO-002` : Validation de schéma à la lecture
+- **Exigence source :** REQ-6.1
+- **Données de test :** chaîne JSON invalide, puis objet sans champs obligatoires.
+- **Résultat attendu :** rejet avec un message explicite, sans effet de bord.
 
-#### `TC-STO-003` : Export de fichier `.json` horodaté
-- **Exigence source :** REQ-6.2, US-6.2
-- **Résultat attendu :** Fichier généré avec nommage conventionnel `planning_voyage_cameroun_YYYYMMDD.json` contenant la structure complète.
-
-#### `TC-STO-004` : Importation d'une sauvegarde et validation de schéma
-- **Exigence source :** REQ-6.2
-- **Données de test :** Import d'un JSON valide vs import d'un JSON corrompu ou mal formé.
-- **Résultat attendu :**
-  - JSON valide : voyage restauré intégralement.
-  - JSON corrompu : rejet avec alerte claire sans écraser le voyage en cours.
-
-#### `TC-STO-005` : Préparation de l'export d'impression (Print/PDF)
-- **Exigence source :** REQ-6.3
-- **Résultat attendu :** Génération d'un état récapitulatif chronologique propre exempt d'éléments d'interface interactifs (formulaires, boutons d'édition).
+#### `TC-STO-003` : Sauvegarde et rechargement fichier (migration)
+- **Exigence source :** ADR-001 (import unique des anciens fichiers JSON vers SQLite)
+- **Résultat attendu :** un voyage écrit puis relu dans un **dossier temporaire** (`os.tmpdir()`, jamais `data/`) est identique.
 
 ---
 
@@ -392,6 +381,80 @@ Ce cahier de tests définit l'ensemble des cas d'essais nécessaires pour valide
 
 ---
 
+### MODULE 16 : SYNCHRONISATION HORS-LIGNE (Préfixe : TC-SYNC) 🆕 — `tests/domain/sync_queue.test.js`
+Exigences : REQ-6.1, NFR-3, US-6.1, US-6.3, ADR-003. Fonctions pures de `src/domain/SyncQueue.js`, avec un faux transport injecté.
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-SYNC-001` | Mise en file d'une modification hors-ligne | `pending[tripId]` contient l'instantané et la `baseVersion` ; statut `pending` |
+| `TC-SYNC-002` | Deux modifications successives avant l'envoi | Un seul instantané (le dernier), avec la `baseVersion` **d'origine** |
+| `TC-SYNC-003` | Envoi réussi (`200`, version 6) | File vide, statut `saved`, version locale = 6 |
+| `TC-SYNC-004` | Échec réseau (rejet du transport) | Instantané conservé, statut `pending`, aucune exception remontée |
+| `TC-SYNC-005` | Modification pendant un envoi en cours | Pas d'envoi parallèle ; deuxième envoi après le premier, avec la nouvelle version (pas de `409` contre soi-même) |
+| `TC-SYNC-006` | Réponse `409` avec la version serveur | Copie locale dans `conflicts[tripId]`, version serveur adoptée, statut `conflict` |
+| `TC-SYNC-007` | « Restaurer ma version » après conflit | Renvoi de la copie locale avec `baseVersion` = version serveur ; conflit effacé |
+| `TC-SYNC-008` | Persistance de l'état | Sérialisé puis relu (simulation d'un rechargement de page), l'état est identique |
+
+### MODULE 17 : PARTAGE PARAMÉTRABLE — DOMAINE (Préfixe : TC-SHARE) 🆕 — `tests/domain/sharing.test.js`
+Exigences : REQ-SHARE-1, REQ-SEC-2, US-7.1 à 7.3, ADR-006.
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-SHARE-001` | `normalizeSharing` sur un voyage avec ancien `shareToken` | `sharing = { enabled: true, token: <ancien>, sections: { planning: true, autres: false } }`, `shareToken` supprimé |
+| `TC-SHARE-002` | `normalizeSharing` sur un voyage sans partage | `sharing = { enabled: false, token: null, sections: { planning: true, … false } }` |
+| `TC-SHARE-003` | `buildSharedView`, section Programme seule | `days` présents ; `contactIds` vides ; pas de `todos`, `expenses`, `currencies`, `contacts` |
+| `TC-SHARE-004` | Programme + Contacts | `contactIds` conservés et `contacts` présents |
+| `TC-SHARE-005` | Budget seul | `totalBudget`, `baseCurrency`, `currencies`, `expenses` présents ; pas de `days` |
+| `TC-SHARE-006` | Toute combinaison | Jamais de `id`, `userId`, `sharing`, `shareToken` ni `version` ; `isReadOnly: true` ; `sharedSections` exact |
+| `TC-SHARE-007` | La vue ne modifie pas le voyage source | Le voyage d'origine est inchangé (copie profonde) |
+
+### MODULE 18 : API HTTP & SÉCURITÉ (Préfixe : TC-API) 🆕 — `tests/api/*.test.js`
+Exigences : REQ-SEC-1 à 5, REQ-SHARE-1, REQ-6.1, ADR-002 à 006. Serveur réel issu de `createServer()` sur SQLite `:memory:`, port `0`. Comptes « Alice » et « Bob » créés via `request-code` + `verify-code` (le `devCode` est exposé hors production).
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-API-001` | `POST /api/trip` sans session | `401` ; base inchangée |
+| `TC-API-002` | Bob envoie le voyage d'Alice (même `id`) | `403` ; voyage d'Alice et `user_id` inchangés |
+| `TC-API-003` | Alice envoie son voyage avec un `userId` ou un `sharing` falsifiés | `200`, mais `userId` et `sharing` restent ceux de la base |
+| `TC-API-004` | `POST /api/trip` avec un `id` inconnu | `404` |
+| `TC-API-005` | Écriture avec `baseVersion` correcte | `200`, `version + 1` |
+| `TC-API-006` | Écriture avec `baseVersion` périmée | `409` avec la version serveur ; rien n'est enregistré |
+| `TC-API-007` | Écriture avec le jeton de partage en `Authorization` | `401` |
+| `TC-API-008` | `PUT /api/trip/sharing` par Bob sur le voyage d'Alice | `403` |
+| `TC-API-009` | Alice active le partage (réglage par défaut) puis `GET ?share=` | `200` ; vue Programme seule, sans `id` ni `userId` |
+| `TC-API-010` | Alice coche Budget | La vue suivante contient `expenses` |
+| `TC-API-011` | Alice désactive le partage | `GET ?share=` répond `404` avec « Ce lien de partage n'est plus actif » |
+| `TC-API-012` | Alice régénère le lien | Ancien jeton : `404` ; nouveau : `200` |
+| `TC-API-013` | `GET /api/trip` sans session (démo) | Seed `trip-cameroun-seed` avec `isDemo: true` ; deux appels identiques |
+| `TC-API-014` | `POST /api/reset` et `POST /api/trip/budget` | `404` (routes supprimées) |
+| `TC-API-015` | Six demandes de code avec des `X-Forwarded-For` différents | La sixième est refusée (`429`) : l'en-tête est ignoré |
+| `TC-API-016` | Six demandes de code pour le même e-mail depuis des IP différentes (`Fly-Client-IP` simulé, `FLY_APP_NAME` défini) | La sixième est refusée (`429`) |
+| `TC-API-017` | Connexion d'Alice sur deux « appareils » | Les deux jetons restent valides (`GET /api/auth/me` → `200`) |
+| `TC-API-018` | Session expirée (horloge simulée à +31 jours) | `401` |
+| `TC-API-019` | `logout` sur l'appareil 1 | Appareil 1 : `401` ; appareil 2 toujours `200` |
+| `TC-API-020` | Migration d'un ancien `users.session_token` | Accepté après démarrage, puis colonne remise à `NULL` |
+| `TC-API-021` | En-têtes de `GET /` | `Content-Security-Policy` conforme à ADR-002 ; `X-Frame-Options: DENY` |
+| `TC-API-022` | Fichiers statiques | `Cache-Control: no-cache`, `ETag`, `304` sur `If-None-Match` |
+| `TC-API-023` | `GET /api/rates` avec un transport Frankfurter simulé | Taux renvoyés ; un deuxième appel dans les 6 h n'appelle pas le transport |
+| `TC-API-024` | Codes générés | 1 000 codes : tous à 6 chiffres, dans [100000, 999999] |
+
+### MODULE 19 : PARCOURS NAVIGATEUR (Préfixe : TC-UI) 🆕 — `tests/ui/`
+Exigences : NFR-1, REQ-6.4, REQ-SEC-3, REQ-SHARE-1. `frontend_integrity.test.js` (existant) et `smoke.cdp.test.js` : Chrome headless piloté via CDP avec le `WebSocket` natif. Le test est ignoré (skip) si aucun Chrome n'est trouvé ; la CI fournit Chrome.
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-UI-001` | Syntaxe des modules servis (existant `UI-01`) | `node --check` OK |
+| `TC-UI-002` | Ids `getElementById` ↔ `index.html` (existant `UI-02`) | Aucun id manquant |
+| `TC-UI-003` | Service Worker *network-first* (existant `UI-03`) | Réseau interrogé avant le cache |
+| `TC-UI-004` | Landing, clic « Commencer mon Voyage » | `dialog#dialog-login[open]` ; aucune erreur console |
+| `TC-UI-005` | Démo : ajout d'une activité | Activité affichée ; **aucune requête `POST`** vers `/api/trip` |
+| `TC-UI-006` | Viewport 375 × 812 en démo | `scrollWidth <= clientWidth` ; en-tête ≤ 25 % de la hauteur ; barre basse visible |
+| `TC-UI-007` | Cibles tactiles visibles à 375 px | Toutes ≥ 44 px de haut (sauf liste d'exceptions documentée) |
+| `TC-UI-008` | Ouverture d'un lien partagé (Programme seul) | Bandeau « Lecture seule » ; onglets Préparatifs, Budget et Contacts masqués |
+| `TC-UI-009` | Simulation hors-ligne (`fetch` vers `/api` bloqué), puis ajout d'activité, puis rétablissement | Indicateur « En attente de synchro », puis « Enregistré » |
+
+---
+
 ## 3. Matrice de Recette pour l'Utilisateur (Phase 4 & V2)
 
 Pour la **Phase 4 (Recette & Tests Utilisateur)**, voici le tableau de validation manuelle que Steve utilisera pour tester directement son voyage au Cameroun :
@@ -405,7 +468,7 @@ Pour la **Phase 4 (Recette & Tests Utilisateur)**, voici le tableau de validatio
 | **REC-05** | Ajouter le contact *"Oncle Paul"* et le relier à l'activité | Le nom apparaît avec son badge sur la carte de l'activité | ⚪ À tester |
 | **REC-06** | Saisir une dépense de 15 000 FCFA | Le montant équivalent ~22,87 € s'affiche et le solde diminue | ⚪ À tester |
 | **REC-07** | Déplacer une activité du Jour 4 au Jour 5 | L'activité est sur le Jour 5 avec tous ses détails intacts | ⚪ À tester |
-| **REC-08** | Couper le wifi/connexion et ajouter une activité | Tout fonctionne immédiatement en local sans écran d'erreur | ⚪ À tester |
+| **REC-08** | Couper le wifi/connexion et ajouter une activité, puis rétablir la connexion et recharger | Aucun écran d'erreur ; « En attente de synchro » puis « Enregistré » ; l'activité est toujours là après rechargement | ⚪ À tester |
 | **REC-09** | Cliquer sur "Explorer la Démo" sur la Landing Page | Accès immédiat au voyage de 21 jours au Cameroun sans friction | ⚪ À tester |
 | **REC-10** | Connexion email passwordless avec code 6 chiffres | Demande de code, pré-remplissage dev et session validée localement | ⚪ À tester |
 | **REC-11** | Initialiser un nouveau voyage via le Wizard (< 3 min) | 4 immanquables saisis + profil d'activité = voyage créé en moins de 30 secondes | ⚪ À tester |
@@ -420,3 +483,11 @@ Pour la **Phase 4 (Recette & Tests Utilisateur)**, voici le tableau de validatio
 | **REC-20** | Modale d'activité : Changement direct du jour via le menu déroulant | Déplacement immédiat de l'activité vers la journée choisie sans passer par un sous-menu | ⚪ À tester |
 | **REC-21** | Modale d'activité : Clic sur "+ Créer un contact express" | Formulaire inline déplié, ajout du contact et coche automatique sur l'activité en cours | ⚪ À tester |
 | **REC-22** | Profil : Clic sur le badge utilisateur puis création d'un 2ème voyage | Les 2 voyages sont listés dans la modale Profil avec bascule en 1 clic | ⚪ À tester |
+| **REC-23** 🆕 | Partager : activer le lien sans rien changer, l'ouvrir en navigation privée | Seul le Programme est visible, en lecture seule, sans participants | ⚪ À tester |
+| **REC-24** 🆕 | Partager : cocher Budget et Contacts, rouvrir le lien | Les onglets Budget et Contacts apparaissent, en lecture seule | ⚪ À tester |
+| **REC-25** 🆕 | Partager : désactiver le lien, rouvrir l'onglet privé | Message « Ce lien de partage n'est plus actif » | ⚪ À tester |
+| **REC-26** 🆕 | Partager : régénérer le lien | L'ancien lien est inactif, le nouveau fonctionne | ⚪ À tester |
+| **REC-27** 🆕 | Se connecter sur le téléphone puis sur l'ordinateur | Les deux restent connectés | ⚪ À tester |
+| **REC-28** 🆕 | Modifier le même voyage sur les deux appareils, l'un étant resté hors-ligne | L'appareil en retard affiche « Conflit » et propose « Restaurer ma version » | ⚪ À tester |
+| **REC-29** 🆕 | Démo : ajouter une activité, puis ouvrir la démo dans un autre navigateur | L'activité n'apparaît pas dans l'autre navigateur | ⚪ À tester |
+| **REC-30** 🆕 | Téléphone (≈ 375 px) : parcourir les 4 onglets | Pas de défilement horizontal, en-tête compact, barre de navigation basse | ⚪ À tester |
