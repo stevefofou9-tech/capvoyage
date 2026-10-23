@@ -515,17 +515,27 @@ const server = http.createServer(async (req, res) => {
       }
       const ext = path.extname(filePath).toLowerCase();
       const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+      const fileStat = await fs.stat(filePath);
+
+      // Les fichiers ne sont pas fingerprintés (app.js, style.css...) : un max-age
+      // figerait une version cassée chez l'utilisateur. On impose la revalidation
+      // à chaque requête, rendue peu coûteuse par l'ETag (réponse 304 sans corps).
+      const etag = `W/"${fileStat.size.toString(16)}-${Math.floor(fileStat.mtimeMs).toString(16)}"`;
+      const cacheHeaders = {
+        'Cache-Control': 'no-cache',
+        'ETag': etag,
+        ...getSecurityHeaders()
+      };
+
+      if (req.headers['if-none-match'] === etag) {
+        res.writeHead(304, cacheHeaders);
+        return res.end();
+      }
+
       const content = await fs.readFile(filePath);
-
-      // Stratégie de mise en cache HTTP différenciée
-      const cacheControl = (pathname === '/' || pathname.endsWith('.html') || pathname.endsWith('.webmanifest'))
-        ? 'no-cache, no-store, must-revalidate'
-        : (IS_PRODUCTION ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-cache, no-store, must-revalidate');
-
       res.writeHead(200, {
         'Content-Type': contentType,
-        'Cache-Control': cacheControl,
-        ...getSecurityHeaders()
+        ...cacheHeaders
       });
       return res.end(content);
     } catch (err) {

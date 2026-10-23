@@ -169,7 +169,6 @@ const elements = {
   btnSaveInlineContact: document.getElementById('btn-save-inline-contact'),
   editActivityContactsList: document.getElementById('edit-activity-contacts-list'),
   editActivityNotes: document.getElementById('edit-activity-notes'),
-  btnMoveFromModal: document.getElementById('btn-move-from-modal'),
   btnCloseActivityDialog: document.getElementById('btn-close-activity-dialog'),
   btnCancelActivity: document.getElementById('btn-cancel-activity'),
 
@@ -406,7 +405,16 @@ async function initApp() {
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-    navigator.serviceWorker.register('./sw.js').catch(err => {
+    // Recharger une fois quand une nouvelle version du SW prend la main (pas au premier install)
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloading) return;
+      reloading = true;
+      window.location.reload();
+    });
+
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(err => {
       console.warn('Enregistrement ServiceWorker non disponible:', err);
     });
   }
@@ -939,13 +947,6 @@ function openEnrichModal(activity) {
   }
 
   renderContactsInModal(activity.category || 'Autre', activity.contactIds || []);
-
-  if (elements.btnMoveFromModal) {
-    elements.btnMoveFromModal.onclick = () => {
-      elements.dialogActivityEnrich.close();
-      openMoveModal(activity);
-    };
-  }
 
   openAccessibleDialog(elements.dialogActivityEnrich);
 }
