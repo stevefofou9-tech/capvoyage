@@ -2632,3 +2632,93 @@ body.mode-readonly .icon-action-btn {
 .share-sections .purpose-icon { font-size: 1.15rem; margin-bottom: 0.2rem; }
 .share-sections .purpose-title { font-size: 0.9rem; }
 .share-sections .purpose-desc { font-size: 0.75rem; }
+
+/* ==========================================================================
+   MOBILE D'ABORD (NFR-1 : aucun débordement à 360 px, en-tête ≤ 25 %, cibles ≥ 44 px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* En-tête compact, non collant : l'écran est pour le programme */
+  .app-header { position: static; }
+  .header-container { padding: 0.6rem 1rem; gap: 0.5rem; flex-wrap: nowrap; }
+  .brand-zone { flex-wrap: wrap; min-width: 0; gap: 0.4rem 0.6rem; }
+  .brand-zone > div:last-child { flex: 1 1 100%; min-width: 0; }
+  .brand-zone h1 { font-size: 1.05rem; line-height: 1.25; overflow-wrap: anywhere; }
+  .brand-logo.sm .brand-name { font-size: 1rem; }
+
+  /* Zone compte : pastille et actions essentielles sur une ligne qui défile si besoin */
+  .user-session-zone {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.4rem;
+    overflow-x: auto;
+    min-width: 0;
+    scrollbar-width: none;
+  }
+  .user-session-zone::-webkit-scrollbar { display: none; }
+  .user-session-zone > * { flex-shrink: 0; }
+  .user-email-text { display: none; } /* e-mail visible dans la fenêtre Profil */
+  /* « Configurer » et « Déconnexion » restent accessibles depuis la fenêtre Profil (pastille) */
+  #btn-header-new-trip,
+  #btn-logout-header { display: none; }
+  .user-pill,
+  .sync-indicator,
+  .user-session-zone .btn-sm { min-height: 44px; }
+
+  /* Filtres en un seul rang défilant */
+  .activity-filter-bar { flex-wrap: wrap; }
+  .filter-pills-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    scrollbar-width: none;
+    padding-bottom: 0.2rem;
+  }
+  .filter-pills-row::-webkit-scrollbar { display: none; }
+  .filter-pills-row > * { flex-shrink: 0; }
+
+  /* Bandeau du jour lisible */
+  .day-active-banner { padding: 1rem 1.1rem; gap: 0.6rem; align-items: flex-start; }
+  .day-banner-left { min-width: 0; }
+  .day-banner-left h2 { font-size: 1.2rem; }
+  .city-step-tag { flex-wrap: wrap; gap: 0.25rem 0.5rem; }
+  .day-banner-right { gap: 0.5rem; flex-shrink: 0; }
+  .day-banner-stats { white-space: nowrap; padding: 0.35rem 0.7rem; }
+
+  /* Cibles tactiles ≥ 44 px */
+  .cat-pill,
+  .template-pill,
+  .icon-action-btn,
+  #btn-export-ics,
+  #btn-edit-city,
+  #btn-quick-mention-contact { min-height: 44px; }
+  .icon-action-btn { min-width: 44px; }
+
+  /* Ajout rapide : le champ prend toute la ligne, les boutons passent dessous */
+  .quick-add-form { flex-wrap: wrap; gap: 0.5rem; }
+  .quick-add-form input { flex: 1 1 calc(100% - 2.5rem); min-width: 0; font-size: 1rem; }
+  .quick-add-form .btn { flex: 1 1 auto; min-height: 44px; }
+
+  /* Toasts dans la largeur de l'écran, au-dessus de la barre basse */
+  .toast-container { width: calc(100vw - 2rem); max-width: calc(100vw - 2rem); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Le contenu ne passe jamais sous la barre de navigation basse */
+  .app-content { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Sortie du mode démo (U6) */
+.demo-exit-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 1rem;
+  background: var(--primary-surface);
+  border-bottom: 1.5px solid var(--primary-light);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.demo-exit-banner[hidden] { display: none; }
+.demo-exit-banner .btn { min-height: 44px; }

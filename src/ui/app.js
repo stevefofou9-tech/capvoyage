@@ -629,6 +629,8 @@ async function enterAppView() {
   if (state.session) {
     elements.userEmailText.textContent = state.session.isDemo ? 'Mode Démo (Cameroun)' : state.session.email;
   }
+  const demoBanner = document.getElementById('demo-exit-banner');
+  if (demoBanner) demoBanner.hidden = isAuthenticated() || state.isReadOnly;
 
   await loadTripData();
   renderAll();
@@ -2391,6 +2393,14 @@ function setupEventListeners() {
       renderBudget();
     });
   }
+
+  // Sortie du mode démo vers la création de compte (U6)
+  document.getElementById('btn-demo-create-account')?.addEventListener('click', () => {
+    state.session = null;
+    localStorage.removeItem('capvoyage_session');
+    showLandingView();
+    openLoginModal();
+  });
 
   // 16. Partage paramétrable en lecture seule (ADR-006)
   if (elements.btnHeaderShare) {
