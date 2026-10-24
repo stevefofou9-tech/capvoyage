@@ -1,6 +1,6 @@
 # Plan d'intégration : design system « Soleil » (direction A2)
 
-Statut : plan validé sur prototype, aucune ligne de l'application modifiée.
+Statut : phases 1 à 6 réalisées le 24/10/2026 (voir ADR-010, section « Mise en œuvre »).
 Référence visuelle : `prototypes/A2-soleil.html`, `prototypes/design-system.html`, banc de test `prototypes/qa-garde-fous.html`.
 
 ## 1. Objectif et critères de réussite

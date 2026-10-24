@@ -1,145 +1,135 @@
 ---
 name: CapVoyage
-description: Compagnon nomade pour séjours exigeants — Surface Mobile Ergonomique & Carte Solaire
+description: Compagnon nomade pour séjours exigeants — design system « Soleil » (neutres chauds, un seul accent cuivre, quatre familles de forme)
 colors:
-  primary: "#b93807"
-  primary-hover: "#9a2c04"
-  primary-light: "#ffedd5"
-  primary-surface: "#fff7ed"
-  neutral-bg: "#f8fafc"
-  neutral-subtle: "#f1f5f9"
-  card-bg: "#ffffff"
-  text-main: "#0f172a"
-  text-muted: "#334155"
-  text-light: "#475569"
-  border: "#cbd5e1"
-  border-light: "#e2e8f0"
-  whatsapp: "#15803d"
-  whatsapp-light: "#dcfce7"
-  danger: "#b91c1c"
-  danger-light: "#fee2e2"
-  warning: "#b45309"
-  warning-light: "#fef3c7"
-  info: "#1d4ed8"
-  info-light: "#dbeafe"
+  paper: "#f8f5f0"
+  surface: "#fffdfa"
+  sunken: "#f0ebe2"
+  line: "#e7e0d4"
+  line-strong: "#c9bfae"
+  ink: "#1f1a15"
+  ink-2: "#51483d"
+  ink-3: "#6a5f52"
+  accent: "#b93807"
+  accent-press: "#94290a"
+  accent-soft: "#fbece1"
+  accent-ink: "#8a2c07"
+  pos: "#1d6b3a"
+  pos-soft: "#e4f1e7"
+  pos-ink: "#14502b"
+  warn: "#855400"
+  warn-soft: "#fdf0d0"
+  warn-ink: "#5c3a00"
+  neg: "#b3261e"
+  neg-soft: "#fbe7e4"
+  focus: "#1a4fd6"
 typography:
   display:
-    fontFamily: "Public Sans, system-ui, -apple-system, sans-serif"
+    fontFamily: "Public Sans, system-ui, sans-serif"
     fontWeight: 800
-    letterSpacing: "-0.025em"
+    letterSpacing: "-0.03em"
   body:
-    fontFamily: "Atkinson Hyperlegible, Public Sans, system-ui, -apple-system, sans-serif"
+    fontFamily: "Atkinson Hyperlegible, Public Sans, system-ui, sans-serif"
     fontWeight: 400
-    lineHeight: 1.55
+    lineHeight: 1.5
 rounded:
-  sm: "8px"
   md: "14px"
-  lg: "18px"
-  xl: "24px"
-  full: "9999px"
+  lg: "22px"
+  pill: "9999px"
 spacing:
-  touch-min: "48px"
+  grid: "4px"
+  control-dense: "44px"
+  control-default: "48px"
+  control-large: "56px"
 components:
   button-primary:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.accent}"
     textColor: "#ffffff"
     rounded: "{rounded.md}"
-    padding: "0.65rem 1.35rem"
-    height: "{spacing.touch-min}"
+    height: "{spacing.control-default}"
   button-secondary:
-    backgroundColor: "{colors.card-bg}"
-    textColor: "{colors.text-main}"
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.md}"
-    padding: "0.65rem 1.35rem"
-    height: "{spacing.touch-min}"
+    height: "{spacing.control-default}"
 ---
 
-# Design System : CapVoyage (Direction Carte Solaire)
+# Design System : CapVoyage « Soleil »
+
+Décision : [ADR-010](docs/adr/ADR-010-design-system-soleil.md). Prototypes de référence : `prototypes/` (page `design-system.html`, banc de test `qa-garde-fous.html`). Plan d'intégration : [docs/sdd/03_plan_integration_design_system_soleil.md](docs/sdd/03_plan_integration_design_system_soleil.md).
 
 ## Overview
 
-CapVoyage est un compagnon de voyage nomade et déconnecté conçu pour les séjours de 2 à 4 semaines à l'étranger (notamment en Afrique centrale et de l'Ouest : Cameroun, Sénégal, Côte d'Ivoire).
+CapVoyage accompagne des séjours de 2 à 4 semaines à l'étranger, d'une main, au soleil, avec un réseau incertain. L'interface répond à quatre contraintes :
 
-L'interface adopte la Direction Artistique **"Surface Mobile Ergonomique & Carte Solaire"** (Warm Touch Surface), calibrée pour :
-1. **La manipulation nomade d'une main** : cibles tactiles $\ge 48\text{px}$, barre de navigation persistante au pouce sur smartphone, tuiles d'activités généreuses.
-2. **La lisibilité en plein soleil (Outdoor WCAG AAA)** : fonds mats anti-reflets (`#f8fafc`), cartes blanches nettes (`#ffffff`), encre ardoise profonde (`#0f172a`, ratio 14:1) et chiffres tabulaires renforcés.
-3. **La temporalité lâche en 4 blocs** (*À caler aujourd'hui, Matin, Après-midi, Soirée*) sans contrainte horaire rigide.
-4. **La bimonnaie en direct** : affichage systématique des montants en monnaie locale (FCFA XAF/XOF, etc.) avec repère instantané en Euros.
-5. **Le carnet relationnel WhatsApp** : boutons d'action rapide dédiés pour échanger avec les contacts locaux (famille, chauffeurs, guides).
+1. **Lisibilité en plein soleil.** Fond mat chaud (`paper`), encre brune profonde (`ink`, 15,9:1), contrastes calculés et testés, texte jamais sous 13 px.
+2. **Une main.** Navigation basse sur téléphone, cibles de 44 px au minimum (48 par défaut), actions rattrapables (toast « Annuler »).
+3. **Aucun débordement.** De 320 à 430 px et sur grand écran, avec des noms, des titres et des montants très longs : test `TC-LAY`.
+4. **Hors ligne.** Aucune ressource tierce : polices et icônes sont servies par l'application et précachées.
 
 ## Colors
 
-- **Primary (Orange Solaire Cuivré) - `#b93807`** : Couleur d'action unique réservée strictement aux éléments interactifs principaux (CTA, jour actif, boutons d'ajout). Offre un ratio de contraste supérieur à 5.5:1 sur blanc (WCAG AA pour le texte, AAA pour les composants d'interface).
-- **Primary Hover (`#9a2c04`) & Active (`#7c2202`)** : États d'interaction francs au toucher.
-- **Primary Light (`#ffedd5`) & Surface (`#fff7ed`)** : Voiles d'accentuation chaleureux pour les conteneurs d'activités de l'après-midi et badges sélectionnés.
-- **Neutral Canvas (`#f8fafc`)** : Fond mat daylight anti-éblouissement supprimant les reflets agressifs du plein soleil sans tomber dans le piège du crème artificiel.
-- **Neutral Subtle (`#f1f5f9`)** : Puits pour entrées de formulaire, rubans secondaires et barres d'onglets.
-- **Card Background (`#ffffff`)** : Blanc pur mat pour une séparation optique nette des informations.
-- **Borders (`#cbd5e1`)** : Liséré solide de 1.5px assurant des contours tranchés sous forte luminosité.
-- **WhatsApp Leaf Green (`#15803d` / `#dcfce7`)** : Vert végétal direct pour la communication WhatsApp et les indicateurs de succès budgétaire.
-- **Emergency Crimson (`#b91c1c` / `#fee2e2`)** : Alertes sanitaires obligatoires (vaccin fièvre jaune, visas).
-- **Logistics Cobalt (`#1d4ed8` / `#dbeafe`)** : Billets, vols et transferts.
-- **Currency Gold (`#b45309` / `#fef3c7`)** : Taux de change et convertisseur de devises.
+- **Neutres chauds** : `paper` (fond d'écran), `surface` (cartes, listes, feuilles), `sunken` (champs, pistes), `line` (filet 1 px), `line-strong` (contour de contrôle 1,5 px).
+- **Texte** : `ink` (principal), `ink-2` (secondaire, 8,4:1), `ink-3` (discret, 5,7:1, jamais pour une information critique).
+- **Accent unique** : `accent` (cuivre) réservé à l'action principale, au jour sélectionné et à l'état actif. `accent-soft` / `accent-ink` pour les fonds d'accentuation (prochaine activité, puce active, icônes de section).
+- **Sémantiques** : `pos` (fait, WhatsApp, solde sain), `warn` (hors ligne, échéance), `neg` (bloquant, erreur, conflit), `focus` (anneau de focus bleu, distinct de l'accent).
+- Un rôle = une couleur. Aucune couleur décorative.
 
 ## Typography
 
-- **Display Face** : `Public Sans`, `system-ui`, `-apple-system`, `sans-serif` (graisses 700 et 800). Typographie robuste, géométrique et d'autorité utilitaire.
-- **Body Face** : `Atkinson Hyperlegible`, `Public Sans`, `sans-serif` (graisses 400 et 700). Développée spécifiquement pour la lisibilité sous fort éblouissement et pour les utilisateurs à vision réduite.
-- **Numerics** : `font-variant-numeric: tabular-nums;` imposé sur toutes les données chiffrées (FCFA, EUR, dates, ratios).
+Échelle fixe de rapport 1,2 : `caption` 13 · `small` 14 · `body` 16 · `title-s` 18 · `title` 22 · `headline` 28 · `large` 34 (titres d'écran) · `display` 44. Trois graisses (400, 700, 800). Public Sans pour les titres et les chiffres clés, Atkinson Hyperlegible pour le reste. Chiffres tabulaires. Titres d'activités limités à 2 lignes.
 
 ## Layout
 
-- **Mobile First ($\le 768\text{px}$)** :
-  - Barre de navigation basse persistante (68px) adaptée au balayage par le pouce avec dégagement sécurisé (`env(safe-area-inset-bottom)`).
-  - Défilement horizontal des 21 journées sous forme de ruban de tuiles tactiles de 60px de hauteur.
-  - Modales converties en "Bottom Sheets" tactiles s'ouvrant depuis le bas de l'écran.
-- **Desktop & Tablettes ($> 768\text{px}$)** :
-  - En-tête supérieur compact avec menu d'onglets pilule et sélecteur de devises.
-  - Grille responsive pour les 4 blocs temporels (min 290px par colonne).
-  - Disposition fractionnée pour le budget (répartition par catégorie à gauche, journal des dépenses à droite).
+- **Téléphone (≤ 768 px)** : en-tête d'une ligne (boussole, titre discret, synchro en icône, menu « ⋯ »), barre basse à 4 libellés courts (Programme, À faire, Budget, Contacts), colonne unique, grille de 4 px, gouttière de 16 px.
+- **Ordinateur (> 768 px)** : barre latérale de 256 px (marque, titre, onglets, compte et actions), contenu centré de 760 px.
+- **Programme** : prochaine activité en carte, semaine défilante de jours (jour courant cerclé), titre « Aujourd'hui » ou date longue, filtres en puces défilantes, saisie rapide (champ + « Avec qui », « Idée », « Ajouter »), quatre blocs (À caler seulement s'il y a quelque chose à caler, Matin, Après-midi, Soirée), idées en bas.
 
 ## Elevation & Depth
 
-- **Ombres neutres ambiantes** : Refus des halos ou néons colorés. Utilisation exclusive d'élévations d'ardoise naturelle à faible rayon :
-  - Petite tuile : `0 1px 2px 0 rgba(15, 23, 42, 0.05)`
-  - Carte active : `0 4px 6px -1px rgba(15, 23, 42, 0.07)`
-  - Modale / Dialogue : `0 10px 15px -3px rgba(15, 23, 42, 0.09)`
+Trois niveaux d'ombres neutres chaudes : `e1` (cartes, listes), `e2` (menus, toasts), `e3` (feuilles basses). Une ligne dans une liste n'a jamais d'ombre ni de rayon : la surface arrondit, un filet inséré (qui démarre après l'icône) sépare les lignes.
 
 ## Shapes
 
-- Formes arrondies douces et ergonomiques :
-  - Boutons et inputs : `radius-md: 14px`
-  - Tuiles d'activités et cartes de blocs : `radius-xl: 18px` à `24px`
-  - Badges d'état et filtres : `radius-full: 9999px`
+Quatre familles, pas une de plus :
+- **cercle** : avatars, coches, actions icône ;
+- **pilule** (`--r-pill`) : puces, statuts, indicateur de navigation ;
+- **`--r-md` 14 px** : boutons, champs ;
+- **`--r-lg` 22 px** : surfaces (listes, cartes, feuilles).
+
+Trois hauteurs de contrôle : 44 (dense), 48 (par défaut), 56 (principal).
 
 ## Components
 
-- **Barre d'ajout 2 secondes** : Conteneur tactile réactif avec bordure orange solaire, autocomplétion instantanée des templates de voyage et bouton `@Contact`.
-- **Tuiles d'activités cliquables** : Zone tactile complète avec indication discrète au survol, badge de catégorie coloré, affichage double monnaie et raccourci WhatsApp direct.
-- **Convertisseur de poche** : Deux champs synchronisés en temps réel avec bouton d'inversion franc `⇄`.
-- **Rappels prioritaires** : Puces horizontales en tête de planning pour les démarches critiques.
+- **Ligne de liste** (activité, tâche, contact, dépense, idée) : zone de tête (coche ronde, avatar ou icône), titre (2 lignes max), infos par morceaux entiers (`.frags` / `.frag`), action de fin. Toucher la ligne ouvre la fiche.
+- **Feuille basse** (`<dialog>` natif) : poignée de fermeture ronde, actions collantes en bas, erreurs sous le champ.
+- **Synchro** : icône seule à trois états (`Enregistré`, `En attente`, `Conflit`), libellé pour lecteurs d'écran (`#sync-indicator`, `data-status`).
+- **Icônes** : `src/ui/icons.js`, SVG à trait unique ; le HTML statique les déclare par `<span data-icon="nom">`.
+- **Montants** : devise locale d'abord, repère en euros, jamais coupés (`.kpi-value` s'adapte à la largeur de sa carte).
 
 ## Règles de composition (v2.1, vérifiées par `tests/ui/`)
 
 Elles répondent au premier retour d'usage : « beaucoup d'encombrement sur mobile, l'en-tête est à revoir ».
 
-- **REQ-UX-1 · Une action primaire par écran.** Chaque écran et chaque modale n'a qu'un bouton `button-primary` ; le reste est secondaire ou dans un menu.
-- **REQ-UX-2 · En-tête mobile sobre (< 768 px).** Ligne 1 : marque, indicateur de synchro, menu « ⋯ » (Partager, Nouveau voyage, Profil, Déconnexion). Ligne 2 : titre du voyage et dates, chacun sur une ligne avec ellipse. Les onglets n'existent que dans la barre basse. Sur ordinateur, la barre d'onglets haute est conservée. Hauteur maximale de l'en-tête : 15 % de l'écran.
+- **REQ-UX-1 · Une action primaire par écran.** Chaque écran et chaque modale n'a qu'un bouton `btn-primary` ; le reste est secondaire ou dans un menu.
+- **REQ-UX-2 · En-tête mobile sobre (< 768 px).** Une ligne : marque, titre du voyage (ellipse), indicateur de synchro en icône, menu « ⋯ » (Partager, Nouveau voyage, Profil, Actualiser, Déconnexion). Les onglets n'existent que dans la barre basse. Sur ordinateur, les onglets sont dans la barre latérale. Hauteur maximale de l'en-tête : 15 % de l'écran.
 - **REQ-UX-3 · Densité et texte.** Au plus 4 contrôles interactifs visibles dans l'en-tête ; libellés de 1 à 2 mots ; aucun texte coupé ou chevauché (ellipse). Toute cible tactile ≥ 44 px.
-- **REQ-UX-4 · Tokens uniquement.** Couleurs, rayons, ombres et tailles viennent des variables `:root`. Le CSS ajouté depuis la v2.1 n'a aucune valeur en dur ; les valeurs historiques sont plafonnées par un test (cliquet) et à résorber.
-- **Listes d'actions.** Statut = un tap sur la tuile (pastille ≥ 44 px) avec annulation par toast ; sélection de personnes = feuille basse à recherche, pas de nuage de cases ; une longue liste se filtre, elle ne se parcourt pas.
+- **REQ-UX-4 · Jetons uniquement.** Couleurs, rayons, ombres et tailles viennent des variables `:root`. Le bloc CSS « Soleil » n'a aucune valeur en dur (test) ; les valeurs historiques sont plafonnées par un cliquet à résorber.
+- **REQ-UX-5 · Aucun débordement (v2.2).** À 320, 360, 390, 430 et 1280 px, avec des textes et montants extrêmes, aucune page plus large que l'écran, aucun élément hors cadre, aucune cible sous 44 px (`TC-LAY`).
+- **Listes d'actions.** Statut = un tap sur la coche avec annulation par toast ; sélection de personnes = feuille basse à recherche ; une longue liste se filtre, elle ne se parcourt pas.
 
 ## Do's and Don'ts
 
 ### Do's
-- Conserver systématiquement les cibles tactiles $\ge 48\text{px}$ pour tous les boutons principaux.
-- Garantir le double affichage de devises (monnaie locale prioritaire + repère d'origine).
-- Permettre la fermeture des modales par clic sur le backdrop ou touche Echap sans perte de données.
-- Maintenir la compatibilité 100% hors-ligne (zéro dépendance CDN obligatoire à l'exécution).
+- Garder les cibles tactiles à 44 px au minimum, 48 pour les boutons principaux.
+- Afficher la monnaie locale en premier avec un repère d'origine.
+- Permettre la fermeture des feuilles par le fond ou la touche Échap sans perte de données.
+- Servir toute ressource (polices, icônes) depuis l'application : zéro dépendance tierce à l'exécution.
+- Dire le problème et la marche à suivre dans les messages d'erreur.
 
 ### Don'ts
-- Ne jamais forcer de grille horaire stricte par quart d'heure : préserver les 4 blocs temporels naturels.
-- Ne pas utiliser de modales intrusives bloquantes (`confirm`, `prompt`, `alert` natifs proscrits).
-- Ne pas réduire le contraste des textes secondaires en dessous de 4.5:1.
-- Ne pas surcharger l'interface d'illustrations décoratives superflues : la clarté opérationnelle prime.
-
+- Pas de couleur, de rayon ni d'ombre en dur dans le CSS nouveau.
+- Pas d'emoji en guise d'icône : utiliser `icon()`.
+- Pas de texte sous 13 px, pas d'information critique en `ink-3`.
+- Pas de modale quand une action en ligne suffit.
+- Pas de conflit de synchro signalé par la seule icône : l'icône est complétée par le message de l'application.

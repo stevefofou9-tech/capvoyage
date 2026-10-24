@@ -16,9 +16,9 @@
 2. **Programme jour par jour** en 4 blocs (À caler aujourd'hui, Matin, Après-midi, Soirée), ajout d'une idée en 2 secondes, modèles d'activités, mention `@Contact`, déplacement d'une activité vers un autre jour depuis sa fiche.
 3. **Carnet de contacts** avec lien WhatsApp direct et vue des activités par personne.
 4. **Budget multi-devises** : conversion instantanée, solde, taux modifiable, actualisation des cours via le serveur (FCFA à parité fixe 655,957).
-5. **Préparatifs** : formalités, santé, valise, finances, avec rappels d'échéance.
+5. **À faire** : formalités, santé, valise, finances, avec rappels d'échéance.
 6. **Comptes sans mot de passe** (code par e-mail), plusieurs appareils connectés, plusieurs voyages par compte.
-7. **Partage paramétrable** : lien activable ou désactivable, choix des sections partagées (Programme, Préparatifs, Budget, Contacts ; Programme seul par défaut), régénération du lien.
+7. **Partage paramétrable** : lien activable ou désactivable, choix des sections partagées (Programme, À faire, Budget, Contacts ; Programme seul par défaut), régénération du lien.
 8. **Hors-ligne sans perte** : PWA, file de synchronisation versionnée, indicateur « Enregistré / En attente de synchro / Conflit » et « Restaurer ma version » en cas de conflit.
 9. **Mode démo** isolé : chaque visiteur manipule sa propre copie, sans rien écrire sur le serveur.
 10. **Export calendrier** `.ics` (Google / Apple Calendar).

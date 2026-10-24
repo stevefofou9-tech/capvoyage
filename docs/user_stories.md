@@ -330,7 +330,7 @@ Scénario: Conflit de version
 
 ### US-7.1 : Choisir ce que je partage
 > **En tant que** voyageur,
-> **Je veux** choisir les sections partagées (Programme, Préparatifs, Budget, Contacts),
+> **Je veux** choisir les sections partagées (Programme, À faire, Budget, Contacts),
 > **Afin de** montrer mon programme à ma famille sans dévoiler mon budget ni les numéros de mes contacts.
 
 ```gherkin

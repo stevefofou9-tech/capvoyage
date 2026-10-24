@@ -1,6 +1,6 @@
 # ADR-010 : Design system « Soleil » (direction A2)
 
-**Statut :** Accepté, phase 1 implémentée (24/10/2026) · **Date :** 24/10/2026
+**Statut :** Accepté et implémenté, phases 1 à 6 (24/10/2026) · **Date :** 24/10/2026
 
 ## Contexte
 Les premiers retours d'usage signalaient une interface encombrée sur mobile. L'audit a montré que la direction visuelle de l'époque débordait sous 381 px de large (téléphones à 320 et 360 px), utilisait 8 rayons et 4 hauteurs de contrôle différents, des emojis comme icônes, et chargeait ses polices depuis Google Fonts (contraire à « zéro dépendance tierce » et cassé hors ligne).
@@ -15,6 +15,13 @@ Trois directions ont été prototypées (`prototypes/`). La direction A (« Aujo
 5. **Garde-fous testés** : jetons obligatoires, aucun `var()` orphelin, contrastes calculés, aucun `border-radius` en dur, cliquet sur le texte sous 13 px (`TC-UX-009`) ; assets précachés et sans service tiers (`TC-UI-011 à 014`).
 6. Service Worker `capvoyage-cache-v10` (ADR-009 : le changement de nom de cache déclenche la mise à jour des clients installés).
 
+## Mise en œuvre (24/10/2026)
+- **Phase 1** : jetons et alias, polices hébergées, icônes, Service Worker v10, garde-fous.
+- **Phases 2 à 4** : bloc « Soleil » en fin de `style.css` (jetons uniquement, test) ; règles historiques remplacées supprimées (cartes d'activité, de tâche et de contact, dépenses, couleurs de blocs). Écrans refaits en gardant les identifiants et classes dont dépendent les tests : en-tête d'une ligne et barre latérale, Programme (semaine défilante, titre du jour, blocs en listes groupées, À caler seulement si utile), À faire, Budget (solde en carte, listes), Contacts, fiches en feuilles basses, accueil et assistant (codes pays à la place des drapeaux emoji).
+- **Écarts assumés avec le prototype** : la saisie rapide reste en ligne sous les jours (plus rapide qu'un bouton flottant, fidèle au principe « une idée en 2 secondes ») ; la semaine de jours défile au lieu d'être fenêtrée sur 7 jours, ce qui garde les 21 jours accessibles sans feuille supplémentaire ; l'état « Conflit » garde son toast « Restaurer ma version » (ADR-003) en plus de l'icône.
+- **Phase 5** : test de mise en page `TC-LAY` en CI (cinq largeurs, textes extrêmes).
+- **Phase 6** : `DESIGN.md`, PRD v2.2.0, cahier de test (module 26), version applicative 2.2.
+
 ## Alternatives écartées
 - **B « Cap »** (tableau de bord) et **C « Journal »** (saisie unique en bas) : plus de rupture avec les habitudes, jugées moins sûres. Leurs idées restent disponibles (accueil de B pour l'avant-départ, bascule FCFA/€ de C).
 - **Réécriture complète du CSS d'un coup** : trop risquée pour les 190 tests existants et pour une application déjà installée chez des utilisateurs.
@@ -22,6 +29,6 @@ Trois directions ont été prototypées (`prototypes/`). La direction A (« Aujo
 ## Conséquences
 - ➕ Une seule source de vérité visuelle, vérifiable par les tests, et l'application fonctionne identiquement hors ligne (polices comprises).
 - ➕ Le test de mise en page du prototype peut être porté en CI (phase 5 du plan).
-- ➖ Pendant la migration, les alias et les jetons coexistent ; la dette (27 tailles de texte sous 13 px, couleurs en dur hors `:root`) n'est plafonnée que par des cliquets, à résorber en phases 2 à 4.
+- ➖ Les alias de noms historiques et une partie du CSS d'avant (wizard, accueil, profil, partage) subsistent : 80 couleurs en dur hors `:root` et 23 tailles de texte sous 13 px, plafonnées par des cliquets à résorber au fil des retouches.
 
 Plan détaillé : `docs/sdd/03_plan_integration_design_system_soleil.md`.

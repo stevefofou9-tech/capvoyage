@@ -103,7 +103,7 @@ Pendant le séjour, chaque dépense peut être rattachée ou non à une activit�
 ### Étape 7 : Partager son voyage avec ses proches
 Bouton **🔗 Partager** :
 1. Activez le lien.
-2. Choisissez ce que vous partagez : **Programme** (coché par défaut), **Préparatifs**, **Budget**, **Contacts**. Les sections non cochées ne sont jamais envoyées à vos proches (sans « Contacts », ils ne voient pas non plus avec qui vous faites chaque activité).
+2. Choisissez ce que vous partagez : **Programme** (coché par défaut), **À faire**, **Budget**, **Contacts**. Les sections non cochées ne sont jamais envoyées à vos proches (sans « Contacts », ils ne voient pas non plus avec qui vous faites chaque activité).
 3. Copiez le lien et envoyez-le (WhatsApp, SMS…). Vos proches consultent le voyage **en lecture seule**, sans compte.
 4. Pour couper l'accès : désactivez le lien. Pour en donner un nouveau sans l'ancien : **Régénérer le lien**.
 

@@ -18,7 +18,7 @@ Ses trois principes :
 ```mermaid
 flowchart TD
     subgraph Client ["Navigateur (PWA)"]
-        UI["src/ui/app.js : vues Planning, Préparatifs, Budget, Contacts, Assistant, Partage"]
+        UI["src/ui/app.js : vues Planning, À faire, Budget, Contacts, Assistant, Partage"]
         SW["src/ui/sw.js : network-first, cache hors-ligne"]
         LS["localStorage : session, cache du voyage, file de synchro 🆕, voyage démo 🆕"]
     end

@@ -456,7 +456,7 @@ Exigences : NFR-1, REQ-6.4, REQ-SEC-3, REQ-SHARE-1. `frontend_integrity.test.js`
 | `TC-UI-005` | Démo : ajout d'une activité | Activité affichée ; **aucune requête `POST`** vers `/api/trip` |
 | `TC-UI-006` | Viewport 375 × 812 en démo | `scrollWidth <= clientWidth` ; en-tête ≤ 25 % de la hauteur ; barre basse visible |
 | `TC-UI-007` | Cibles tactiles visibles à 375 px | Toutes ≥ 44 px de haut (sauf liste d'exceptions documentée) |
-| `TC-UI-008` | Ouverture d'un lien partagé (Programme seul) | Bandeau « Lecture seule » ; onglets Préparatifs, Budget et Contacts masqués |
+| `TC-UI-008` | Ouverture d'un lien partagé (Programme seul) | Bandeau « Lecture seule » ; onglets À faire, Budget et Contacts masqués |
 | `TC-UI-009` | Simulation hors-ligne (`fetch` vers `/api` bloqué), puis ajout d'activité, puis rétablissement | Indicateur « En attente de synchro », puis « Enregistré » |
 
 ### MODULE 20 : ERGONOMIE & RÈGLES DE DESIGN (Préfixe : TC-UX) 🆕 v2.1 — `tests/ui/`
@@ -550,6 +550,19 @@ Exigences : REQ-6.4, ADR-009. Service Workers réels, Chrome headless (ignoré s
 | `TC-PWA-005` | `/api/version` | Identifiant stable, `no-store`, **change** quand un fichier du front change ; `/reset` servi |
 
 ---
+
+### MODULE 26 : DESIGN SYSTEM SOLEIL (Préfixes : TC-UX-009, TC-UI-011 à 014, TC-LAY) 🆕 v2.2 — `tests/ui/`
+Exigences : REQ-UX-4 à 6, NFR-1, ADR-010. Les cinq `TC-LAY` utilisent Chrome headless (CDP), ignorés si Chrome absent.
+
+| ID | Scénario | Résultat attendu |
+|---|---|---|
+| `TC-UX-009` | Lecture de `style.css` | Tous les jetons Soleil sont dans `:root` ; aucun `var()` orphelin ; contrastes des paires de texte ≥ 4,5:1 ; aucun `border-radius` en dur ; le bloc « Soleil » n'a ni couleur ni `rgb()` en dur ; le texte sous 13 px ne progresse pas (cliquet) |
+| `TC-UI-011` | Polices référencées par `style.css` | Chaque fichier existe, est un woff2 valide (`wOF2`) et est précaché par le Service Worker |
+| `TC-UI-012` | Pages et feuille de style | Aucune dépendance à Google Fonts |
+| `TC-UI-013` | Modules `src/ui` importés par `app.js` | Chacun existe et est précaché |
+| `TC-UI-014` | Module d'icônes | Précaché ; un nom inconnu renvoie un SVG vide ; aucune icône ne contient de script |
+| `TC-API-021/022` (étendu) | Polices servies par le serveur | Type `font/woff2`, `Cache-Control: max-age=31536000, immutable`, CSP sans hôte tiers |
+| `TC-LAY-320`, `360`, `390`, `430`, `1280` | Démo enrichie (nom de 30 caractères, titre de 80, lieu de 55, dépense de 1 250 000 FCFA, tâche de 80 caractères) ; Programme, À faire, Budget, Contacts, fiche d'activité, nouvelle dépense, nouveau contact | Aucune page plus large que l'écran, aucun élément hors cadre, toute cible tactile ≥ 44 px, aucune erreur JS |
 
 ## 3. Matrice de Recette pour l'Utilisateur (Phase 4 & V2)
 

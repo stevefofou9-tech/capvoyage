@@ -1,9 +1,9 @@
 # 📄 Product Requirements Document (PRD)
 ## Projet : CapVoyage (ex « Planning Voyage PAYS »)
 **Méthodologie :** Spec-Driven Development (SDD)
-**Version :** 2.1.0
-**Date :** 23/10/2026
-**Statut :** v2.0 et v2.1 implémentées et testées (23/10/2026)
+**Version :** 2.2.0
+**Date :** 24/10/2026
+**Statut :** v2.0, v2.1 et v2.2 implémentées et testées (24/10/2026)
 
 > **Historique**
 > - v1.0.0 (18/10/2026) : périmètre initial (modules 1 à 6).
@@ -11,6 +11,7 @@
 > - **v2.0.0 (23/10/2026)** : retrait de l'export/import JSON, de l'impression/PDF, du réordonnancement et de la suppression de voyage (§7). Ajout des exigences de sécurité, de partage paramétrable et de synchronisation hors-ligne issues de [l'audit du 23/10](audit_2026-10-23.md) (voir [discovery](sdd/01_discovery.md)).
 
 > - **v2.1.0 (23/10/2026)** : premiers retours d'usage ([discovery](sdd/02_discovery_retours_utilisateurs.md)) : règles de design mesurables (module 9), activités sans jour / « Idées » (REQ-2.1 révisé, REQ-2.4), statut en un tap (REQ-2.5), sélecteur de contacts (REQ-3.5), import du répertoire à la configuration (REQ-3.6), ouverture sur le jour courant et rappel (REQ-7.5 à 7.7).
+> - **v2.2.0 (24/10/2026)** : refonte visuelle, design system « Soleil » ([ADR-010](adr/ADR-010-design-system-soleil.md)) : neutres chauds et accent unique, polices et icônes hébergées (hors-ligne garanti), écran Programme centré sur le jour, onglet « Préparatifs » renommé « À faire », barre latérale sur ordinateur, synchro en icône à trois états, aucune régression fonctionnelle. Nouvelle exigence REQ-UX-5 (aucun débordement de 320 à 430 px et sur grand écran, testé).
 
 ---
 
@@ -129,7 +130,7 @@ CapVoyage est un planificateur de voyage axé sur :
 - **REQ-7.7 (alarmes calendrier, v2.1) :** l'export `.ics` ajoute une alarme (`VALARM`) 1 h avant chaque activité horodatée. Pas de notification push (voir §7).
 - **REQ-SHARE-1 (partage paramétrable) :**
   - Le propriétaire **active ou désactive** le lien de partage. Désactivé, le lien ne donne plus accès à rien.
-  - Il **choisit les sections partagées** parmi : Programme, Préparatifs, Budget, Contacts. **Par défaut, seul le Programme est partagé.**
+  - Il **choisit les sections partagées** parmi : Programme, À faire, Budget, Contacts. **Par défaut, seul le Programme est partagé.**
   - Il peut **régénérer** le lien, ce qui invalide l'ancien.
   - Le lecteur voit les sections partagées en **lecture seule**, avec un bandeau explicite ; les onglets non partagés sont masqués.
   - Les données d'une section non partagée **ne sont jamais transmises** au lecteur. Quand « Contacts » n'est pas partagé, les activités du Programme n'affichent pas les participants.
@@ -137,9 +138,11 @@ CapVoyage est un planificateur de voyage axé sur :
 ### Module 9 : Ergonomie & Règles de design (nouveau v2.1)
 Ces règles sont inscrites dans `DESIGN.md` et vérifiées par des tests.
 - **REQ-UX-1 (une action primaire par écran) :** chaque écran et chaque modale n'a qu'un bouton primaire ; les autres actions sont secondaires ou dans un menu.
-- **REQ-UX-2 (en-tête mobile sobre) :** sous 768 px, l'en-tête ne porte que l'identité (titre du voyage, dates sur une ligne, indicateur de synchro) et **un menu « ⋯ »** regroupant Partager, Nouveau voyage, Profil, Déconnexion. Les 4 onglets ne figurent **que** dans la barre basse. Sur ordinateur (≥ 768 px), la barre d'onglets haute est conservée.
+- **REQ-UX-2 (en-tête mobile sobre) :** sous 768 px, l'en-tête ne porte que l'identité (titre du voyage, dates sur une ligne, indicateur de synchro) et **un menu « ⋯ »** regroupant Partager, Nouveau voyage, Profil, Déconnexion. Les 4 onglets ne figurent **que** dans la barre basse. Sur ordinateur (> 768 px), les onglets sont dans une barre latérale.
 - **REQ-UX-3 (densité et texte) :** au plus 4 contrôles interactifs dans l'en-tête, aucun texte coupé ou chevauché (ellipse si trop long), libellés de bouton de 1 à 2 mots (« Nouveau », « Partager »).
 - **REQ-UX-4 (cohérence) :** espacements, rayons et tailles de texte proviennent exclusivement des tokens de `DESIGN.md` ; aucune valeur isolée.
+- **REQ-UX-5 (aucun débordement, nouveau v2.2) :** à 320, 360, 390, 430 et 1280 px, avec des textes (noms, titres, lieux) et des montants très longs, aucune page n'est plus large que l'écran, aucun élément ne sort du cadre et toute cible tactile mesure au moins 44 px. Vérifié par `TC-LAY`.
+- **REQ-UX-6 (hors-ligne visuel, nouveau v2.2) :** polices et icônes sont servies par l'application et précachées ; aucune ressource d'un service tiers n'est chargée à l'exécution.
 
 ### Module 8 : Sécurité & Confidentialité (nouveau, v2.0)
 - **REQ-SEC-1 (propriété) :** un voyage n'est lisible et modifiable que par son propriétaire authentifié. L'identifiant de voyage et de propriétaire envoyés par le client ne sont jamais utilisés pour décider de l'accès.
@@ -243,7 +246,7 @@ Fonctionnalité: Lien de partage personnalisé
     Étant donné Steve qui active le partage avec la seule section "Programme"
     Quand sa tante ouvre le lien
     Alors elle voit les journées et les activités en lecture seule
-    Et elle ne voit ni les onglets ni les données "Préparatifs", "Budget" et "Contacts"
+    Et elle ne voit ni les onglets ni les données "À faire", "Budget" et "Contacts"
     Et les participants des activités ne lui sont pas transmis
   Scénario: Désactivation du lien
     Étant donné un lien de partage actif
