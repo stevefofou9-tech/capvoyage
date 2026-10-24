@@ -16,10 +16,11 @@ import { ACTIVITY_TEMPLATES, searchTemplates, resolveTemplateTitle } from '../do
 import { IcsService } from '../domain/IcsService.js';
 import { SyncQueue, SyncStatus } from '../domain/SyncQueue.js';
 import { NowService } from '../domain/NowService.js';
+import { icon } from './icons.js';
 import { parseVCard, parseBulk, buildSortRows, toContacts, filterContacts, IMPORT_RELATIONSHIPS } from '../domain/ContactImport.js';
 
 const DEMO_TRIP_KEY = 'capvoyage_demo_trip';
-const APP_VERSION = '2.1';
+const APP_VERSION = '2.2';
 const UPDATE_CHECK_MS = 30 * 60 * 1000;
 const SYNC_RETRY_MS = 30000;
 
@@ -191,7 +192,7 @@ const elements = {
 
   // 9. Modale Déplacement de Jour (conservée pour rétrocompatibilité)
 
-  // 10. Onglet Préparatifs & To-Dos
+  // 10. Onglet À faire (tâches)
   btnOpenAddTodo: document.getElementById('btn-open-add-todo'),
   todoProgressBar: document.getElementById('todo-progress-bar'),
   todoProgressPercent: document.getElementById('todo-progress-percent'),
@@ -415,7 +416,15 @@ export function closeAccessibleDialog(dialogElement) {
 // CYCLE DE VIE & NAVIGATION DES ÉCRANS (Landing / Wizard / App)
 // ==========================================================================
 
+/** Remplace chaque <span data-icon="nom"> du HTML statique par l'icône SVG correspondante. */
+function hydrateIcons(root = document) {
+  root.querySelectorAll('[data-icon]').forEach((el) => {
+    el.innerHTML = icon(el.dataset.icon, Number(el.dataset.iconSize) || 20);
+  });
+}
+
 async function initApp() {
+  hydrateIcons();
   setupEventListeners();
   initSyncQueue();
   setInterval(() => { if (state.trip) renderNowBanner(); }, 60000);
@@ -454,7 +463,7 @@ async function initApp() {
       e.preventDefault();
       e.stopImmediatePropagation();
       document.querySelectorAll('dialog[open]').forEach(d => d.close());
-      showToast('👁️ Ce voyage est partagé en lecture seule.', { type: 'info' });
+      showToast('Ce voyage est partagé en lecture seule.', { type: 'info' });
     }, true);
     await enterAppView();
     registerServiceWorker();
@@ -465,7 +474,7 @@ async function initApp() {
     const shareNotice = sessionStorage.getItem('capvoyage_share_notice');
     if (shareNotice) {
       sessionStorage.removeItem('capvoyage_share_notice');
-      showToast(`🔒 ${shareNotice}`, { type: 'warning', duration: 10000 });
+      showToast(`${shareNotice}`, { type: 'warning', duration: 10000 });
     }
   } catch (e) { /* stockage indisponible */ }
 
@@ -595,14 +604,14 @@ function showLandingView() {
 
   // Ajustement dynamique des boutons d'appel à l'action si déjà connecté
   if (state.session) {
-    elements.btnLandingOpenLogin.textContent = 'Mon Voyage ➔';
+    elements.btnLandingOpenLogin.textContent = 'Mon voyage';
     elements.btnLandingOpenLogin.onclick = () => enterAppView();
-    elements.btnHeroStart.textContent = 'Reprendre mon Voyage ✈️';
+    elements.btnHeroStart.textContent = 'Reprendre mon voyage';
     elements.btnHeroStart.onclick = () => enterAppView();
   } else {
     elements.btnLandingOpenLogin.textContent = 'Se Connecter';
     elements.btnLandingOpenLogin.onclick = () => openLoginModal();
-    elements.btnHeroStart.textContent = 'Commencer mon Voyage ✈️';
+    elements.btnHeroStart.textContent = 'Commencer mon voyage';
     elements.btnHeroStart.onclick = () => openLoginModal();
   }
 }
@@ -640,7 +649,7 @@ function initDestinationSelector() {
     card.className = 'dest-card';
     card.dataset.country = country.name;
     card.innerHTML = `
-      <span class="dest-card-flag">${country.flag}</span>
+      <span class="dest-card-flag">${country.code || country.name.slice(0, 2).toUpperCase()}</span>
       <span class="dest-card-name">${country.name}</span>
     `;
 
@@ -739,9 +748,9 @@ function renderWizardContactsList() {
     const chip = document.createElement('div');
     chip.className = 'wiz-contact-chip';
     chip.innerHTML = `
-      <span>👤 ${escapeHtml(c.name)}</span>
+      <span>${escapeHtml(c.name)}</span>
       <span class="chip-rel">${escapeHtml(c.relationship || 'Proche')}</span>
-      ${c.city ? `<span class="chip-rel">📍 ${escapeHtml(c.city)}</span>` : ''}
+      ${c.city ? `<span class="chip-rel">${escapeHtml(c.city)}</span>` : ''}
       <button type="button" class="chip-del" title="Retirer ce contact">&times;</button>
     `;
 
@@ -844,7 +853,7 @@ function initSyncQueue() {
         localStorage.setItem('capvoyage_trip_cache', JSON.stringify(serverTrip));
         renderAll();
       }
-      showToast('⚠️ Ce voyage a été modifié sur un autre appareil : la version la plus récente est affichée.', {
+      showToast('Ce voyage a été modifié sur un autre appareil : la version la plus récente est affichée.', {
         type: 'warning',
         duration: 15000,
         actionLabel: 'Restaurer ma version',
@@ -895,11 +904,14 @@ function renderSyncIndicator(status) {
   const showIndicator = isAuthenticated() && !state.isReadOnly;
   el.hidden = !showIndicator;
   const labels = {
-    [SyncStatus.SAVED]: '✓ Enregistré',
-    [SyncStatus.PENDING]: '⏳ En attente de synchro',
-    [SyncStatus.CONFLICT]: '⚠️ Conflit'
+    [SyncStatus.SAVED]: 'Enregistré',
+    [SyncStatus.PENDING]: 'En attente de synchro',
+    [SyncStatus.CONFLICT]: 'Conflit de synchronisation'
   };
-  el.textContent = labels[status] || '';
+  const icons = { [SyncStatus.SAVED]: 'cloud', [SyncStatus.PENDING]: 'cloudup', [SyncStatus.CONFLICT]: 'alert' };
+  const label = labels[status] || '';
+  el.innerHTML = label ? `${icon(icons[status] || 'cloud', 20)}<span class="sr-only">${label}</span>` : '';
+  el.title = label;
   el.dataset.status = status;
 }
 
@@ -1037,8 +1049,7 @@ function renderHeader() {
   elements.tripMainTitle.textContent = trip.title;
 
   const countryName = trip.country || 'Cameroun';
-  const flag = countryName.toLowerCase().includes('cameroun') ? '🇨🇲' : '🌍';
-  elements.tripCountryBadge.textContent = `${flag} ${countryName}`;
+  elements.tripCountryBadge.textContent = countryName;
 
   const dayCount = (trip.days || []).length;
   elements.tripMetaDates.textContent = `Du ${formatDateFr(trip.startDate)} au ${formatDateFr(trip.endDate)} • ${dayCount} jours`;
@@ -1085,13 +1096,13 @@ function renderRemindersBanner() {
     chip.className = `reminder-chip ${rem.priority || 'warning'}`;
     chip.style.cursor = 'pointer';
 
-    let icon = '🔔';
-    if (rem.id === 'rem-vaccin') icon = '💉';
-    else if (rem.id === 'rem-visa') icon = '🛂';
-    else if (rem.type === 'activity') icon = '🗓️';
+    let iconName = 'bell';
+    if (rem.id === 'rem-vaccin') iconName = 'shield';
+    else if (rem.id === 'rem-visa') iconName = 'shield';
+    else if (rem.type === 'activity') iconName = 'calendar';
 
     chip.innerHTML = `
-      <span>${icon}</span>
+      <span class="reminder-ic">${icon(iconName, 18)}</span>
       <span>${escapeHtml(rem.title)} : ${escapeHtml(rem.message || '')}</span>
     `;
 
@@ -1113,16 +1124,29 @@ function renderRemindersBanner() {
 // --------------------------------------------------------------------------
 // Sélecteur de Journées & Vue Planning
 // --------------------------------------------------------------------------
+const DOW_FMT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', timeZone: 'UTC' });
+
 function renderDayTimeline() {
   const track = elements.daySelectorTrack;
   track.innerHTML = '';
+  const current = state.trip ? NowService.getCurrentDay(state.trip, new Date()) : null;
 
   (state.trip.days || []).forEach(day => {
-    const pill = document.createElement('div');
-    pill.className = `day-pill ${day.dayNumber === state.activeDayNumber ? 'active' : ''}`;
+    const isActive = day.dayNumber === state.activeDayNumber;
+    const isToday = !!current && current.phase === 'during' && current.dayNumber === day.dayNumber;
+    const count = (day.activities || []).length;
+    const date = new Date(`${day.date}T00:00:00Z`);
+    const dow = isNaN(date) ? '' : DOW_FMT.format(date).replace('.', '');
+    const dayOfMonth = isNaN(date) ? day.dayNumber : date.getUTCDate();
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = `day-pill${isActive ? ' active' : ''}${isToday ? ' today' : ''}`;
+    pill.setAttribute('aria-label', `Jour ${day.dayNumber}, ${day.city || 'étape non définie'}, ${count} activité${count > 1 ? 's' : ''}${isToday ? ', aujourd’hui' : ''}`);
+    if (isActive) pill.setAttribute('aria-current', 'date');
     pill.innerHTML = `
-      <div class="day-pill-number">Jour ${day.dayNumber}</div>
-      <div class="day-pill-city">${escapeHtml(day.city || '—')}</div>
+      <span class="day-pill-dow">${dow}</span>
+      <span class="day-pill-number">${dayOfMonth}</span>
+      <span class="day-pill-dots" aria-hidden="true">${'<i></i>'.repeat(Math.min(count, 3))}</span>
     `;
     pill.addEventListener('click', () => {
       state.activeDayNumber = day.dayNumber;
@@ -1131,13 +1155,22 @@ function renderDayTimeline() {
     });
     track.appendChild(pill);
   });
+
+  const active = track.querySelector('.day-pill.active');
+  if (active) track.scrollLeft = active.offsetLeft - (track.clientWidth - active.offsetWidth) / 2;
 }
 
 function renderActiveDayPlanning() {
   const day = (state.trip.days || []).find(d => d.dayNumber === state.activeDayNumber);
   if (!day) return;
 
-  elements.activeDayTitle.textContent = `Jour ${day.dayNumber} • ${formatDateFr(day.date)}`;
+  const nowInfo = NowService.getCurrentDay(state.trip, new Date());
+  const isTodayView = nowInfo.phase === 'during' && nowInfo.dayNumber === day.dayNumber;
+  const longDate = new Date(`${day.date}T00:00:00Z`);
+  const longLabel = isNaN(longDate) ? formatDateFr(day.date) : new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(longDate);
+  elements.activeDayTitle.textContent = isTodayView ? 'Aujourd’hui' : longLabel.charAt(0).toUpperCase() + longLabel.slice(1);
+  const indexEl = document.getElementById('active-day-index');
+  if (indexEl) indexEl.textContent = `${isTodayView ? longLabel.charAt(0).toUpperCase() + longLabel.slice(1) + ' · ' : ''}Jour ${day.dayNumber} sur ${(state.trip.days || []).length} ·`;
   elements.activeDayCityName.textContent = day.city || '(Non définie)';
 
   let activities = day.activities || [];
@@ -1158,6 +1191,9 @@ function renderActiveDayPlanning() {
   const grouped = ActivityService.groupActivitiesByTemporalBlocks(activities);
 
   renderTemporalBlock(elements.listBlockUnassigned, elements.countBlockUnassigned, grouped.unassigned, 'Aucune activité à caler');
+  // « À caler » n'apparaît que lorsqu'il y a quelque chose à caler (les autres blocs restent visibles pour ajouter)
+  const unassignedBlock = elements.listBlockUnassigned.closest('.temporal-block');
+  if (unassignedBlock) unassignedBlock.hidden = grouped.unassigned.length === 0;
   renderTemporalBlock(elements.listBlockMorning, elements.countBlockMorning, grouped.morning, 'Rien de prévu le matin');
   renderTemporalBlock(elements.listBlockAfternoon, elements.countBlockAfternoon, grouped.afternoon, 'Rien de prévu l’après-midi');
   renderTemporalBlock(elements.listBlockEvening, elements.countBlockEvening, grouped.evening, 'Rien de prévu en soirée');
@@ -1168,48 +1204,44 @@ function renderTemporalBlock(container, countEl, acts, emptyMsg) {
   container.innerHTML = '';
 
   if (acts.length === 0) {
-    container.innerHTML = `<div class="empty-block-hint">${emptyMsg}</div>`;
+    container.innerHTML = `<button type="button" class="empty-block-hint row-slot" data-focus-quick-add>${icon('plus', 18)}<span class="slot-label">${escapeHtml(emptyMsg)}</span></button>`;
+    container.querySelector('[data-focus-quick-add]').addEventListener('click', () => {
+      if (!state.isReadOnly && elements.inputQuickActivityTitle) elements.inputQuickActivityTitle.focus();
+    });
     return;
   }
 
   acts.forEach(act => {
     const card = document.createElement('div');
-    card.className = 'activity-card clickable-tile';
+    const dayOfAct = (state.trip.days || []).find(d => (d.activities || []).some(a => a.id === act.id));
+    const checkable = !state.isReadOnly && ActivityService.isCheckable(act, dayOfAct, NowService.getCurrentDay(state.trip, new Date()).todayStr);
+    const isDone = act.status === 'Effectué';
+    const isCancelled = act.status === 'Annulé';
+    const actContacts = (act.contactIds || []).map(cid => (state.trip.contacts || []).find(x => x.id === cid)).filter(Boolean);
+
+    card.className = `activity-card clickable-tile${isDone ? ' is-done' : ''}${isCancelled ? ' is-cancelled' : ''}`;
     card.setAttribute('tabindex', '0');
     card.setAttribute('role', 'button');
     card.setAttribute('aria-label', `Détail de l'activité ${act.title}`);
 
-    const dayOfAct = (state.trip.days || []).find(d => (d.activities || []).some(a => a.id === act.id));
-    const checkable = !state.isReadOnly && ActivityService.isCheckable(act, dayOfAct, NowService.getCurrentDay(state.trip, new Date()).todayStr);
+    const lead = checkable && !isDone
+      ? `<button type="button" class="toggle btn-done-act" title="Marquer comme effectuée" aria-label="Marquer ${escapeHtml(act.title)} comme effectuée"><span>${icon('check', 18)}</span></button>`
+      : `<span class="toggle is-static${isDone ? ' is-on' : ''}" aria-hidden="true"><span>${icon('check', 18)}</span></span>`;
 
-    // Nuage de contacts liés
-    const contactsHtml = (act.contactIds || []).map(cid => {
-      const c = (state.trip.contacts || []).find(x => x.id === cid);
-      return c ? `<span class="contact-pill-tag">👤 ${escapeHtml(c.name)}</span>` : '';
-    }).join('');
+    const frags = [
+      act.time ? `<span class="frag frag-strong">${escapeHtml(act.time)}</span>` : '',
+      isCancelled ? '<span class="frag frag-neg">Annulé</span>' : (act.status === 'Confirmé' ? '<span class="frag frag-pos">Confirmé</span>' : ''),
+      `<span class="frag">${escapeHtml(act.location || act.category || 'Autre')}</span>`,
+      actContacts.length ? `<span class="frag who">${icon('message', 14)}${escapeHtml(actContacts[0].name)}${actContacts.length > 1 ? ` +${actContacts.length - 1}` : ''}</span>` : ''
+    ].join('');
 
     card.innerHTML = `
-      <div class="activity-top-row">
+      ${lead}
+      <div class="act-main">
         <h4 class="activity-title">${escapeHtml(act.title)}</h4>
-        <span class="badge-category cat-${act.category || 'Autre'}">${act.category || 'Autre'}</span>
+        <div class="frags">${frags}</div>
       </div>
-
-      <div class="activity-details-row">
-        ${act.time ? `<div class="activity-detail-item">🕒 <strong>${escapeHtml(act.time)}</strong></div>` : ''}
-        ${act.location ? `<div class="activity-detail-item">📍 ${escapeHtml(act.location)}</div>` : ''}
-      </div>
-
-      ${contactsHtml ? `<div class="activity-contacts-cloud">${contactsHtml}</div>` : ''}
-      ${act.notes ? `<div class="activity-details-row notes-snippet">📝 ${escapeHtml(act.notes)}</div>` : ''}
-
-      <div class="activity-bottom-row">
-        <span class="status-badge status-${(act.status || 'À planifier').replace(/\s+/g, '-')}">${act.status || 'À planifier'}</span>
-        <div class="card-actions">
-          <span class="edit-hint-label">Détail & Modifier ➔</span>
-          ${checkable ? `<button type="button" class="icon-action-btn btn-done-act" title="Marquer comme effectuée" aria-label="Marquer ${escapeHtml(act.title)} comme effectuée">✓</button>` : ''}
-          <button class="icon-action-btn btn-del-act" title="Supprimer l'activité">🗑️</button>
-        </div>
-      </div>
+      <button type="button" class="icon-action-btn btn-del-act" title="Supprimer l'activité" aria-label="Supprimer ${escapeHtml(act.title)}">${icon('trash', 18)}</button>
     `;
 
     // Clic sur toute la tuile pour ouvrir la modale d'enrichissement / détail
@@ -1282,7 +1314,7 @@ function openEnrichModal(activity) {
 
     const ideaOpt = document.createElement('option');
     ideaOpt.value = '';
-    ideaOpt.textContent = '💡 Aucun jour (idée)';
+    ideaOpt.textContent = 'Aucun jour (idée)';
     ideaOpt.selected = isIdea;
     elements.editActivityDay.appendChild(ideaOpt);
 
@@ -1317,19 +1349,19 @@ function renderTemplateRibbon() {
   elements.ribbonItemsContainer.innerHTML = '';
 
   const quickTemplates = [
-    { label: 'Dîner entre amis', icon: '🍽️', pattern: 'Dîner avec {contact}', slot: 'Soirée' },
-    { label: 'Repas de famille', icon: '🍲', pattern: 'Repas chez {contact}', slot: 'Midi' },
-    { label: 'Rdv professionnel', icon: '💼', pattern: 'Rdv client avec {contact}', slot: 'Matin' },
-    { label: 'Plage & Détente', icon: '🏖️', pattern: 'Journée plage & détente', slot: 'Après-midi' },
-    { label: 'Marché artisanal', icon: '🛍️', pattern: 'Visite du marché artisanal', slot: 'Matin' },
-    { label: 'Trajet interurbain', icon: '🚗', pattern: 'Trajet vers {ville}', slot: 'Matin' }
+    { label: 'Dîner entre amis', icon: 'utensils', pattern: 'Dîner avec {contact}', slot: 'Soirée' },
+    { label: 'Repas de famille', icon: 'utensils', pattern: 'Repas chez {contact}', slot: 'Midi' },
+    { label: 'Rdv professionnel', icon: 'briefcase', pattern: 'Rdv client avec {contact}', slot: 'Matin' },
+    { label: 'Plage & Détente', icon: 'sun', pattern: 'Journée plage & détente', slot: 'Après-midi' },
+    { label: 'Marché artisanal', icon: 'gift', pattern: 'Visite du marché artisanal', slot: 'Matin' },
+    { label: 'Trajet interurbain', icon: 'train', pattern: 'Trajet vers {ville}', slot: 'Matin' }
   ];
 
   quickTemplates.forEach(t => {
     const pill = document.createElement('button');
     pill.type = 'button';
     pill.className = 'template-pill';
-    pill.innerHTML = `${t.icon} ${t.label}`;
+    pill.innerHTML = `${icon(t.icon, 16)}<span>${escapeHtml(t.label)}</span>`;
 
     pill.addEventListener('click', () => {
       let resolved = t.pattern;
@@ -1365,7 +1397,7 @@ function renderEnrichContacts() {
     if (!c) return;
     const chip = document.createElement('span');
     chip.className = 'contact-chip';
-    chip.innerHTML = `<span>👤 ${escapeHtml(c.name)}</span><button type="button" class="contact-chip-del" aria-label="Retirer ${escapeHtml(c.name)}">&times;</button>`;
+    chip.innerHTML = `<span>${escapeHtml(c.name)}</span><button type="button" class="contact-chip-del" aria-label="Retirer ${escapeHtml(c.name)}">&times;</button>`;
     chip.querySelector('.contact-chip-del').addEventListener('click', () => {
       state.enrichContactIds = state.enrichContactIds.filter(id => id !== cid);
       renderEnrichContacts();
@@ -1387,7 +1419,7 @@ function renderEnrichContacts() {
 }
 
 // --------------------------------------------------------------------------
-// Onglet Préparatifs & To-Dos
+// Onglet À faire (tâches pré-voyage)
 // --------------------------------------------------------------------------
 function renderTodos() {
   const todos = state.trip.todos || [];
@@ -1402,7 +1434,7 @@ function renderTodos() {
   container.innerHTML = '';
 
   if (filtered.length === 0) {
-    container.innerHTML = `<p style="grid-column: 1/-1; color: #64748b; text-align: center; padding: 2rem;">Aucune tâche dans cette catégorie.</p>`;
+    container.innerHTML = `<p class="empty-hint">Aucune tâche dans cette catégorie.</p>`;
     return;
   }
 
@@ -1411,29 +1443,19 @@ function renderTodos() {
     const isDone = todo.status === 'Fait';
     card.className = `todo-item-card ${isDone ? 'is-done' : ''}`;
 
-    let iconCheck = '⚪';
-    let statusClass = 'afaire';
-    if (todo.status === 'En cours') {
-      iconCheck = '🟡';
-      statusClass = 'encours';
-    } else if (todo.status === 'Fait') {
-      iconCheck = '✅';
-      statusClass = 'fait';
-    }
+    const stateName = todo.status === 'En cours' ? 'partial' : (isDone ? 'done' : 'todo');
 
     card.innerHTML = `
+      <button type="button" class="toggle todo-status-btn state-${stateName}" aria-label="${escapeHtml(todo.title)} : ${escapeHtml(todo.status)}. Toucher pour ${isDone ? 'remettre à faire' : 'marquer fait'}"><span>${isDone ? icon('check', 18) : ''}</span><span class="sr-only">${escapeHtml(todo.status)}</span></button>
       <div class="todo-body">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.35rem;">
-          <h4 class="todo-title">${escapeHtml(todo.title)}</h4>
-          <button type="button" class="todo-status-badge todo-status-btn status-${statusClass}" aria-label="${escapeHtml(todo.title)} : ${escapeHtml(todo.status)}. Toucher pour ${isDone ? 'remettre à faire' : 'marquer fait'}">${iconCheck} ${escapeHtml(todo.status)}</button>
-        </div>
-        <div class="todo-meta-row">
-          <span class="badge-category cat-${todo.category}">${todo.category}</span>
-          <span class="priority-badge priority-${todo.priority}">Priorité ${todo.priority}</span>
-          ${todo.notes ? `<span style="color:#64748b; font-size:0.75rem;">📝 ${escapeHtml(todo.notes)}</span>` : ''}
+        <h4 class="todo-title">${escapeHtml(todo.title)}</h4>
+        <div class="frags">
+          <span class="frag">${escapeHtml(todo.category)}</span>
+          ${todo.priority === 'Haute' && !isDone ? '<span class="frag frag-neg">Priorité haute</span>' : ''}
+          ${todo.notes ? `<span class="frag">${escapeHtml(todo.notes)}</span>` : ''}
         </div>
       </div>
-      <button class="icon-action-btn btn-del-todo" title="Supprimer">🗑️</button>
+      <button type="button" class="icon-action-btn btn-del-todo" title="Supprimer" aria-label="Supprimer ${escapeHtml(todo.title)}">${icon('trash', 18)}</button>
     `;
 
     // Clic sur n'importe quel point de la tuile pour ouvrir la modale d'édition complète
@@ -1495,6 +1517,11 @@ function openEditTodoModal(todo) {
 // --------------------------------------------------------------------------
 // Onglet Budget & Devises (Édition directe au clic)
 // --------------------------------------------------------------------------
+const EXPENSE_ICONS = {
+  'Hébergement': 'home', 'Transport': 'train', 'Nourriture/Resto': 'utensils', 'Restaurant': 'utensils',
+  'Santé/Formalités': 'shield', 'Formalités': 'shield', 'Cadeaux': 'gift', 'Sorties': 'users', 'Loisirs': 'sun'
+};
+
 function renderBudget() {
   const summary = BudgetEngine.calculateSummary(state.trip);
 
@@ -1519,7 +1546,7 @@ function renderBudget() {
   const breakdownList = elements.budgetBreakdownList;
   breakdownList.innerHTML = '';
   if (summary.breakdown.length === 0) {
-    breakdownList.innerHTML = `<p style="color:#64748b; font-size:0.85rem;">Aucune dépense enregistrée pour l'instant.</p>`;
+    breakdownList.innerHTML = `<p class="empty-hint">Aucune dépense enregistrée pour l'instant.</p>`;
   } else {
     summary.breakdown.forEach(b => {
       const item = document.createElement('div');
@@ -1543,22 +1570,23 @@ function renderBudget() {
   const expenses = state.trip.expenses || [];
 
   if (expenses.length === 0) {
-    expensesWrapper.innerHTML = `<p style="color:#64748b; font-size:0.85rem; padding: 1rem 0;">Aucune dépense enregistrée.</p>`;
+    expensesWrapper.innerHTML = `<p class="empty-hint">Aucune dépense enregistrée.</p>`;
   } else {
     expenses.slice().reverse().forEach(exp => {
       const row = document.createElement('div');
       row.className = 'expense-row-item';
       row.innerHTML = `
+        <span class="lead-ic">${icon(EXPENSE_ICONS[exp.category] || 'wallet', 18)}</span>
         <div class="expense-info-col">
           <h4>${escapeHtml(exp.label)}</h4>
-          <p>${formatDateFr(exp.date)} • <span class="badge-category cat-${exp.category}">${exp.category}</span></p>
+          <p class="frags"><span class="frag">${formatDateFr(exp.date)}</span><span class="frag">${escapeHtml(exp.category)}</span></p>
         </div>
         <div class="expense-amount-col">
           <div>
             <div class="expense-main-val">${formatNumber(exp.amount)} ${exp.currency}</div>
             <div class="expense-sub-val">≈ ${formatNumber(exp.convertedBaseAmount)} €</div>
           </div>
-          <button class="icon-action-btn btn-del-expense" title="Supprimer">🗑️</button>
+          <button type="button" class="icon-action-btn btn-del-expense" title="Supprimer" aria-label="Supprimer ${escapeHtml(exp.label)}">${icon('trash', 18)}</button>
         </div>
       `;
 
@@ -1593,7 +1621,7 @@ function renderContacts() {
   const contacts = (state.trip.contacts || []).filter(c => !c.archived);
 
   if (contacts.length === 0) {
-    container.innerHTML = `<p style="grid-column: 1/-1; color:#64748b; text-align: center; padding: 2rem;">Aucun contact pour l'instant. Ajoutez des contacts avec "+ Nouveau Contact" ou importez-les.</p>`;
+    container.innerHTML = `<p class="empty-hint">Aucun contact pour l'instant. Ajoutez des contacts avec « Nouveau » ou importez-les.</p>`;
     return;
   }
 
@@ -1604,28 +1632,22 @@ function renderContacts() {
     const cleanPhone = (contact.phone || '').replace(/[^0-9]/g, '');
     const waLink = cleanPhone ? `https://wa.me/${cleanPhone}` : null;
 
+    const initials = (contact.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
     card.innerHTML = `
-      <div>
-        <div class="contact-header">
-          <h3 class="contact-name">${escapeHtml(contact.name)}</h3>
-          <span class="contact-relation-badge">${escapeHtml(contact.relationship)}</span>
+      <span class="avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+      <div class="contact-main">
+        <h3 class="contact-name">${escapeHtml(contact.name)}</h3>
+        <div class="frags">
+          <span class="frag">${escapeHtml(contact.relationship || 'Proche')}</span>
+          ${contact.city ? `<span class="frag">${escapeHtml(contact.city)}</span>` : ''}
+          ${contact.phone ? `<span class="frag">${escapeHtml(contact.phone)}</span>` : ''}
         </div>
-
-        <div style="margin-top: 0.75rem;">
-          ${contact.city ? `<div class="contact-detail-row">📍 Ville : <strong>${escapeHtml(contact.city)}</strong></div>` : ''}
-          ${contact.phone ? `
-            <div class="contact-detail-row">
-              📞 Tél : ${escapeHtml(contact.phone)}
-              ${waLink ? `<a href="${waLink}" target="_blank" class="whatsapp-link" title="Discuter sur WhatsApp">💬 WhatsApp</a>` : ''}
-            </div>
-          ` : ''}
-          ${contact.notes ? `<div class="contact-detail-row" style="font-style:italic;">📝 ${escapeHtml(contact.notes)}</div>` : ''}
-        </div>
+        ${contact.notes ? `<p class="contact-note">${escapeHtml(contact.notes)}</p>` : ''}
       </div>
-
+      ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener" class="whatsapp-link icon-btn icon-btn-pos" title="Discuter sur WhatsApp" aria-label="WhatsApp ${escapeHtml(contact.name)}">${icon('message', 22)}</a>` : '<span></span>'}
       <div class="contact-footer-actions">
-        <button class="btn btn-secondary btn-sm btn-view-contact-acts">Activités liées</button>
-        <button class="icon-action-btn btn-del-contact" title="Archiver / Supprimer">🗑️</button>
+        <button type="button" class="link btn-view-contact-acts">Activités liées</button>
+        <button type="button" class="icon-action-btn btn-del-contact" title="Archiver / Supprimer" aria-label="Archiver ou supprimer ${escapeHtml(contact.name)}">${icon('trash', 18)}</button>
       </div>
     `;
 
@@ -1736,14 +1758,14 @@ function openContactActivitiesModal(contact) {
   const activities = ContactService.getContactActivities(state.trip, contact.id);
 
   if (activities.length === 0) {
-    listEl.innerHTML = `<p style="color:#64748b; padding:1rem 0;">Aucune activité n'est actuellement associée à cette personne.</p>`;
+    listEl.innerHTML = `<p class="empty-hint">Aucune activité n'est actuellement associée à cette personne.</p>`;
   } else {
     activities.forEach(item => {
       const div = document.createElement('div');
       div.className = 'contact-activity-item';
       div.innerHTML = `
         <strong>Jour ${item.dayNumber} (${formatDateFr(item.date)}) :</strong> ${escapeHtml(item.activity.title)}
-        <div style="font-size:0.8rem; color:#64748b;">${item.activity.time ? `🕒 ${item.activity.time} ` : ''}${item.activity.location ? `📍 ${item.activity.location} ` : ''}[${item.activity.status}]</div>
+        <div class="frags">${item.activity.time ? `<span class="frag frag-strong">${escapeHtml(item.activity.time)}</span>` : ''}${item.activity.location ? `<span class="frag">${escapeHtml(item.activity.location)}</span>` : ''}<span class="frag">${escapeHtml(item.activity.status || 'À planifier')}</span></div>
       `;
       listEl.appendChild(div);
     });
@@ -1760,12 +1782,12 @@ function setupEventListeners() {
 
   // Détection du statut réseau (En ligne / Hors-ligne)
   window.addEventListener('offline', () => {
-    showToast('📶 Mode Hors-Ligne activé : vos modifications sont sauvegardées sur votre appareil', 'warning');
+    showToast('Mode hors ligne activé : vos modifications sont sauvegardées sur votre appareil', 'warning');
   });
   window.addEventListener('online', async () => {
     await flushSync();
     if (isAuthenticated() && state.syncQueue.getStatus() === SyncStatus.SAVED) {
-      showToast('🌐 Connexion rétablie : modifications synchronisées', 'success');
+      showToast('Connexion rétablie : modifications synchronisées', 'success');
     }
   });
 
@@ -1857,7 +1879,7 @@ function setupEventListeners() {
 
       if (data.devCode) {
         elements.devCodeBanner.style.display = 'block';
-        elements.devCodeBanner.innerHTML = `🔑 <strong>Code de test : ${data.devCode}</strong> (pré-rempli automatiquement)`;
+        elements.devCodeBanner.innerHTML = `<strong>Code de test : ${data.devCode}</strong> (pré-rempli automatiquement)`;
         elements.loginCodeInput.value = data.devCode;
       } else {
         elements.devCodeBanner.style.display = 'none';
@@ -2426,7 +2448,7 @@ function setupEventListeners() {
   elements.btnCloseExpenseDialog.addEventListener('click', () => elements.dialogAddExpense.close());
   elements.btnCancelExpense.addEventListener('click', () => elements.dialogAddExpense.close());
 
-  // 12. Préparatifs To-Dos
+  // 12. À faire (tâches)
   elements.btnOpenAddTodo.addEventListener('click', () => {
     elements.formAddTodo.reset();
     openAccessibleDialog(elements.dialogAddTodo);
@@ -2596,15 +2618,15 @@ function setupEventListeners() {
   // 15. Actualisation des Devises en Direct (V4)
   if (elements.btnSyncRates) {
     elements.btnSyncRates.addEventListener('click', async () => {
-      elements.btnSyncRates.textContent = '⏳ Actualisation...';
+      elements.btnSyncRates.textContent = 'Actualisation…';
       const result = await BudgetEngine.syncExchangeRates(state.trip);
-      elements.btnSyncRates.textContent = '🔄 Actualiser devises en direct';
+      elements.btnSyncRates.textContent = 'Actualiser les devises en direct';
 
       if (elements.syncRatesBadge) {
         elements.syncRatesBadge.style.display = 'inline-block';
         if (result.success) {
           elements.syncRatesBadge.className = 'sync-status-badge success';
-          elements.syncRatesBadge.textContent = `Taux à jour (${result.updatedCount} devises) ✓ · FCFA à parité fixe (655,957)`;
+          elements.syncRatesBadge.textContent = `Taux à jour (${result.updatedCount} devises) · FCFA à parité fixe (655,957)`;
         } else {
           elements.syncRatesBadge.className = 'sync-status-badge offline';
           elements.syncRatesBadge.textContent = 'Mode hors-ligne (taux conservés)';
@@ -2774,7 +2796,7 @@ function setupShareDialog() {
 
   document.getElementById('share-enabled-toggle').addEventListener('change', withErrorToast(async (e) => {
     const sharing = await updateSharing({ enabled: e.target.checked });
-    showToast(sharing.enabled ? '🔗 Lien de partage activé' : '🔒 Lien de partage désactivé : il ne donne plus accès à rien', { type: 'success' });
+    showToast(sharing.enabled ? 'Lien de partage activé' : 'Lien de partage désactivé : il ne donne plus accès à rien', { type: 'success' });
   }));
 
   dialog.querySelectorAll('input[name="share-section"]').forEach(input => {
@@ -2787,7 +2809,7 @@ function setupShareDialog() {
     const url = document.getElementById('share-link-input').value;
     try {
       await navigator.clipboard.writeText(url);
-      showToast('🔗 Lien copié dans le presse-papier !', { type: 'success' });
+      showToast('Lien copié dans le presse-papier !', { type: 'success' });
     } catch (e) {
       document.getElementById('share-link-input').select();
       showToast('Copiez le lien sélectionné (Ctrl+C ou appui long).', { type: 'info' });
@@ -2797,7 +2819,7 @@ function setupShareDialog() {
   document.getElementById('btn-regenerate-share-link').addEventListener('click', withErrorToast(async () => {
     if (!window.confirm("Régénérer le lien ? L'ancien lien cessera immédiatement de fonctionner.")) return;
     await updateSharing({ regenerate: true });
-    showToast('♻️ Nouveau lien généré : l\'ancien ne fonctionne plus.', { type: 'success' });
+    showToast('Nouveau lien généré : l\'ancien ne fonctionne plus.', { type: 'success' });
   }));
 }
 
@@ -2947,18 +2969,24 @@ function setupTemplateAutocomplete() {
 function renderNowBanner() {
   const el = elements.nextActivityBanner;
   if (!el || !state.trip) return;
-  let text = '';
+  let html = '';
   const current = NowService.getCurrentDay(state.trip, new Date());
   if (current.phase === 'before' && current.daysUntilStart > 0) {
-    text = `⏳ J-${current.daysUntilStart} · ${current.daysUntilStart === 1 ? 'départ demain' : `départ dans ${current.daysUntilStart} jours`}`;
+    const label = `J-${current.daysUntilStart} · ${current.daysUntilStart === 1 ? 'départ demain' : `départ dans ${current.daysUntilStart} jours`}`;
+    html = `<span class="now-line">${icon('clock', 18)}<span>${escapeHtml(label)}</span></span>`;
   } else if (current.phase === 'during' && state.activeDayNumber === current.dayNumber) {
     const next = NowService.getNextActivity(state.trip, new Date());
     if (next) {
-      text = `⏰ Prochaine : ${next.activity.title} ${next.inMinutes <= 0 ? 'maintenant' : `dans ${NowService.formatDuration(next.inMinutes)}`}`;
+      const when = next.inMinutes <= 0 ? 'maintenant' : `dans ${NowService.formatDuration(next.inMinutes)}`;
+      const contact = (next.activity.contactIds || []).map(cid => (state.trip.contacts || []).find(x => x.id === cid)).find(c => c && (c.phone || '').replace(/[^0-9]/g, ''));
+      const wa = contact ? `https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}` : '';
+      html = `<span class="now-line">${icon('clock', 18)}<span>Prochaine : <strong>${escapeHtml(next.activity.title)}</strong> ${when}</span></span>`
+        + (next.activity.location ? `<span class="now-where">${icon('pin', 16)}${escapeHtml(next.activity.location)}</span>` : '')
+        + (wa ? `<a class="btn btn-whatsapp-solid" href="${wa}" target="_blank" rel="noopener">${icon('message', 18)}Écrire à ${escapeHtml(contact.name.split(' ')[0])}</a>` : '');
     }
   }
-  el.hidden = !text;
-  el.textContent = text;
+  el.hidden = !html;
+  el.innerHTML = html;
 }
 
 // --------------------------------------------------------------------------
@@ -2973,7 +3001,7 @@ function renderIdeas() {
   list.innerHTML = '';
 
   if (ideas.length === 0) {
-    list.innerHTML = '<div class="empty-block-hint">Aucune idée pour l\'instant. Tapez un titre puis « 💡 Idée ».</div>';
+    list.innerHTML = '<div class="empty-block-hint">Aucune idée pour l\'instant. Tapez un titre puis touchez « Idée ».</div>';
     return;
   }
 
@@ -2985,17 +3013,18 @@ function renderIdeas() {
     card.setAttribute('aria-label', `Détail de l'idée ${idea.title}`);
     const contacts = (idea.contactIds || []).map(cid => (state.trip.contacts || []).find(x => x.id === cid)).filter(Boolean);
     card.innerHTML = `
+      <span class="lead-ic">${icon('bulb', 18)}</span>
       <div class="idea-main">
         <h4 class="activity-title">${escapeHtml(idea.title)}</h4>
-        <div class="idea-meta">
-          <span class="badge-category cat-${idea.category || 'Autre'}">${idea.category || 'Autre'}</span>
-          ${idea.location ? `<span>📍 ${escapeHtml(idea.location)}</span>` : ''}
-          ${contacts.length ? `<span>👤 ${escapeHtml(contacts.map(c => c.name).join(', '))}</span>` : ''}
+        <div class="frags">
+          <span class="frag">${escapeHtml(idea.category || 'Autre')}</span>
+          ${idea.location ? `<span class="frag">${escapeHtml(idea.location)}</span>` : ''}
+          ${contacts.length ? `<span class="frag who">${icon('message', 14)}${escapeHtml(contacts.map(c => c.name).join(', '))}</span>` : ''}
         </div>
       </div>
       <div class="idea-actions">
         <button type="button" class="btn btn-secondary btn-sm btn-place-idea">Placer</button>
-        <button type="button" class="icon-action-btn btn-del-idea" title="Supprimer l'idée" aria-label="Supprimer ${escapeHtml(idea.title)}">🗑️</button>
+        <button type="button" class="icon-action-btn btn-del-idea" title="Supprimer l'idée" aria-label="Supprimer ${escapeHtml(idea.title)}">${icon('trash', 18)}</button>
       </div>
     `;
     card.addEventListener('click', (e) => {
@@ -3155,7 +3184,7 @@ function renderContactPicker() {
     const li = document.createElement('li');
     const on = picker.selected.includes(c.id);
     li.innerHTML = `<button type="button" class="picker-item" aria-pressed="${on}">
-      <span class="picker-check" aria-hidden="true">${on ? '✓' : ''}</span>
+      <span class="picker-check" aria-hidden="true">${on ? icon('check', 16) : ''}</span>
       <span class="picker-name">${escapeHtml(c.name)}</span>
       <small>${escapeHtml(c.relationship || '')}</small>
     </button>`;
@@ -3349,7 +3378,7 @@ function showQuickContactDropdown() {
     const item = document.createElement('div');
     item.className = 'quick-contact-item';
     item.innerHTML = `
-      <span class="quick-contact-name">👤 ${escapeHtml(contact.name)}</span>
+      <span class="quick-contact-name">${escapeHtml(contact.name)}</span>
       <span class="quick-contact-rel">${escapeHtml(contact.relationship)}</span>
     `;
 
@@ -3377,7 +3406,7 @@ function showQuickContactDropdown() {
 
   const freeItem = document.createElement('div');
   freeItem.className = 'quick-contact-item';
-  freeItem.innerHTML = `<span style="font-size:0.8rem; color:#64748b; font-style:italic;">✍️ Saisie libre (continuer sans lier de contact)</span>`;
+  freeItem.innerHTML = `<span class="empty-hint">Saisie libre (continuer sans lier de contact)</span>`;
   freeItem.addEventListener('click', (e) => {
     e.stopPropagation();
     state.selectedContactForQuickAdd = null;
@@ -3406,13 +3435,13 @@ async function openUserProfileModal() {
     elements.userTripsList.innerHTML = `
       <div class="trip-history-item active">
         <div class="trip-item-info">
-          <h5>🇨🇲 ${escapeHtml(state.trip?.title || 'Voyage Démo Cameroun')}</h5>
+          <h5>${escapeHtml(state.trip?.title || 'Voyage Démo Cameroun')}</h5>
           <p class="trip-item-meta">${(state.trip?.days || []).length} jours • Du ${formatDateFr(state.trip?.startDate)} au ${formatDateFr(state.trip?.endDate)}</p>
         </div>
-        <span class="badge">Actif ✓</span>
+        <span class="badge">Actif</span>
       </div>
-      <p style="font-size:0.8rem; color:#64748b; margin-top:0.75rem;">
-        💡 Connectez-vous avec votre adresse email pour sauvegarder plusieurs voyages, basculer entre eux et les retrouver sur tous vos appareils.
+      <p class="empty-hint">
+        Connectez-vous avec votre adresse email pour sauvegarder plusieurs voyages, basculer entre eux et les retrouver sur tous vos appareils.
       </p>
     `;
     return;
@@ -3426,7 +3455,7 @@ async function openUserProfileModal() {
     const data = await res.json();
 
     if (!data.trips || data.trips.length === 0) {
-      elements.userTripsList.innerHTML = `<p style="font-size:0.85rem; color:#64748b;">Aucun voyage enregistré.</p>`;
+      elements.userTripsList.innerHTML = `<p class="empty-hint">Aucun voyage enregistré.</p>`;
       return;
     }
 
@@ -3435,21 +3464,17 @@ async function openUserProfileModal() {
       const item = document.createElement('div');
       item.className = t.isActive ? 'trip-history-item active' : 'trip-history-item';
 
-      const flag = t.country.toLowerCase().includes('cameroun') ? '🇨🇲' :
-                   t.country.toLowerCase().includes('sénégal') ? '🇸🇳' :
-                   t.country.toLowerCase().includes('canada') ? '🇨🇦' :
-                   t.country.toLowerCase().includes('chine') ? '🇨🇳' : '🌍';
 
       item.innerHTML = `
         <div class="trip-item-info">
-          <h5>${flag} ${escapeHtml(t.title)}</h5>
+          <h5>${escapeHtml(t.title)}</h5>
           <p class="trip-item-meta">
             ${t.daysCount} jours • Budget : ${formatNumber(t.totalBudget)} ${t.baseCurrency} • ${t.activitiesCount} activité(s)
           </p>
         </div>
         <div class="trip-item-action">
           ${t.isActive 
-            ? '<span class="badge">Actif ✓</span>' 
+            ? '<span class="badge">Actif</span>' 
             : `<button class="btn btn-sm btn-secondary btn-switch-trip" data-trip-id="${t.id}">Basculer</button>`
           }
         </div>

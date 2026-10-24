@@ -182,7 +182,7 @@ describe('Suite Ergonomie v2.1 (TC-UX, TC-IDEA, TC-QS, TC-CTX, TC-NOW, Chrome he
 
   test('TC-QS-003 + TC-NOW-UI : horloge au jour 8 → ouverture sur le jour 8, ✓ jour courant seulement, rappel', async () => {
     const page = await openDemo({ clock: true });
-    assert.equal(await page.evaluate(`document.querySelector('.day-pill.active .day-pill-number').textContent`), 'Jour 8');
+    assert.match(await page.evaluate(`document.querySelector('.day-pill.active').getAttribute('aria-label')`), /^Jour 8, /);
 
     // Une activité à 13:00 aujourd'hui (11:30 à Douala) -> « Prochaine : … dans 1 h 30 »
     await page.evaluate(`(() => {
@@ -204,7 +204,7 @@ describe('Suite Ergonomie v2.1 (TC-UX, TC-IDEA, TC-QS, TC-CTX, TC-NOW, Chrome he
     await page.waitFor(`JSON.parse(localStorage.getItem('capvoyage_demo_trip')).days.find(d => d.dayNumber === 8).activities[0].status === 'Effectué'`);
 
     // Jour futur : aucun bouton ✓
-    await page.evaluate(`[...document.querySelectorAll('.day-pill')].find(p => p.textContent.includes('Jour 12')).click(); true`);
+    await page.evaluate(`[...document.querySelectorAll('.day-pill')].find(p => p.getAttribute('aria-label').startsWith('Jour 12, ')).click(); true`);
     await page.waitFor(`[...document.querySelectorAll('.activity-card')].some(c => c.textContent.includes('Activité future'))`);
     assert.equal(await page.evaluate(`!!document.querySelector('.activity-card .btn-done-act')`), false);
     assert.deepEqual(page.errors, []);

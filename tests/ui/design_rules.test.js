@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 // Le CSS historique contient des couleurs en dur (dette) : on les plafonne (cliquet) et le bloc v2.1 n'en a aucune.
 const css = readFileSync(new URL('../../src/ui/style.css', import.meta.url), 'utf-8');
 const HEX = /#[0-9a-fA-F]{3,8}\b/g;
-const HEX_BASELINE_OUTSIDE_ROOT = 90; // à ne jamais augmenter ; à réduire au fil des retouches
+const HEX_BASELINE_OUTSIDE_ROOT = 80; // à ne jamais augmenter ; à réduire au fil des retouches
 
 describe('Règles de design (TC-UX-008)', () => {
   test('le bloc v2.1 n\'utilise que des tokens (aucune couleur ni rgba en dur)', () => {
@@ -82,7 +82,17 @@ describe('Design system Soleil : jetons et cliquets (TC-UX-009)', () => {
     assert.deepEqual(raw, [], 'utiliser --r-md, --r-lg ou --r-pill');
   });
 
-  const SMALL_TEXT_BASELINE = 27; // à ne jamais augmenter ; objectif 0 (plancher de 13 px)
+  test('le bloc Soleil ne contient que des jetons (aucune couleur, aucun rgb(), aucun rayon en dur)', () => {
+    const start = css.indexOf('Soleil (DÉBUT)');
+    const end = css.indexOf('/* Soleil (FIN) */');
+    assert.ok(start > 0 && end > start, 'bloc Soleil introuvable');
+    const block = css.slice(start, end).replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.deepEqual(block.match(/#[0-9a-fA-F]{3,8}/g) || [], []);
+    assert.deepEqual(block.match(/rgba?\(/g) || [], []);
+    assert.deepEqual([...block.matchAll(/border-radius\s*:\s*([^;}]+)/g)].map(m => m[1].trim()).filter(v => /\d(px|rem|em)/.test(v) && !/var\(/.test(v)), []);
+  });
+
+  const SMALL_TEXT_BASELINE = 23; // à ne jamais augmenter ; objectif 0 (plancher de 13 px)
   test('le texte sous 13 px ne progresse pas (cliquet)', () => {
     const small = [...outsideRoot.matchAll(/font-size\s*:\s*([\d.]+)(rem|px|em)/g)]
       .filter(m => (m[2] === 'px' ? Number(m[1]) : Number(m[1]) * 16) < 12.99);
