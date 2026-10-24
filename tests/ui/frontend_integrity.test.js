@@ -18,6 +18,7 @@ describe('Suite Intégrité du Front-end (scripts chargés par le navigateur)', 
     const files = [
       path.join(SRC_DIR, 'ui', 'app.js'),
       path.join(SRC_DIR, 'ui', 'sw.js'),
+      path.join(SRC_DIR, 'ui', 'icons.js'),
       ...readdirSync(path.join(SRC_DIR, 'domain')).filter(f => f.endsWith('.js')).map(f => path.join(SRC_DIR, 'domain', f))
     ];
     const failures = (await Promise.all(files.map(file =>

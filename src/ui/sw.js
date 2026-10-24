@@ -12,14 +12,19 @@
 //   pour gérer la mise à jour elles-mêmes sont rechargées une fois.
 
 const CACHE_PREFIX = 'capvoyage-cache-';
-const CACHE_NAME = CACHE_PREFIX + 'v9';
+const CACHE_NAME = CACHE_PREFIX + 'v10';
 const PING_TIMEOUT_MS = 1500;
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
+  '/icons.js',
   '/manifest.webmanifest',
+  '/fonts/public-sans-v21-latin.woff2',
+  '/fonts/atkinson-hyperlegible-v12-latin-400.woff2',
+  '/fonts/atkinson-hyperlegible-v12-latin-700.woff2',
+  '/fonts/atkinson-hyperlegible-v12-latin-400-italic.woff2',
   '/domain/TripService.js',
   '/domain/ActivityService.js',
   '/domain/BudgetEngine.js',

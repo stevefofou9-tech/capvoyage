@@ -37,6 +37,7 @@ const MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
   '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
@@ -45,8 +46,8 @@ const MIME_TYPES = {
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
   "img-src 'self' data:",
   "connect-src 'self'",
   "frame-ancestors 'none'",
@@ -492,6 +493,8 @@ export function createServer({
       // Purge du cache HTTP du navigateur (ADR-009) : une fois par navigateur (cookie d'époque),
       // et à chaque visite de /reset. Jamais de directive « storage » : le localStorage est conservé.
       let clearCache = false;
+      // Polices : le nom du fichier porte la version (fonts/LICENCES.md), un cache long est donc sans risque.
+      if (ext === '.woff2') cacheHeaders['Cache-Control'] = 'public, max-age=31536000, immutable';
       if (legacyStaticCaching()) {
         if (ext === '.js' || ext === '.css') cacheHeaders['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800';
       } else if (ext === '.html') {

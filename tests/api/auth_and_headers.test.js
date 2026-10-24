@@ -105,6 +105,8 @@ describe('Suite API : Sessions, anti-abus et en-têtes (TC-API-015 à 024)', () 
       assert.match(csp, /script-src 'self'(;|$)/);
       assert.match(csp, /connect-src 'self'/);
       assert.match(csp, /frame-ancestors 'none'/);
+      assert.doesNotMatch(csp, /googleapis|gstatic/, 'plus aucun hôte de polices tiers : elles sont hébergées');
+      assert.match(csp, /font-src 'self'(;|$)/);
       assert.equal(page.headers.get('x-frame-options'), 'DENY');
 
       const js = await fetch(t.base + '/app.js');
@@ -113,6 +115,13 @@ describe('Suite API : Sessions, anti-abus et en-têtes (TC-API-015 à 024)', () 
       assert.ok(etag);
       const revalidated = await fetch(t.base + '/app.js', { headers: { 'If-None-Match': etag } });
       assert.equal(revalidated.status, 304);
+
+      // Polices hébergées (design system Soleil) : type MIME correct, cache long car le nom porte la version
+      const font = await fetch(t.base + '/fonts/public-sans-v21-latin.woff2');
+      assert.equal(font.status, 200);
+      assert.equal(font.headers.get('content-type'), 'font/woff2');
+      assert.match(font.headers.get('cache-control'), /max-age=31536000, immutable/);
+      assert.equal(Buffer.from(await font.arrayBuffer()).subarray(0, 4).toString(), 'wOF2');
     } finally {
       await t.stop();
     }

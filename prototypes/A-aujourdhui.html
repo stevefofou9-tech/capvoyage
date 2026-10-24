@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Direction A, Aujourd’hui d’abord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Public+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/shell.css">
+<style>
+:root {
+  --bg: #f7f6f3; --surface: #ffffff; --ink: #16202a; --muted: #4a5560; --line: #e3e1db; --line-strong: #c4c0b6;
+  --primary: #b93807; --primary-press: #9a2c04; --primary-soft: #fdeee4; --on-primary: #fff;
+  --wa: #15803d; --wa-soft: #e3f4e8; --danger: #b42318; --danger-soft: #fdecea; --warn: #7a4e00; --warn-soft: #fff1cf;
+  --font-body: 'Atkinson Hyperlegible', system-ui, sans-serif; --font-head: 'Public Sans', 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --toast-bg: #16202a;
+}
+.app { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: 'top' 'screen' 'nav'; }
+.app :focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; border-radius: 8px; }
+.app ::selection { background: var(--primary-soft); color: var(--primary-press); }
+.app { font-size: 16px; font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--font-head); margin: 0; letter-spacing: -0.02em; }
+
+/* Barre haute : sobre, jamais plus de 56 px, l'état d'enregistrement toujours visible */
+.topbar { grid-area: top; display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 16px; min-height: 56px; background: var(--bg); }
+.trip { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.trip .mark { color: var(--primary); }
+.trip strong { font-family: var(--font-head); font-size: 17px; font-weight: 800; letter-spacing: -0.015em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.save-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--line-strong); background: var(--surface); font-size: 14px; font-weight: 700; color: var(--wa); }
+.save-pill.off { color: var(--warn); background: var(--warn-soft); border-color: #e6c36a; }
+.icon-btn { width: 48px; height: 48px; border-radius: 14px; border: 0; background: transparent; display: grid; place-items: center; color: var(--ink); }
+.icon-btn:hover { background: #ebe9e3; }
+
+.screen { grid-area: screen; overflow-y: auto; overscroll-behavior: contain; padding: 4px 16px 120px; scroll-padding-bottom: 120px; }
+.screen > * { max-width: 720px; margin-inline: auto; }
+
+/* Entête du jour */
+.dayhead { display: grid; gap: 14px; margin-bottom: 18px; }
+.dayrow { display: flex; align-items: center; gap: 6px; }
+.dayrow .titles { flex: 1; min-width: 0; }
+.dayrow h1 { font-size: 28px; line-height: 1.1; font-weight: 800; text-wrap: balance; }
+.dayrow p { margin: 4px 0 0; color: var(--muted); font-size: 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.linkish { background: none; border: 0; padding: 6px 4px; min-height: 36px; color: var(--primary); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; text-decoration: underline; text-underline-offset: 3px; }
+.strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.sday { display: grid; justify-items: center; gap: 1px; min-height: 64px; padding: 6px 0 8px; border-radius: 14px; border: 1.5px solid transparent; background: transparent; position: relative; }
+.sday .wd { font-size: 13px; color: var(--muted); text-transform: capitalize; }
+.sday .nb { font-family: var(--font-head); font-size: 19px; font-weight: 800; }
+.sday .dots { height: 6px; display: flex; gap: 2px; align-items: center; }
+.sday .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--line-strong); }
+.sday.today:not(.sel) { border-color: var(--primary); }
+.sday.today:not(.sel) .nb { color: var(--primary); }
+.sday.sel { background: var(--primary); color: var(--on-primary); box-shadow: 0 4px 10px -4px rgba(185, 56, 7, .6); }
+.sday.sel .wd { color: #ffe8da; }
+.sday.sel .dots i { background: rgba(255, 255, 255, .8); }
+.sday:hover:not(.sel) { background: #ecebe6; }
+.all-days { justify-self: start; }
+
+/* Bandeaux */
+.banner { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 1.5px solid #e6c36a; background: var(--warn-soft); color: #4d3200; border-radius: 16px; padding: 12px 14px; margin-bottom: 14px; min-height: 56px; }
+.banner strong { display: block; font-size: 16px; }
+.banner span { font-size: 14px; }
+.banner .ic:last-child { margin-left: auto; }
+
+/* Carte « ensuite » */
+.next { background: var(--surface); border: 1.5px solid var(--line); border-radius: 20px; padding: 16px; margin-bottom: 18px; box-shadow: 0 6px 16px -10px rgba(22, 32, 42, .28); }
+.next .when { display: flex; align-items: baseline; gap: 10px; color: var(--primary); font-weight: 700; font-size: 15px; }
+.next .when b { font-family: var(--font-head); font-size: 15px; background: var(--primary-soft); padding: 2px 10px; border-radius: 999px; }
+.next h2 { font-size: 22px; line-height: 1.2; font-weight: 800; margin: 8px 0 4px; text-wrap: balance; }
+.next .where { margin: 0 0 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; font-size: 15px; }
+.next .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 18px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); font-weight: 700; font-size: 16px; text-decoration: none; color: var(--ink); }
+.btn:hover { background: #f1efea; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn.primary:hover { background: var(--primary-press); }
+.btn.wa { background: var(--wa-soft); border-color: #a9d8b8; color: #0d5c2b; }
+.btn.block { width: 100%; }
+.btn.sm { min-height: 44px; padding: 0 14px; font-size: 15px; }
+
+/* Blocs de la journée */
+.block { margin-top: 20px; }
+.block-h { display: flex; align-items: center; gap: 10px; padding: 0 2px 8px; color: var(--muted); }
+.block-h h2 { font-size: 15px; font-weight: 800; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.block-h .hint { font-size: 14px; }
+.block-h .n { margin-left: auto; font-size: 14px; font-weight: 700; }
+.items { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1.5px solid var(--line); border-radius: 18px; overflow: hidden; }
+.item { display: grid; grid-template-columns: 52px 1fr auto; align-items: start; border-top: 1.5px solid var(--line); position: relative; }
+.item:first-child { border-top: 0; }
+.check { grid-column: 1; grid-row: 1; width: 52px; min-height: 64px; border: 0; background: transparent; display: grid; place-items: center; }
+.check span { width: 28px; height: 28px; border-radius: 9px; border: 2px solid var(--line-strong); display: grid; place-items: center; color: transparent; transition: background .15s, border-color .15s; background: var(--surface); }
+.check:hover span { border-color: var(--primary); }
+.check[aria-pressed="true"] span { background: var(--wa); border-color: var(--wa); color: #fff; }
+.main { grid-column: 2; grid-row: 1; text-align: left; border: 0; background: transparent; padding: 11px 0 11px 0; min-height: 64px; display: grid; gap: 2px; align-content: center; }
+.main .t { font-weight: 700; font-size: 17px; line-height: 1.25; text-wrap: pretty; }
+.main .m { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; }
+.main .m .tm { font-weight: 700; color: var(--ink); }
+.main .m .who { display: inline-flex; align-items: center; gap: 4px; color: #0d5c2b; font-weight: 700; }
+.item.done .t { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.cost { grid-column: 3; grid-row: 1; padding: 13px 14px 0 8px; text-align: right; font-weight: 700; font-size: 15px; white-space: nowrap; }
+.cost small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.detail { grid-column: 2 / 4; padding: 0 14px 14px 0; display: grid; gap: 10px; }
+.detail[hidden] { display: none; }
+.detail p { margin: 0; color: var(--muted); font-size: 15px; max-width: 60ch; }
+.detail .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.slot { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border: 1.5px dashed var(--line-strong); background: transparent; border-radius: 16px; color: var(--muted); font-weight: 700; font-size: 15px; text-align: left; }
+.slot:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+.free { color: var(--muted); font-size: 15px; margin: 18px 2px 0; }
+
+/* Actions flottantes et navigation */
+.fab { position: absolute; right: 16px; bottom: 82px; z-index: 5; min-height: 56px; padding: 0 22px 0 18px; border-radius: 18px; border: 0; background: var(--primary); color: #fff; font-weight: 800; font-size: 17px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 12px 22px -8px rgba(185, 56, 7, .7), 0 2px 4px rgba(0, 0, 0, .12); }
+.fab:hover { background: var(--primary-press); }
+.nav { grid-area: nav; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-top: 1.5px solid var(--line); padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); }
+.nav .rail-brand { display: none; }
+.nav button { position: relative; display: grid; justify-items: center; gap: 2px; min-height: 56px; border: 0; background: transparent; border-radius: 14px; color: var(--muted); font-size: 13px; font-weight: 700; padding-top: 6px; }
+.nav button .pillbg { width: 56px; height: 30px; border-radius: 999px; display: grid; place-items: center; transition: background .15s; }
+.nav button[aria-current="page"] { color: var(--primary); }
+.nav button[aria-current="page"] .pillbg { background: var(--primary-soft); }
+.nav .badge { position: absolute; top: 2px; left: calc(50% + 8px); min-width: 20px; height: 20px; border-radius: 10px; background: var(--danger); color: #fff; font-size: 12px; display: grid; place-items: center; padding: 0 5px; }
+
+/* Pages secondaires */
+.page-h { margin: 6px 0 16px; }
+.page-h h1 { font-size: 28px; font-weight: 800; line-height: 1.1; }
+.page-h p { margin: 6px 0 0; color: var(--muted); }
+.card { background: var(--surface); border: 1.5px solid var(--line); border-radius: 18px; padding: 16px; }
+.sec { margin-top: 22px; }
+.sec > h2 { font-size: 16px; font-weight: 800; letter-spacing: 0; margin: 0 2px 8px; display: flex; align-items: center; gap: 8px; }
+.sec > h2 .tag { font-family: var(--font-body); font-size: 13px; padding: 2px 9px; border-radius: 999px; background: var(--danger-soft); color: var(--danger); font-weight: 700; }
+.bar { height: 10px; border-radius: 6px; background: #e8e6df; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--wa); border-radius: 6px; transition: width .3s cubic-bezier(.2, .8, .2, 1); }
+.bar.spent > i { background: var(--primary); }
+.todo-row .main .t { font-size: 16px; }
+.due { color: var(--danger); font-weight: 700; }
+.remain .label { margin: 0; color: var(--muted); font-size: 15px; }
+.remain .big { font-family: var(--font-head); font-size: 38px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin: 4px 0 2px; }
+.remain .big small { font-size: 18px; font-weight: 700; letter-spacing: 0; }
+.remain .sub { margin: 0 0 14px; color: var(--muted); }
+.conv { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; }
+.fld { display: grid; gap: 4px; }
+.fld > span { font-size: 14px; font-weight: 700; color: var(--muted); }
+.in { width: 100%; min-height: 52px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: #fbfaf8; padding: 0 14px; font-size: 18px; font-weight: 700; }
+.in:focus { outline: 3px solid #1d4ed8; outline-offset: 1px; background: #fff; }
+.swap { width: 48px; height: 52px; border: 0; background: transparent; color: var(--muted); border-radius: 12px; }
+.cats { display: grid; gap: 12px; }
+.cats .c { display: grid; gap: 6px; }
+.cats .c div:first-child { display: flex; justify-content: space-between; font-weight: 700; font-size: 15px; }
+.cats .c .eu { color: var(--muted); font-weight: 400; }
+.led-day { color: var(--muted); font-size: 14px; font-weight: 700; margin: 14px 2px 6px; }
+.ledger { list-style: none; margin: 0; padding: 0; }
+.ledger li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 2px; border-top: 1.5px solid var(--line); min-height: 56px; align-items: center; }
+.ledger li:first-child { border-top: 0; }
+.ledger .lbl { font-weight: 700; font-size: 16px; }
+.ledger .cat { color: var(--muted); font-size: 14px; display: block; font-weight: 400; }
+.ledger .amt { text-align: right; font-weight: 700; white-space: nowrap; }
+.ledger .amt small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.ct { display: grid; grid-template-columns: 48px 1fr auto auto; gap: 10px; align-items: center; padding: 10px 12px; border-top: 1.5px solid var(--line); min-height: 72px; }
+.ct:first-child { border-top: 0; }
+.avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--primary-soft); color: var(--primary-press); font-weight: 800; display: grid; place-items: center; font-family: var(--font-head); }
+.ct .nm { font-weight: 700; font-size: 17px; line-height: 1.2; }
+.ct .rl { color: var(--muted); font-size: 14px; }
+.roundbtn { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--ink); text-decoration: none; }
+.roundbtn.wa { background: var(--wa); border-color: var(--wa); color: #fff; }
+.search { position: relative; margin-bottom: 14px; }
+.search .ic { position: absolute; left: 14px; top: 16px; color: var(--muted); }
+.search .in { padding-left: 44px; font-weight: 400; }
+
+/* Feuilles */
+.sheet .in.lg { font-size: 19px; min-height: 58px; font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.chip, .chipsel { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line-strong); background: var(--surface); font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; gap: 6px; }
+.chip:hover { border-color: var(--primary); }
+.chipsel { background: var(--primary-soft); border-color: #eec2a6; color: var(--primary-press); padding-right: 8px; }
+.chipsel select { appearance: none; border: 0; background: transparent; font: inherit; font-weight: 700; color: inherit; padding: 0 22px 0 0; min-height: 40px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 9px) 55%, calc(100% - 4px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+.chip[aria-pressed="true"] { background: var(--primary); color: #fff; border-color: var(--primary); }
+.tpl-label { font-size: 14px; color: var(--muted); margin: 14px 0 0; font-weight: 700; }
+.acts2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 16px; }
+.menu-list { display: grid; gap: 4px; margin-top: 8px; }
+.menu-list button { display: flex; gap: 14px; align-items: center; min-height: 56px; border: 0; background: transparent; border-radius: 14px; padding: 0 10px; font-size: 17px; font-weight: 700; text-align: left; }
+.menu-list button:hover { background: #f1efea; }
+.menu-list .sw { margin-left: auto; width: 46px; height: 28px; border-radius: 14px; background: var(--line-strong); position: relative; transition: background .15s; }
+.menu-list .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
+.menu-list [aria-pressed="true"] .sw { background: var(--warn); }
+.menu-list [aria-pressed="true"] .sw::after { transform: translateX(18px); }
+.dgrid-h { font-weight: 800; font-size: 15px; margin: 14px 0 8px; display: flex; gap: 8px; align-items: baseline; }
+.dgrid-h span { font-weight: 400; color: var(--muted); }
+.dgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.dgrid button { min-height: 48px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); font-weight: 700; display: grid; place-items: center; padding: 0; line-height: 1.1; }
+.dgrid button small { font-weight: 400; color: var(--muted); font-size: 11px; }
+.dgrid button.sel { background: var(--primary); color: #fff; border-color: var(--primary); }
+.dgrid button.sel small { color: #ffe8da; }
+.dgrid button.today { border-color: var(--primary); }
+.seg { display: inline-grid; grid-auto-flow: column; background: #ebe9e3; border-radius: 12px; padding: 3px; }
+.seg button { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: transparent; font-weight: 700; }
+.seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgba(0, 0, 0, .18); }
+.preview { margin: 8px 2px 0; color: var(--muted); font-size: 15px; min-height: 22px; }
+
+/* Large : la barre basse devient un rail latéral */
+@container app (min-width: 800px) {
+  .app { grid-template-columns: 232px minmax(0, 1fr); grid-template-areas: 'nav top' 'nav screen'; }
+  .nav { grid-template-columns: 1fr; align-content: start; gap: 4px; border-top: 0; border-right: 1.5px solid var(--line); padding: 18px 12px; }
+  .nav .rail-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 800; font-size: 19px; padding: 4px 10px 16px; color: var(--ink); }
+  .nav .rail-brand .ic { color: var(--primary); }
+  .nav button { grid-auto-flow: column; justify-content: start; align-items: center; gap: 12px; min-height: 52px; padding: 0 10px; font-size: 16px; }
+  .nav button .pillbg { width: 36px; height: 36px; border-radius: 12px; }
+  .nav .badge { top: 14px; left: auto; right: 14px; }
+  .trip .mark { display: none; }
+  .fab { bottom: 28px; right: 28px; }
+  .screen { padding: 8px 32px 120px; }
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="notes">
+    <a class="back" href="index.html">← Les trois directions</a>
+    <h1>A · Aujourd’hui d’abord</h1>
+    <p class="thesis">L’application s’ouvre sur la journée en cours, pas sur le voyage. Le voyageur sait en 3 secondes ce qui vient, avec qui, et peut noter une idée sans quitter l’écran.</p>
+    <div class="ctrl"><span class="ctrl-label">Moment du voyage</span>
+      <button data-scenario="onsite" aria-pressed="true">Sur place (J4)</button>
+      <button data-scenario="before" aria-pressed="false">Avant départ (J-9)</button></div>
+    <div class="ctrl"><span class="ctrl-label">Taille d’écran</span>
+      <button data-viewport="phone" aria-pressed="true">Téléphone</button>
+      <button data-viewport="wide" aria-pressed="false">Large</button></div>
+    <h2>Ce qui change par rapport à aujourd’hui</h2>
+    <ul>
+      <li>L’en-tête passe de 45 % de l’écran à 56 px, et les 21 tuiles de jours deviennent une semaine de 7 jours qui suit le jour choisi.</li>
+      <li>Une carte « Ensuite » donne la prochaine activité, l’heure restante et le contact en un tap WhatsApp.</li>
+      <li>Les blocs vides se replient en une ligne « Ajouter » : fini les quatre colonnes à moitié vides.</li>
+      <li>Un seul bouton Ajouter ouvre une feuille : le moment de la journée et le contact sont déduits du texte et corrigeables.</li>
+      <li>Le statut « fait » se coche d’un tap, chaque ajout propose Annuler, et l’état « Enregistré / Hors ligne » est toujours visible.</li>
+    </ul>
+    <h2>Risque</h2>
+    <ul><li>Le plus proche de l’existant : identité cuivre conservée, refonte structurelle seulement.</li></ul>
+  </aside>
+  <main class="device-wrap"><div class="device" id="device"><div class="app" id="app"></div></div></main>
+</div>
+
+<script src="shared/data.js"></script>
+<script src="shared/icons.js"></script>
+<script src="shared/shell.js"></script>
+<script>
+(function () {
+  const P = window.PROTO, I = P.icon, esc = P.esc;
+  const S = { tab: 'plan', day: 4, open: null, offline: false, pending: 0 };
+  const app = document.getElementById('app');
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const initDay = () => { S.day = P.today() || 1; S.open = null; };
+  P.onScenario = () => { initDay(); S.tab = 'plan'; render(); };
+
+  const touch = () => { if (S.offline) S.pending++; };
+  const dayActs = (d) => P.activities.filter((a) => a.day === d);
+  const byTime = (a, b) => (a.time || '99').localeCompare(b.time || '99');
+  const critPending = () => P.todos.filter((t) => t.prio === 'critique' && !t.done);
+
+  /* ---------- écrans ---------- */
+  function topbar() {
+    return `<header class="topbar">
+      <div class="trip"><span class="mark">${I('compass', 24)}</span><strong>Cameroun 2026</strong></div>
+      <button class="save-pill ${S.offline ? 'off' : ''}" data-act="save-info">${I(S.offline ? 'cloudoff' : 'cloud', 18)}${S.offline ? 'Hors ligne' + (S.pending ? ' · ' + S.pending + ' en attente' : '') : 'Enregistré'}</button>
+      <button class="icon-btn" data-act="menu" aria-label="Menu : partager, exporter, réglages">${I('more', 22)}</button>
+    </header>`;
+  }
+
+  function nav() {
+    const items = [['plan', 'calendar', 'Programme'], ['todo', 'checklist', 'Préparatifs'], ['budget', 'wallet', 'Budget'], ['contacts', 'users', 'Contacts']];
+    const n = critPending().length;
+    return `<nav class="nav" aria-label="Navigation principale"><div class="rail-brand">${I('compass', 26)}CapVoyage</div>${items.map(([k, ic, lb]) =>
+      `<button data-tab="${k}" ${S.tab === k ? 'aria-current="page"' : ''}><span class="pillbg">${I(ic, 22)}</span>${lb}${k === 'todo' && n ? `<span class="badge" aria-label="${n} bloquant">${n}</span>` : ''}</button>`).join('')}</nav>`;
+  }
+
+  function itemRow(a) {
+    const c = a.contact && P.contact(a.contact);
+    const open = S.open === a.id;
+    return `<li class="item ${a.done ? 'done' : ''}" data-id="${a.id}">
+      <button class="check" data-act="toggle" aria-pressed="${a.done}" aria-label="${a.done ? 'Décocher' : 'Marquer comme fait'} : ${esc(a.title)}"><span>${I('check', 18)}</span></button>
+      <button class="main" data-act="open" aria-expanded="${open}">
+        <span class="t">${esc(a.title)}</span>
+        <span class="m">${a.time ? `<span class="tm">${a.time}</span>` : ''}${a.place ? `<span>${esc(a.place)}</span>` : `<span>${P.catLabel[a.cat]}</span>`}${c ? `<span class="who">${I('message', 14)}${esc(c.name)}</span>` : ''}</span>
+      </button>
+      ${a.cost ? `<div class="cost">${P.n(a.cost)}<small>FCFA · ${P.eur(a.cost)}</small></div>` : '<div></div>'}
+      <div class="detail" ${open ? '' : 'hidden'}>
+        ${a.note ? `<p>${esc(a.note)}</p>` : `<p>Pas de note. Touchez Modifier pour ajouter un lieu, une heure ou une personne.</p>`}
+        <div class="row">
+          ${c ? `<a class="btn wa sm" href="${P.wa(c)}" target="_blank" rel="noopener">${I('message', 18)}WhatsApp ${esc(c.name.split(' ')[0])}</a>` : ''}
+          <button class="btn sm" data-act="move">${I('calendar', 18)}Changer de jour</button>
+          <button class="btn sm" data-act="edit">${I('pencil', 18)}Modifier</button>
+        </div>
+      </div>
+    </li>`;
+  }
+
+  function planScreen() {
+    const d = S.day, today = P.today(), isToday = d === today;
+    const et = P.etapeOf(d);
+    const start = Math.min(Math.max(d - 3, 1), P.TOTAL_DAYS - 6);
+    const strip = Array.from({ length: 7 }, (_, i) => start + i).map((x) => {
+      const n = dayActs(x).length;
+      return `<button class="sday ${x === d ? 'sel' : ''} ${x === today ? 'today' : ''}" data-day="${x}" aria-label="${cap(P.dateLong(x))}, ${n} activité${n > 1 ? 's' : ''}${x === today ? ', aujourd’hui' : ''}" ${x === d ? 'aria-current="date"' : ''}>
+        <span class="wd">${P.weekday(x)}</span><span class="nb">${P.dayNum(x)}</span>
+        <span class="dots">${'<i></i>'.repeat(Math.min(n, 3))}</span></button>`;
+    }).join('');
+
+    let banner = '';
+    if (P.scenario === 'before') {
+      const c = critPending();
+      banner = `<button class="banner" data-tab="todo">${I('alert', 24)}<div><strong>Départ dans ${P.daysToDeparture} jours</strong><span>${c.length ? c.length + ' démarche bloquante : ' + esc(c[0].label.toLowerCase()) : 'Toutes les démarches bloquantes sont faites'}</span></div>${I('right', 20)}</button>`;
+    }
+
+    let next = '';
+    if (isToday) {
+      const [nh, nm] = P.NOW.split(':').map(Number);
+      const cand = dayActs(d).filter((a) => !a.done && a.time && a.time > P.NOW).sort(byTime)[0];
+      if (cand) {
+        const [h, m] = cand.time.split(':').map(Number);
+        const diff = h * 60 + m - (nh * 60 + nm);
+        const label = diff >= 60 ? `dans ${Math.floor(diff / 60)} h ${String(diff % 60).padStart(2, '0')}` : `dans ${diff} min`;
+        const c = cand.contact && P.contact(cand.contact);
+        next = `<section class="next" data-id="${cand.id}" aria-label="Prochaine activité">
+          <div class="when"><b>${label}</b><span>à ${cand.time}</span></div>
+          <h2>${esc(cand.title)}</h2>
+          ${cand.place ? `<p class="where">${I('pin', 16)}${esc(cand.place)}</p>` : ''}
+          <div class="acts">${c ? `<a class="btn wa" href="${P.wa(c)}" target="_blank" rel="noopener">${I('message', 20)}Écrire à ${esc(c.name.split(' ')[0])}</a>` : ''}<button class="btn" data-act="toggle">${I('check', 20)}C’est fait</button></div>
+        </section>`;
+      }
+    }
+
+    const acts = dayActs(d).sort(byTime);
+    const blocks = P.blocks.map((b) => {
+      const list = acts.filter((a) => a.block === b.id);
+      if (!list.length && b.id === 'unassigned') return '';
+      const head = `<div class="block-h">${I(b.icon, 18)}<h2>${b.label}</h2><span class="hint">${b.hint}</span>${list.length ? `<span class="n">${list.length}</span>` : ''}</div>`;
+      if (!list.length) return `<section class="block">${head}<button class="slot" data-act="add" data-block="${b.id}">${I('plus', 18)}Ajouter ${b.id === 'morning' ? 'au matin' : b.id === 'afternoon' ? 'à l’après-midi' : 'à la soirée'}</button></section>`;
+      return `<section class="block">${head}<ul class="items">${list.map(itemRow).join('')}</ul></section>`;
+    }).join('');
+
+    const ideas = P.ideas.length ? `<section class="block"><div class="block-h">${I('bulb', 18)}<h2>Idées sans jour</h2><span class="n">${P.ideas.length}</span></div>
+      <ul class="items">${P.ideas.map((i) => `<li class="item" data-idea="${i.id}" style="grid-template-columns:1fr auto"><div class="main" style="padding-left:16px"><span class="t">${esc(i.title)}</span><span class="m">${P.catLabel[i.cat]}</span></div><div style="padding:8px 8px 8px 0;display:grid;align-items:center"><button class="btn sm" data-act="place-idea">Placer ${isToday ? 'aujourd’hui' : 'ce jour'}</button></div></li>`).join('')}</ul></section>` : '';
+
+    return `${banner}<header class="dayhead">
+      <div class="dayrow">
+        <button class="icon-btn" data-step="-1" aria-label="Jour précédent" ${d <= 1 ? 'disabled style="opacity:.35"' : ''}>${I('left', 24)}</button>
+        <div class="titles"><h1>${isToday ? 'Aujourd’hui' : cap(P.dateLong(d))}</h1>
+          <p>${isToday ? cap(P.dateLong(d)) + ' · ' : ''}Jour ${d} sur ${P.TOTAL_DAYS} · ${I('pin', 15)} <button class="linkish" data-act="edit-city" style="padding:0;min-height:44px">${et.city}</button></p></div>
+        <button class="icon-btn" data-step="1" aria-label="Jour suivant" ${d >= P.TOTAL_DAYS ? 'disabled style="opacity:.35"' : ''}>${I('right', 24)}</button>
+      </div>
+      <div class="strip" role="group" aria-label="Semaine">${strip}</div>
+      <button class="linkish all-days" data-act="all-days">${I('calendar', 18)}Voir les 21 jours</button>
+    </header>${next}${blocks}${acts.length === 0 ? '<p class="free">Journée libre : rien de prévu, et c’est aussi un programme.</p>' : ''}${ideas}`;
+  }
+
+  function todoScreen() {
+    const total = P.todos.length, done = P.todos.filter((t) => t.done).length;
+    const crit = P.todos.filter((t) => t.prio === 'critique' && !t.done);
+    const rest = P.todos.filter((t) => t.prio !== 'critique' && !t.done);
+    const dn = P.todos.filter((t) => t.done);
+    const row = (t) => `<li class="item todo-row ${t.done ? 'done' : ''}" data-tid="${t.id}" style="grid-template-columns:52px 1fr">
+      <button class="check" data-act="todo-toggle" aria-pressed="${t.done}" aria-label="${t.done ? 'Décocher' : 'Marquer comme fait'} : ${esc(t.label)}"><span>${I('check', 18)}</span></button>
+      <div class="main" style="padding-right:14px"><span class="t">${esc(t.label)}</span><span class="m">${t.due && !t.done ? `<span class="due">${t.due}</span>` : ''}<span>${t.cat}</span></span></div></li>`;
+    return `<div class="page-h"><h1>Préparatifs</h1><p>${P.scenario === 'before' ? `Départ dans ${P.daysToDeparture} jours` : 'Vous êtes sur place : il reste ce qui sert encore'}</p></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;font-weight:700;margin-bottom:8px"><span>${done} sur ${total} faits</span><span>${Math.round(done / total * 100)} %</span></div><div class="bar"><i style="width:${done / total * 100}%"></i></div></div>
+      ${crit.length ? `<section class="sec"><h2>Bloque le départ <span class="tag">${crit.length}</span></h2><ul class="items">${crit.map(row).join('')}</ul></section>` : `<section class="sec"><div class="card" style="display:flex;gap:12px;align-items:center;color:#0d5c2b;background:var(--wa-soft);border-color:#a9d8b8">${I('shield', 26)}<strong>Plus rien ne bloque le départ.</strong></div></section>`}
+      <section class="sec"><h2>À préparer</h2><ul class="items">${rest.map(row).join('')}</ul></section>
+      <button class="btn block" style="margin-top:14px" data-act="todo-add">${I('plus', 20)}Ajouter une tâche</button>
+      <details class="sec"><summary style="min-height:48px;display:flex;align-items:center;font-weight:800;cursor:pointer">Déjà fait (${dn.length})</summary><ul class="items" style="margin-top:8px">${dn.map(row).join('')}</ul></details>`;
+  }
+
+  function budgetScreen() {
+    const spent = P.spentXAF(), rem = P.remainingXAF(), pct = Math.min(100, spent / P.budgetXAF() * 100);
+    const cats = {};
+    P.expenses.forEach((e) => { cats[e.cat] = (cats[e.cat] || 0) + P.toXAF(e); });
+    const catRows = Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="c"><div><span>${k}</span><span>${P.n(v)} FCFA <span class="eu">· ${P.eur(v)}</span></span></div><div class="bar spent"><i style="width:${v / spent * 100}%"></i></div></div>`).join('');
+    const days = [...new Set(P.expenses.map((e) => e.day))].sort((a, b) => b - a);
+    const ledger = days.map((dd) => `<div class="led-day">${dd ? cap(P.dateShort(dd)) : 'Avant le départ'}</div><ul class="ledger">${P.expenses.filter((e) => e.day === dd).map((e) => {
+      const x = P.toXAF(e);
+      return `<li><div class="lbl">${esc(e.label)}<span class="cat">${e.cat}</span></div><div class="amt">${P.n(x)} FCFA<small>${P.eur(x)}${e.currency === 'EUR' ? ' payé en €' : ''}</small></div></li>`;
+    }).join('')}</ul>`).join('');
+    return `<div class="page-h"><h1>Budget</h1></div>
+      <div class="card remain"><p class="label">Il vous reste</p><p class="big">${P.n(rem)} <small>FCFA</small></p><p class="sub">≈ ${P.eur(rem)} sur ${P.n(P.BUDGET_EUR)}&nbsp;€ prévus</p><div class="bar spent" role="img" aria-label="${Math.round(pct)} % du budget dépensé"><i style="width:${pct}%"></i></div></div>
+      <button class="btn primary block" style="margin-top:12px;min-height:56px" data-act="exp-add">${I('plus', 22)}Ajouter une dépense</button>
+      <section class="sec"><h2>Convertisseur</h2><div class="card"><div class="conv">
+        <label class="fld"><span>FCFA</span><input class="in" id="cv-x" inputmode="decimal" placeholder="15 000"></label>
+        <button class="swap" data-act="swap" aria-label="Inverser">${I('swap', 22)}</button>
+        <label class="fld"><span>Euros</span><input class="in" id="cv-e" inputmode="decimal" placeholder="22,87"></label></div>
+        <p class="preview" style="margin-top:10px">1 € = ${P.rate.toString().replace('.', ',')} FCFA, parité fixe</p></div></section>
+      <section class="sec"><h2>Par catégorie</h2><div class="card cats">${catRows}</div></section>
+      <section class="sec"><h2>Dépenses</h2><div class="card" style="padding-top:2px">${ledger}</div></section>`;
+  }
+
+  function contactsScreen(filter) {
+    const q = (filter || '').toLowerCase();
+    const list = P.contacts.filter((c) => !q || (c.name + c.role + c.city).toLowerCase().includes(q));
+    const row = (c) => {
+      const n = P.activities.filter((a) => a.contact === c.id).length;
+      return `<div class="ct"><div class="avatar" aria-hidden="true">${P.initials(c.name)}</div>
+        <div><div class="nm">${esc(c.name)}</div><div class="rl">${esc(c.role)} · ${c.city}${n ? ` · ${n} activité${n > 1 ? 's' : ''}` : ''}</div></div>
+        <a class="roundbtn" href="tel:+${c.phone}" aria-label="Appeler ${esc(c.name)}">${I('phone', 20)}</a>
+        <a class="roundbtn wa" href="${P.wa(c)}" target="_blank" rel="noopener" aria-label="WhatsApp ${esc(c.name)}">${I('message', 22)}</a></div>`;
+    };
+    return `<div class="page-h"><h1>Contacts</h1><p>Famille, chauffeurs et guides à joindre sur place</p></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px"><button class="btn primary" style="flex:1" data-act="ct-add">${I('plus', 20)}Nouveau</button><button class="btn" style="flex:1" data-act="ct-import">${I('download', 20)}Importer</button></div>
+      <div class="search">${I('search', 20)}<input class="in" id="ct-q" placeholder="Chercher un nom ou une ville" value="${esc(filter || '')}" aria-label="Chercher un contact"></div>
+      <div class="items" id="ct-list">${list.map(row).join('') || '<p style="padding:16px;margin:0;color:var(--muted)">Personne ne correspond.</p>'}</div>`;
+  }
+
+  /* ---------- rendu ---------- */
+  function render() {
+    const sc = app.querySelector('.screen');
+    const top = sc ? sc.scrollTop : 0;
+    const body = { plan: planScreen, todo: todoScreen, budget: budgetScreen, contacts: contactsScreen }[S.tab]();
+    app.innerHTML = topbar() + `<main class="screen" id="screen">${body}</main>` + nav() +
+      (S.tab === 'plan' ? `<button class="fab" data-act="add" aria-label="Ajouter une activité">${I('plus', 24)}Ajouter</button>` : '');
+    const ns = app.querySelector('.screen');
+    ns.scrollTop = top;
+    if (S.tab === 'contacts') bindSearch();
+    if (S.tab === 'budget') bindConv();
+  }
+  function bindSearch() {
+    const q = app.querySelector('#ct-q');
+    q.addEventListener('input', () => {
+      const pos = q.selectionStart;
+      const sc = app.querySelector('.screen').scrollTop;
+      const html = contactsScreen(q.value);
+      const tmp = document.createElement('div'); tmp.innerHTML = html;
+      app.querySelector('#ct-list').innerHTML = tmp.querySelector('#ct-list').innerHTML;
+      app.querySelector('.screen').scrollTop = sc; q.setSelectionRange(pos, pos);
+    });
+  }
+  function bindConv() {
+    const x = app.querySelector('#cv-x'), e = app.querySelector('#cv-e');
+    const num = (v) => parseFloat(String(v).replace(/\s/g, '').replace(',', '.'));
+    x.addEventListener('input', () => { const v = num(x.value); e.value = isNaN(v) ? '' : (v / P.rate).toFixed(2).replace('.', ','); });
+    e.addEventListener('input', () => { const v = num(e.value); x.value = isNaN(v) ? '' : P.n(v * P.rate); });
+  }
+
+  /* ---------- feuilles ---------- */
+  function addSheet(block) {
+    const st = { block: block || 'unassigned', contact: '', day: S.day, dirtyB: !!block, dirtyC: false };
+    const tpl = ['Dîner entre amis', 'Repas de famille', 'Rdv pro', 'Plage', 'Marché', 'Trajet'];
+    P.sheet(`<h2>Nouvelle activité</h2><p class="sheet-sub" id="as-sub"></p>
+      <form id="as-form"><label class="sr-only" for="as-q">Titre de l’activité</label>
+      <input class="in lg" id="as-q" placeholder="Quoi ? Ex. Dîner avec @Marie" autocomplete="off" enterkeyhint="done" required>
+      <div class="chips" aria-label="Précisions déduites du texte">
+        <label class="chipsel">${I('sun', 16)}<select id="as-block" aria-label="Moment de la journée">${P.blocks.map((b) => `<option value="${b.id}">${b.label}</option>`).join('')}</select></label>
+        <label class="chipsel">${I('message', 16)}<select id="as-contact" aria-label="Avec qui"><option value="">Seul·e ou à définir</option>${P.contacts.map((c) => `<option value="${c.id}">Avec ${esc(c.name)}</option>`).join('')}</select></label>
+        <label class="chipsel">${I('calendar', 16)}<select id="as-day" aria-label="Jour">${Array.from({ length: 21 }, (_, i) => `<option value="${i + 1}">Jour ${i + 1} · ${P.dateShort(i + 1)}</option>`).join('')}</select></label>
+      </div>
+      <p class="tpl-label">Modèles</p><div class="chips" style="margin-top:6px">${tpl.map((t) => `<button type="button" class="chip" data-tpl="${t}">${t}</button>`).join('')}</div>
+      <div class="acts2"><button type="button" class="btn" id="as-idea">${I('bulb', 18)}Garder en idée</button><button class="btn primary" type="submit">Ajouter</button></div></form>`, (sh) => {
+      const q = sh.querySelector('#as-q'), sb = sh.querySelector('#as-block'), sc = sh.querySelector('#as-contact'), sd = sh.querySelector('#as-day'), sub = sh.querySelector('#as-sub');
+      sb.value = st.block; sd.value = st.day;
+      const upd = () => { sub.textContent = `Jour ${sd.value} · ${cap(P.dateLong(+sd.value))}`; };
+      upd();
+      q.addEventListener('input', () => {
+        const g = P.infer(q.value);
+        if (!st.dirtyB) sb.value = g.block;
+        if (!st.dirtyC) sc.value = g.contact || '';
+      });
+      sb.addEventListener('change', () => { st.dirtyB = true; }); sc.addEventListener('change', () => { st.dirtyC = true; }); sd.addEventListener('change', upd);
+      sh.querySelectorAll('[data-tpl]').forEach((b) => b.addEventListener('click', () => { q.value = b.dataset.tpl; q.dispatchEvent(new Event('input')); q.focus(); }));
+      sh.querySelector('#as-idea').addEventListener('click', () => {
+        const t = P.cleanTitle(q.value); if (!t) { q.focus(); return; }
+        const it = { id: P.uid(), title: t, cat: 'Loisir' }; P.ideas.push(it); touch(); P.closeSheet(); render();
+        P.toast('Gardé dans vos idées', () => { P.ideas.splice(P.ideas.indexOf(it), 1); render(); });
+      });
+      sh.querySelector('#as-form').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const t = P.cleanTitle(q.value); if (!t) return;
+        const a = { id: P.uid(), day: +sd.value, block: sb.value, time: '', title: t, place: '', cat: 'Loisir', contact: sc.value || null, cost: 0, done: false, note: '' };
+        P.activities.push(a); S.day = a.day; touch(); P.closeSheet(); render();
+        P.toast(`Ajouté : ${P.blockLabel(a.block).toLowerCase()}, jour ${a.day}`, () => { P.activities.splice(P.activities.indexOf(a), 1); render(); });
+      });
+    });
+  }
+  function daysSheet() {
+    P.sheet(`<h2>Les 21 jours</h2><p class="sheet-sub">Touchez un jour pour l’ouvrir.</p>${P.etapes.map((e) => `<div class="dgrid-h">${e.city}<span>jours ${e.from} à ${e.to}</span></div><div class="dgrid">${Array.from({ length: e.to - e.from + 1 }, (_, i) => e.from + i).map((x) => `<button data-pick="${x}" class="${x === S.day ? 'sel' : ''} ${x === P.today() ? 'today' : ''}" aria-label="Jour ${x}, ${cap(P.dateLong(x))}">${x}<small>${P.dayNum(x)} nov.</small></button>`).join('')}</div>`).join('')}`, (sh) => {
+      sh.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => { S.day = +b.dataset.pick; P.closeSheet(); render(); }));
+    });
+  }
+  function moveSheet(id) {
+    const a = P.activities.find((x) => x.id === id);
+    P.sheet(`<h2>Changer de jour</h2><p class="sheet-sub">${esc(a.title)}</p><div class="dgrid">${Array.from({ length: 21 }, (_, i) => i + 1).map((x) => `<button data-pick="${x}" class="${x === a.day ? 'sel' : ''}" aria-label="Jour ${x}">${x}<small>${P.dayNum(x)} nov.</small></button>`).join('')}</div>`, (sh) => {
+      sh.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
+        const from = a.day; a.day = +b.dataset.pick; S.day = a.day; touch(); P.closeSheet(); render();
+        P.toast(`Déplacé au jour ${a.day}`, () => { a.day = from; S.day = from; render(); });
+      }));
+    });
+  }
+  function cityRename() {
+    const et = P.etapeOf(S.day);
+    P.sheet(`<h2>Étape du jour</h2><p class="sheet-sub">Jours ${et.from} à ${et.to}. Un renommage s’applique à toute l’étape.</p>
+      <form id="cf"><label class="fld"><span>Ville ou lieu</span><input class="in lg" id="cf-i" value="${esc(et.city)}"></label><div class="acts2"><button type="button" class="btn" data-close>Annuler</button><button class="btn primary">Enregistrer</button></div></form>`, (sh) => {
+      sh.querySelector('#cf').addEventListener('submit', (e) => { e.preventDefault(); const v = sh.querySelector('#cf-i').value.trim(); if (v) { et.city = v; touch(); } P.closeSheet(); render(); });
+    });
+  }
+  function expSheet() {
+    const st = { cur: 'XAF', cat: 'Restaurant' };
+    P.sheet(`<h2>Nouvelle dépense</h2><p class="sheet-sub">Aujourd’hui · ${P.scenario === 'onsite' ? cap(P.dateLong(4)) : 'avant le départ'}</p>
+      <form id="ef"><div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end">
+        <label class="fld"><span>Montant</span><input class="in lg" id="ef-a" inputmode="decimal" placeholder="15 000" required></label>
+        <div class="seg" role="group" aria-label="Devise"><button type="button" data-cur="XAF" aria-pressed="true">FCFA</button><button type="button" data-cur="EUR" aria-pressed="false">€</button></div></div>
+      <p class="preview" id="ef-p" aria-live="polite"></p>
+      <label class="fld" style="margin-top:6px"><span>Pour quoi ?</span><input class="in" id="ef-l" placeholder="Dîner poissons braisés" style="font-weight:400" required></label>
+      <div class="chips" role="group" aria-label="Catégorie">${P.expenseCats.map((c) => `<button type="button" class="chip" data-cat="${c}" aria-pressed="${c === st.cat}">${c}</button>`).join('')}</div>
+      <div class="acts2"><button type="button" class="btn" data-close>Annuler</button><button class="btn primary">Enregistrer</button></div></form>`, (sh) => {
+      const a = sh.querySelector('#ef-a'), l = sh.querySelector('#ef-l'), pv = sh.querySelector('#ef-p');
+      const num = () => parseFloat(a.value.replace(/\s/g, '').replace(',', '.'));
+      const prev = () => { const v = num(); pv.textContent = isNaN(v) ? '' : st.cur === 'XAF' ? '≈ ' + P.eur(v) : '≈ ' + P.fcfa(v * P.rate); };
+      a.addEventListener('input', prev);
+      l.addEventListener('input', () => { const g = P.guessCat(l.value); st.cat = g; sh.querySelectorAll('[data-cat]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cat === g))); });
+      sh.querySelectorAll('[data-cur]').forEach((b) => b.addEventListener('click', () => { st.cur = b.dataset.cur; sh.querySelectorAll('[data-cur]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); prev(); }));
+      sh.querySelectorAll('[data-cat]').forEach((b) => b.addEventListener('click', () => { st.cat = b.dataset.cat; sh.querySelectorAll('[data-cat]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+      sh.querySelector('#ef').addEventListener('submit', (e) => {
+        e.preventDefault(); const v = num(); if (isNaN(v) || v <= 0) { a.focus(); return; }
+        const ex = { id: P.uid(), label: l.value.trim(), amount: v, currency: st.cur, cat: st.cat, day: P.today() };
+        P.expenses.push(ex); touch(); P.closeSheet(); render();
+        P.toast(`Dépense enregistrée : ${P.fcfa(P.toXAF(ex))}`, () => { P.expenses.splice(P.expenses.indexOf(ex), 1); render(); });
+      });
+    });
+  }
+  function menuSheet() {
+    P.sheet(`<h2>Menu</h2><div class="menu-list">
+      <button data-m="share">${I('share', 22)}Partager le programme</button>
+      <button data-m="ics">${I('download', 22)}Exporter le calendrier (.ics)</button>
+      <button data-m="setup">${I('sliders', 22)}Réglages du voyage</button>
+      <button data-m="offline" aria-pressed="${S.offline}">${I('cloudoff', 22)}Simuler le mode hors ligne<span class="sw"></span></button>
+      <button data-m="exit">${I('compass', 22)}Quitter la démo et créer mon compte</button></div>`, (sh) => {
+      sh.querySelectorAll('[data-m]').forEach((b) => b.addEventListener('click', () => {
+        const m = b.dataset.m;
+        if (m === 'offline') { S.offline = !S.offline; S.pending = 0; P.closeSheet(); render(); P.toast(S.offline ? 'Hors ligne : vos modifications attendent le réseau' : 'De retour en ligne : tout est synchronisé'); return; }
+        P.closeSheet(); P.toast('Prototype : action non branchée');
+      }));
+    });
+  }
+  function simpleForm(title, fields, onOk) {
+    P.sheet(`<h2>${title}</h2><form id="sf" style="margin-top:12px;display:grid;gap:12px">${fields.map((f) => `<label class="fld"><span>${f.l}</span><input class="in" style="font-weight:400" id="sf-${f.k}" placeholder="${f.p || ''}" ${f.req ? 'required' : ''}></label>`).join('')}<div class="acts2"><button type="button" class="btn" data-close>Annuler</button><button class="btn primary">Enregistrer</button></div></form>`, (sh) => {
+      sh.querySelector('#sf').addEventListener('submit', (e) => { e.preventDefault(); const v = {}; fields.forEach((f) => { v[f.k] = sh.querySelector('#sf-' + f.k).value.trim(); }); onOk(v); P.closeSheet(); });
+    });
+  }
+
+  /* ---------- événements ---------- */
+  app.addEventListener('click', (e) => {
+    const t = e.target.closest('button, a');
+    if (!t) return;
+    if (t.dataset.tab) { S.tab = t.dataset.tab; render(); app.querySelector('.screen').scrollTop = 0; return; }
+    if (t.dataset.day) { S.day = +t.dataset.day; S.open = null; render(); return; }
+    if (t.dataset.step) { S.day = Math.min(21, Math.max(1, S.day + +t.dataset.step)); S.open = null; render(); return; }
+    const act = t.dataset.act; if (!act) return;
+    const li = t.closest('[data-id]'), id = li && li.dataset.id;
+    const a = id && P.activities.find((x) => x.id === id);
+    if (act === 'toggle' && a) { a.done = !a.done; touch(); render(); P.toast(a.done ? 'Marqué comme fait' : 'Remis à faire', () => { a.done = !a.done; render(); }); }
+    else if (act === 'open') { S.open = S.open === id ? null : id; render(); }
+    else if (act === 'add') addSheet(t.dataset.block);
+    else if (act === 'all-days') daysSheet();
+    else if (act === 'move') moveSheet(id);
+    else if (act === 'edit') { P.toast('Prototype : l’édition détaillée s’ouvre ici, sans quitter la liste'); }
+    else if (act === 'edit-city') cityRename();
+    else if (act === 'menu') menuSheet();
+    else if (act === 'save-info') P.toast(S.offline ? `Hors ligne : ${S.pending} modification(s) partiront au retour du réseau` : 'Tout est enregistré sur ce téléphone et sur le serveur');
+    else if (act === 'place-idea') {
+      const iid = t.closest('[data-idea]').dataset.idea, it = P.ideas.find((x) => x.id === iid);
+      P.ideas.splice(P.ideas.indexOf(it), 1);
+      const na = { id: P.uid(), day: S.day, block: 'unassigned', time: '', title: it.title, place: '', cat: it.cat, contact: null, cost: 0, done: false, note: '' };
+      P.activities.push(na); touch(); render();
+      P.toast(`Placé au jour ${S.day}, dans « À caler »`, () => { P.activities.splice(P.activities.indexOf(na), 1); P.ideas.push(it); render(); });
+    }
+    else if (act === 'todo-toggle') { const tt = P.todos.find((x) => x.id === t.closest('[data-tid]').dataset.tid); tt.done = !tt.done; touch(); render(); P.toast(tt.done ? 'Démarche cochée' : 'Remise à faire', () => { tt.done = !tt.done; render(); }); }
+    else if (act === 'todo-add') simpleForm('Nouvelle tâche', [{ k: 'l', l: 'Quoi ?', p: 'Ex. Photocopie du passeport', req: 1 }], (v) => { P.todos.push({ id: P.uid(), label: v.l, cat: 'Valise', prio: 'normal', due: '', done: false }); touch(); render(); P.toast('Tâche ajoutée'); });
+    else if (act === 'exp-add') expSheet();
+    else if (act === 'swap') { const x = app.querySelector('#cv-x'), en = app.querySelector('#cv-e'); const xv = x.value; x.value = en.value; en.value = xv; x.dispatchEvent(new Event('input')); }
+    else if (act === 'ct-add') simpleForm('Nouveau contact', [{ k: 'n', l: 'Nom', req: 1 }, { k: 'p', l: 'Numéro WhatsApp', p: '+237 6 …' }, { k: 'r', l: 'Rôle', p: 'Chauffeur, famille…' }], (v) => { P.contacts.push({ id: P.uid(), name: v.n, role: v.r || 'Contact', city: P.etapeOf(S.day).city, phone: v.p.replace(/\D/g, '') || '237600000000' }); render(); P.toast('Contact ajouté'); });
+    else if (act === 'ct-import') P.toast('Prototype : la sélection des contacts du téléphone s’ouvre ici');
+  });
+
+  initDay();
+  render();
+})();
+</script>
+</body>
+</html>

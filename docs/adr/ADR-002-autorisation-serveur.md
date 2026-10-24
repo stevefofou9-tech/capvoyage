@@ -19,7 +19,7 @@
   - Une limite par e-mail s'ajoute à la limite par IP : `checkRateLimit('req_code_email:<email>', 5, 15 min)` et `checkRateLimit('verify_email:<email>', 10, 15 min)`.
 - **Aléa cryptographique (S6) :** `crypto.randomInt(100000, 1000000)` pour les codes, `crypto.randomUUID()` (sans repli `Math.random`) pour les identifiants et les jetons.
 - **En-têtes (S9) :** CSP envoyée sur toutes les réponses :
-  `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`.
+  `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`.
   `'unsafe-inline'` reste nécessaire pour les 21 attributs `style=""` d'`index.html` et les styles posés par `app.js`. Google Fonts est autorisé car la charte `DESIGN.md` l'utilise.
 
 ## Conséquences

@@ -31,3 +31,61 @@ describe('Règles de design (TC-UX-008)', () => {
     }
   });
 });
+
+// Design system Soleil (ADR-010, phase 1) : jetons obligatoires et cliquets sur les valeurs en dur.
+describe('Design system Soleil : jetons et cliquets (TC-UX-009)', () => {
+  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const rootBlock = stripped.match(/:root\s*\{([\s\S]*?)\n\}/)[1];
+  const outsideRoot = stripped.replace(/:root\s*\{[\s\S]*?\n\}/, '').replace(/@font-face\s*\{[^}]*\}/g, '');
+
+  test('le :root définit tous les jetons Soleil', () => {
+    const required = [
+      '--paper', '--surface', '--sunken', '--line', '--line-strong', '--ink', '--ink-2', '--ink-3',
+      '--accent', '--accent-press', '--accent-soft', '--accent-ink', '--on-accent',
+      '--pos', '--pos-soft', '--pos-ink', '--warn', '--warn-soft', '--warn-ink', '--neg', '--neg-soft', '--focus',
+      '--f-body', '--f-head', '--t-caption', '--t-small', '--t-body', '--t-title-s', '--t-title', '--t-headline', '--t-large', '--t-display',
+      '--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s8', '--s10',
+      '--r-md', '--r-lg', '--r-pill', '--h-dense', '--h-md', '--h-lg', '--e1', '--e2', '--e3'
+    ];
+    const missing = required.filter(token => !new RegExp(`\\s${token}\\s*:`).test(rootBlock));
+    assert.deepEqual(missing, [], `jetons absents du :root : ${missing.join(', ')}`);
+  });
+
+  test('chaque variable utilisée est définie (aucun var() orphelin)', () => {
+    const defined = new Set([...rootBlock.matchAll(/(--[a-z0-9-]+)\s*:/g)].map(m => m[1]));
+    for (const m of outsideRoot.matchAll(/(--[a-z0-9-]+)\s*:/g)) defined.add(m[1]);
+    const used = [...new Set([...stripped.matchAll(/var\((--[a-z0-9-]+)/g)].map(m => m[1]))];
+    const orphans = used.filter(v => !defined.has(v));
+    assert.deepEqual(orphans, [], `variables non définies : ${orphans.join(', ')}`);
+  });
+
+  test('les contrastes des couleurs de texte tiennent (≥ 4,5:1 sur leur fond)', () => {
+    const val = name => rootBlock.match(new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})`))[1];
+    const lum = hex => {
+      const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const pairs = [
+      ['--ink', '--paper'], ['--ink-2', '--paper'], ['--ink-3', '--paper'], ['--ink-3', '--surface'],
+      ['--on-accent', '--accent'], ['--accent-ink', '--accent-soft'], ['--accent', '--surface'],
+      ['--pos-ink', '--pos-soft'], ['--on-accent', '--pos'], ['--warn-ink', '--warn-soft'], ['--warn', '--warn-soft'],
+      ['--neg', '--surface'], ['--neg', '--neg-soft'], ['--on-accent', '--neg']
+    ];
+    const low = pairs.map(([fg, bg]) => [fg, bg, ratio(val(fg), val(bg))]).filter(([, , r]) => r < 4.5);
+    assert.deepEqual(low.map(([fg, bg, r]) => `${fg} sur ${bg} : ${r.toFixed(2)}`), []);
+  });
+
+  test('aucun border-radius en valeur fixe hors :root (toujours un jeton)', () => {
+    const raw = [...outsideRoot.matchAll(/border-radius\s*:\s*([^;}]+)/g)].map(m => m[1].trim())
+      .filter(v => /\d(px|rem|em)\b/.test(v) && !/var\(/.test(v));
+    assert.deepEqual(raw, [], 'utiliser --r-md, --r-lg ou --r-pill');
+  });
+
+  const SMALL_TEXT_BASELINE = 27; // à ne jamais augmenter ; objectif 0 (plancher de 13 px)
+  test('le texte sous 13 px ne progresse pas (cliquet)', () => {
+    const small = [...outsideRoot.matchAll(/font-size\s*:\s*([\d.]+)(rem|px|em)/g)]
+      .filter(m => (m[2] === 'px' ? Number(m[1]) : Number(m[1]) * 16) < 12.99);
+    assert.ok(small.length <= SMALL_TEXT_BASELINE, `${small.length} tailles de texte sous 13 px (plafond ${SMALL_TEXT_BASELINE})`);
+  });
+});

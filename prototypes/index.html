@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CapVoyage, trois directions</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Public+Sans:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #ece8df; --ink: #1c1917; --muted: #4a4742; --line: #cfc8ba; --surface: #f8f5ee; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; line-height: 1.55; }
+main { max-width: 1180px; margin: 0 auto; padding: 40px 24px 72px; }
+h1 { font-family: 'Public Sans', system-ui, sans-serif; font-size: clamp(30px, 4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 12px; text-wrap: balance; }
+.lead { max-width: 64ch; font-size: 18px; color: var(--muted); margin: 0 0 12px; text-wrap: pretty; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 36px; }
+.opt { display: grid; grid-template-rows: auto auto 1fr auto; gap: 14px; }
+.shot { height: 520px; overflow: hidden; border-radius: 22px; background: #d8d2c4; display: grid; justify-items: center; align-items: start; padding-top: 18px; border: 1.5px solid var(--line); }
+.shot iframe { width: 390px; height: 844px; border: 10px solid #1c1917; border-radius: 40px; background: #fff; transform: scale(.58); transform-origin: top center; pointer-events: none; }
+.opt h2 { font-family: 'Public Sans', system-ui, sans-serif; font-size: 24px; margin: 0; letter-spacing: -0.02em; }
+.opt h2 span { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--ink); color: #fff; font-size: 18px; margin-right: 10px; vertical-align: 2px; }
+.opt p { margin: 0; color: var(--muted); }
+.opt ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 6px; }
+.go { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 14px; background: var(--ink); color: #fff; text-decoration: none; font-weight: 700; font-size: 17px; }
+.go:hover { background: #3a3631; }
+.go:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 3px; }
+table { border-collapse: collapse; width: 100%; margin-top: 52px; font-size: 16px; background: var(--surface); border-radius: 16px; overflow: hidden; }
+caption { text-align: left; font-family: 'Public Sans', system-ui, sans-serif; font-weight: 800; font-size: 22px; padding: 0 0 12px; letter-spacing: -0.02em; }
+th, td { text-align: left; vertical-align: top; padding: 14px 16px; border-top: 1.5px solid var(--line); }
+thead th { background: #1c1917; color: #fff; border-top: 0; }
+tbody th { width: 17%; color: var(--muted); font-weight: 700; }
+.note { margin-top: 28px; padding: 18px 20px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; max-width: 78ch; }
+.note b { display: block; margin-bottom: 4px; }
+.chosen { margin-top: 28px; padding: 24px; border-radius: 22px; background: #fbece1; border: 1px solid #efcdb5; max-width: 80ch; }
+.chosen h2 { font-family: 'Public Sans', system-ui, sans-serif; font-size: 24px; margin: 0 0 8px; letter-spacing: -0.02em; text-wrap: balance; }
+.chosen p { margin: 0 0 16px; color: #51483d; }
+.chosen .links { display: flex; flex-wrap: wrap; gap: 10px; }
+.chosen .go { padding: 0 20px; }
+.go.alt { background: #fffdfa; color: var(--ink); border: 1.5px solid #c9bfae; }
+.go.alt:hover { background: #f0ebe2; }
+h2.before { font-family: 'Public Sans', system-ui, sans-serif; font-size: 20px; margin: 44px 0 0; color: var(--muted); letter-spacing: -0.01em; }
+@media (max-width: 980px) { .grid { grid-template-columns: 1fr; } .shot { height: 540px; } table { display: block; overflow-x: auto; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Trois façons de repenser CapVoyage</h1>
+  <p class="lead">Mêmes données, mêmes fonctions, trois idées différentes de ce qu’un voyageur veut voir en ouvrant l’application. Chaque prototype est interactif : ajoutez une activité, cochez, notez une dépense, passez hors ligne, basculez entre « sur place » et « avant le départ ».</p>
+  <p class="lead">Aucune ligne de l’application n’a été modifiée : tout vit dans le dossier <code>prototypes/</code>.</p>
+
+  <section class="chosen" aria-labelledby="chosen-h">
+    <h2 id="chosen-h">Direction retenue : A, reconstruite sur un design system</h2>
+    <p>A2 « Soleil » reprend A écran par écran, sans débordement de 320 à 430 px, avec quatre formes et trois hauteurs de contrôle au lieu d’une dizaine de valeurs. Le banc de test le prouve sur 72 combinaisons écran × largeur (18 écrans et feuilles, dont filtre, synchro, fiche d’activité et assistant).</p>
+    <div class="links"><a class="go" href="A2-soleil.html">Ouvrir A2 Soleil</a><a class="go alt" href="design-system.html">Voir le design system</a><a class="go alt" href="qa-garde-fous.html">Lancer le banc de test</a></div>
+  </section>
+
+  <h2 class="before">Les trois propositions d’origine</h2>
+  <div class="grid">
+    <article class="opt">
+      <div class="shot"><iframe src="A-aujourdhui.html" title="Aperçu direction A" loading="lazy" tabindex="-1"></iframe></div>
+      <h2><span>A</span>Aujourd’hui d’abord</h2>
+      <p>On ouvre sur la journée en cours. Une carte « Ensuite », une semaine de 7 jours au lieu de 21 tuiles, un bouton Ajouter.</p>
+      <ul><li>Cuivre actuel conservé : la plus douce des évolutions.</li><li>La plus rapide à livrer.</li></ul>
+      <a class="go" href="A-aujourdhui.html">Ouvrir le prototype A</a>
+    </article>
+    <article class="opt">
+      <div class="shot"><iframe src="B-cap.html" title="Aperçu direction B" loading="lazy" tabindex="-1"></iframe></div>
+      <h2><span>B</span>Cap</h2>
+      <p>Un accueil qui dit où en est le voyage : décompte ou jour en cours, route en trois étapes, démarches bloquantes, budget, contacts sur la route.</p>
+      <ul><li>La meilleure aide avant le départ.</li><li>Nouvelle identité : vert profond, sable, serif chaleureux.</li></ul>
+      <a class="go" href="B-cap.html">Ouvrir le prototype B</a>
+    </article>
+    <article class="opt">
+      <div class="shot"><iframe src="C-journal.html" title="Aperçu direction C" loading="lazy" tabindex="-1"></iframe></div>
+      <h2><span>C</span>Journal</h2>
+      <p>Une seule barre de saisie en bas qui change de rôle : activité, tâche, dépense, contact. Plus aucune fenêtre pour ajouter. Bascule FCFA / €, thème sombre.</p>
+      <ul><li>Le plus rapide à l’usage, une main, au soleil comme le soir.</li><li>Le plus éloigné des habitudes actuelles.</li></ul>
+      <a class="go" href="C-journal.html">Ouvrir le prototype C</a>
+    </article>
+  </div>
+
+  <table>
+    <caption>Comparaison</caption>
+    <thead><tr><th></th><th>A · Aujourd’hui d’abord</th><th>B · Cap</th><th>C · Journal</th></tr></thead>
+    <tbody>
+      <tr><th>Premier écran</th><td>La journée, avec la prochaine activité et le contact à écrire</td><td>L’état du voyage : décompte, route, bloquants, budget</td><td>Le fil de tous les jours, calé sur aujourd’hui</td></tr>
+      <tr><th>Noter une idée</th><td>Bouton Ajouter, feuille avec moment et contact déduits</td><td>Champ toujours visible en haut de l’accueil</td><td>Barre de saisie fixe en bas, « @ » pour un contact</td></tr>
+      <tr><th>Naviguer dans les 21 jours</th><td>Semaine de 7 jours et grille des 21 jours</td><td>Liste par étape, jours qui se déplient</td><td>Trois boutons d’étape et « Aujourd’hui »</td></tr>
+      <tr><th>Avant le départ</th><td>Bandeau « départ dans 9 jours » vers les démarches</td><td>Les démarches bloquantes ouvrent l’accueil</td><td>Bandeau puis onglet « À faire » à pastille rouge</td></tr>
+      <tr><th>Dépenses et devises</th><td>Feuille dédiée, convertisseur en carte</td><td>Feuille dédiée, répartition en barre empilée</td><td>Tapez « 15000 dîner » ; la conversion s’affiche en direct</td></tr>
+      <tr><th>Contre</th><td>Reste proche de l’existant</td><td>Rupture visuelle, écran de plus à maintenir</td><td>Moins de repères visuels, habitudes bousculées</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note"><b>Communs aux trois</b>Barre haute sobre au lieu d’un en-tête qui prenait 45 % de l’écran, état « Enregistré / Hors ligne » toujours visible, Annuler après chaque ajout, coche « fait » en un tap, icônes dessinées à la place des emojis, cibles de 48 px, version large avec navigation latérale.</div>
+</main>
+</body>
+</html>

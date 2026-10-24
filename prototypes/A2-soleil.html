@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Direction A2, Soleil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Public+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/shell.css">
+<link rel="stylesheet" href="shared/ds.css">
+<style>
+/* Mise en page propre à l'écran Programme : uniquement des jetons, aucune valeur en dur */
+.dayhead { display: grid; gap: var(--s3); }
+.dayrow { display: flex; align-items: center; gap: var(--s1); }
+.dayrow .titles { flex: 1 1 0; }
+.dayrow h1 { font: 800 var(--t-large)/1.06 var(--f-head); letter-spacing: -0.03em; }
+.dayrow h2 { font: 800 var(--t-title)/1.2 var(--f-head); letter-spacing: -0.02em; }
+.dayrow .sub { margin-top: var(--s1); color: var(--ink-2); font-size: var(--t-small); display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s2); }
+.strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.sday { display: grid; justify-items: center; gap: 1px; min-height: 64px; padding: 6px 0 8px; border-radius: var(--r-md); border: 1.5px solid transparent; background: transparent; }
+.sday .wd { font-size: var(--t-caption); color: var(--ink-2); text-transform: capitalize; }
+.sday .nb { font: 800 18px/1.2 var(--f-head); }
+.sday .dots { height: 6px; display: flex; gap: 2px; align-items: center; }
+.sday .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--line-strong); }
+.sday.today:not(.sel) { border-color: var(--accent); }
+.sday.today:not(.sel) .nb { color: var(--accent); }
+.sday.sel { background: var(--accent); color: var(--on-accent); box-shadow: var(--e1); }
+.sday.sel .wd { color: #ffe8da; }
+.sday.sel .dots i { background: rgb(255 255 255 / .85); }
+.sday:hover:not(.sel) { background: var(--sunken); }
+.block > .hd { margin-top: 0; }
+.cost-note { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="notes">
+    <a class="back" href="index.html">← Les directions</a>
+    <h1>A2 · Soleil</h1>
+    <p class="thesis">La direction A, reconstruite sur un vrai design system. Mêmes écrans, mais chaque taille, rayon et couleur vient d’un jeton, et chaque composant sait quoi faire d’un texte trop long.</p>
+    <div class="ctrl"><span class="ctrl-label">Moment du voyage</span>
+      <button data-scenario="onsite" aria-pressed="true">Sur place (J4)</button>
+      <button data-scenario="before" aria-pressed="false">Avant départ (J-9)</button></div>
+    <div class="ctrl"><span class="ctrl-label">Taille d’écran</span>
+      <button data-viewport="phone" aria-pressed="true">Téléphone</button>
+      <button data-viewport="wide" aria-pressed="false">Large</button></div>
+    <div class="ctrl"><span class="ctrl-label">Mettre à l’épreuve</span>
+      <button id="stress" aria-pressed="false">Textes très longs</button></div>
+    <h2>Corrigé par rapport à A</h2>
+    <ul>
+      <li>Plus aucun débordement de 320 à 430 px : A faisait 381 px au minimum.</li>
+      <li>Formes : 4 familles seulement (cercle, pilule, rectangle de contrôle, surface) au lieu de 8 rayons.</li>
+      <li>Titres sur 2 lignes maximum, dépliables au toucher ; montants qui réduisent au lieu de déborder.</li>
+      <li>Contacts : une action rapide par ligne, le reste au toucher, comme les activités.</li>
+      <li>Erreurs de saisie affichées sous le champ, avec la marche à suivre.</li>
+    </ul>
+    <p style="margin-top:18px"><a class="back" href="design-system.html">Voir le design system →</a></p>
+  </aside>
+  <main class="device-wrap"><div class="device ds" id="device"><div class="app shell" id="app"></div></div></main>
+</div>
+
+<script src="shared/data.js"></script>
+<script src="shared/icons.js"></script>
+<script src="shared/shell.js"></script>
+<script>
+(function () {
+  const P = window.PROTO, I = P.icon, esc = P.esc;
+  const S = { tab: 'plan', day: 4, open: null, offline: false, pending: 0, conflict: false, filter: 'Tous', title: 'Cameroun 2026' };
+  const syncState = () => (S.conflict ? 'conflict' : S.pending > 0 ? 'pending' : 'saved');
+  const app = document.getElementById('app');
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const initDay = () => { S.day = P.today() || 1; S.open = null; };
+  P.onScenario = () => { initDay(); S.tab = 'plan'; render(); };
+  const touch = () => { if (S.offline) S.pending++; };
+  const dayActs = (d) => P.activities.filter((a) => a.day === d);
+  const byTime = (a, b) => (a.time || '99').localeCompare(b.time || '99');
+  const critPending = () => P.todos.filter((t) => t.prio === 'critique' && !t.done);
+  const btn = (cls, ic, label, attrs) => `<button class="btn ${cls || ''}" ${attrs || ''}>${ic ? I(ic, 20) : ''}<span class="lbl">${label}</span></button>`;
+  const lnk = (cls, ic, label, href) => `<a class="btn ${cls}" href="${href}" target="_blank" rel="noopener">${ic ? I(ic, 20) : ''}<span class="lbl">${label}</span></a>`;
+  const hd = (ic, label, n, hint) => `<div class="hd"><span class="hd-ic">${I(ic, 16)}</span><h2>${label}</h2>${hint ? `<span class="t-small clamp-1">${hint}</span>` : ''}${n ? `<span class="badge-n">${n}</span>` : ''}</div>`;
+
+  /* stress : allonge les textes pour montrer que rien ne déborde */
+  const LONG = { title: 'Déjeuner de retrouvailles avec toute la famille élargie chez Tante Rose à New Bell', place: 'Quartier New Bell, derrière le grand marché central', name: 'Jean-Baptiste Nkoulou-Mbarga', label: 'Acompte de réservation de la maison de Kribi pour trois semaines' };
+  let stressed = false;
+  function applyStress(on) {
+    P.activities = P.activities.filter((a) => a.id !== 'zz'); P.contacts = P.contacts.filter((c) => c.id !== 'cx'); P.expenses = P.expenses.filter((e) => e.id !== 'ex');
+    if (on) {
+      P.activities.push({ id: 'zz', day: S.day, block: 'afternoon', time: '15:00', title: LONG.title, place: LONG.place, cat: 'Famille', contact: 'c4', cost: 1250000, done: false, note: 'Une note assez longue pour vérifier que le texte à l’intérieur du panneau déplié reste dans ses marges et se coupe proprement.' });
+      P.contacts.push({ id: 'cx', name: LONG.name, role: 'Famille · hébergement', city: 'Douala', phone: '237650000009' });
+      P.expenses.push({ id: 'ex', label: LONG.label, amount: 1250000, currency: 'XAF', cat: 'Hébergement', day: 4 });
+    }
+  }
+  document.getElementById('stress').addEventListener('click', (e) => { stressed = !stressed; e.currentTarget.setAttribute('aria-pressed', String(stressed)); applyStress(stressed); render(); });
+
+  /* ---------- écrans ---------- */
+  function topbar() {
+    const st = syncState(), n = S.pending;
+    const lab = { saved: S.offline ? 'Enregistré (hors ligne)' : 'Enregistré', pending: `${n} modification${n > 1 ? 's' : ''} en attente de synchro`, conflict: 'Conflit de synchronisation : touchez pour résoudre' }[st];
+    const ic = { saved: 'cloud', pending: 'cloudup', conflict: 'alert' }[st], cls = { saved: '', pending: 'pill-warn', conflict: 'pill-neg' }[st];
+    return `<header class="topbar">
+      <div class="trip"><span class="mark">${I('compass', 20)}</span><strong class="clamp-1">${esc(S.title)}</strong></div>
+      <span class="sr-only" role="status" aria-live="polite">${lab}</span>
+      <button class="pill pill-icon ${cls}" data-act="save-info" aria-label="${lab}" title="${lab}">${I(ic, 20)}${st === 'pending' ? `<span class="n" aria-hidden="true">${n}</span>` : ''}</button>
+      <button class="icon-btn" data-act="menu" aria-label="Menu : partager, exporter, réglages">${I('more', 22)}</button></header>`;
+  }
+  function nav() {
+    const items = [['plan', 'calendar', 'Programme'], ['todo', 'checklist', 'À faire'], ['budget', 'wallet', 'Budget'], ['contacts', 'users', 'Contacts']];
+    const n = critPending().length;
+    return `<nav class="nav" aria-label="Navigation principale"><div class="rail-brand">${I('compass', 26)}CapVoyage</div>${items.map(([k, ic, lb]) =>
+      `<button data-tab="${k}" ${S.tab === k ? 'aria-current="page"' : ''}><span class="ind">${I(ic, 22)}</span><span class="lbl">${lb}</span>${k === 'todo' && n ? `<span class="badge" aria-label="${n} bloquant">${n}</span>` : ''}</button>`).join('')}</nav>`;
+  }
+
+  function actRow(a) {
+    const ids = a.contactIds || (a.contact ? [a.contact] : []), cs = ids.map((i) => P.contact(i)).filter(Boolean), c = cs[0], open = S.open === a.id;
+    const wa = cs.find(hasWa), cancelled = a.status === 'Annulé';
+    return `<li class="row ${a.done ? 'done' : ''} ${cancelled ? 'cancelled' : ''}" data-id="${a.id}" data-open="${open}">
+      <button class="toggle" data-act="toggle" aria-pressed="${a.done}" aria-label="${a.done ? 'Décocher' : 'Marquer comme fait'} : ${esc(a.title)}"><span>${I('check', 18)}</span></button>
+      <button class="row-main" data-act="open" aria-expanded="${open}">
+        <span class="row-title">${esc(a.title)}</span>
+        <span class="frags">${a.time ? `<span class="frag" style="color:var(--ink);font-weight:700">${esc(a.time)}</span>` : ''}${cancelled ? '<span class="frag" style="color:var(--neg);font-weight:700">Annulé</span>' : a.status === 'Confirmé' ? '<span class="frag" style="color:var(--pos-ink);font-weight:700">Confirmé</span>' : ''}<span class="frag">${esc(a.place || P.catLabel[a.cat])}</span>${c ? `<span class="frag who">${I('message', 14)}${esc(c.name)}${cs.length > 1 ? ' +' + (cs.length - 1) : ''}</span>` : ''}${a.cost ? `<span class="frag cost-inline">${P.n(a.cost)}&nbsp;FCFA</span>` : ''}</span>
+      </button>
+      ${a.cost ? `<div class="row-end money">${P.n(a.cost)}&nbsp;FCFA<small>${P.eur(a.cost)}</small></div>` : '<div></div>'}
+      <div class="row-detail" ${open ? '' : 'hidden'}>
+        ${a.note ? `<p>${esc(a.note)}</p>` : '<p>Pas de note. Ajoutez un lieu, une heure ou une personne avec Modifier.</p>'}
+        <div class="actions">${wa ? lnk('btn-pos btn-dense', 'message', 'WhatsApp ' + esc(wa.name.split(' ')[0]), P.wa(wa)) : ''}${btn('btn-dense', 'calendar', 'Changer de jour', 'data-act="move"')}${btn('btn-dense', 'pencil', 'Modifier', 'data-act="edit"')}</div>
+      </div></li>`;
+  }
+
+  function planScreen() {
+    const d = S.day, today = P.today(), isToday = d === today, et = P.etapeOf(d);
+    const start = Math.min(Math.max(d - 3, 1), P.TOTAL_DAYS - 6);
+    const strip = Array.from({ length: 7 }, (_, i) => start + i).map((x) => {
+      const n = dayActs(x).length;
+      return `<button class="sday ${x === d ? 'sel' : ''} ${x === today ? 'today' : ''}" data-day="${x}" aria-label="${cap(P.dateLong(x))}, ${n} activité${n > 1 ? 's' : ''}${x === today ? ', aujourd’hui' : ''}" ${x === d ? 'aria-current="date"' : ''}>
+        <span class="wd">${P.weekday(x)}</span><span class="nb">${P.dayNum(x)}</span><span class="dots">${'<i></i>'.repeat(Math.min(n, 3))}</span></button>`;
+    }).join('');
+
+    const before = P.scenario === 'before';
+    let pretrip = '';
+    if (before) {
+      const c = critPending(), total = P.todos.length, done = P.todos.filter((t) => t.done).length;
+      pretrip = `<header><h1 class="t-large">Départ dans ${P.daysToDeparture} jours</h1><p class="t-small" style="margin-top:var(--s1)">${cap(P.dateLong(1))} · ${esc(P.etapeOf(1).city)}</p></header>
+        <section class="ready" aria-label="Préparation du départ"><ul class="group"><li class="sum"><div class="top"><span class="t-title-s">${done} démarches sur ${total} faites</span><button class="link" data-tab="todo">Tout voir${I('right', 16)}</button></div><div class="track"><i style="width:${done / total * 100}%"></i></div></li>
+        ${c.length ? c.map(todoRow).join('') : `<li class="row" style="grid-template-columns:auto minmax(0,1fr)"><span class="row-lead mid"><span class="lead-ic" style="background:var(--pos-soft);color:var(--pos-ink)">${I('shield', 18)}</span></span><div class="row-main"><span class="row-title">Plus rien ne bloque le départ</span></div></li>`}</ul>
+        ${c.length ? `<p class="foot">${c.length === 1 ? 'Cette démarche bloque' : 'Ces démarches bloquent'} le départ.</p>` : ''}</section>`;
+    }
+    const banner = '';
+
+    let next = '';
+    if (isToday) {
+      const [nh, nm] = P.NOW.split(':').map(Number);
+      const cand = dayActs(d).filter((a) => !a.done && a.time && a.time > P.NOW).sort(byTime)[0];
+      if (cand) {
+        const [h, m] = cand.time.split(':').map(Number), diff = h * 60 + m - (nh * 60 + nm);
+        const label = diff >= 60 ? `dans ${Math.floor(diff / 60)} h ${String(diff % 60).padStart(2, '0')}` : `dans ${diff} min`;
+        const c = cand.contact && P.contact(cand.contact);
+        next = `<section class="card card-next" data-id="${cand.id}" aria-label="Prochaine activité">
+          <div class="when"><b>${label}</b><span>à ${cand.time}</span></div>
+          <h2 class="t-title clamp-2">${esc(cand.title)}</h2>
+          ${cand.place ? `<p class="where">${I('pin', 16)}<span class="clamp-1">${esc(cand.place)}</span></p>` : ''}
+          <div class="actions">${hasWa(c) ? lnk('btn-pos-solid', 'message', 'Écrire à ' + esc(c.name.split(' ')[0]), P.wa(c)) : ''}${btn('', 'check', 'C’est fait', 'data-act="toggle"')}</div></section>`;
+      }
+    }
+
+    const acts0 = dayActs(d).sort(byTime), acts = S.filter === 'Tous' ? acts0 : acts0.filter((a) => a.cat === S.filter);
+    const blocks = P.blocks.map((b) => {
+      const list = acts.filter((a) => a.block === b.id);
+      if (!list.length && b.id === 'unassigned') return '';
+      if (!list.length) return `<section class="block">${hd(b.icon, b.label, 0, b.hint)}<button class="row-slot" data-act="add" data-block="${b.id}">${I('plus', 18)}<span class="lbl clamp-1">Ajouter ${b.id === 'morning' ? 'au matin' : b.id === 'afternoon' ? 'à l’après-midi' : 'à la soirée'}</span></button></section>`;
+      return `<section class="block">${hd(b.icon, b.label, list.length, b.hint)}<ul class="group">${list.map(actRow).join('')}</ul></section>`;
+    }).join('');
+
+    const ideas = P.ideas.length ? `<section class="block">${hd('bulb', 'Idées', P.ideas.length, 'sans jour fixé')}<ul class="group">${P.ideas.map((i) => `<li data-idea="${i.id}"><button class="disclosure" data-act="place-idea" aria-label="Placer l’idée : ${esc(i.title)}"><span class="row-lead mid"><span class="lead-ic">${I('bulb', 18)}</span></span><span class="row-main" style="padding-block:var(--s3)"><span class="row-title">${esc(i.title)}</span><span class="frags"><span class="frag">${P.catLabel[i.cat]}</span></span></span><span class="chev">${I('right', 20)}</span></button></li>`).join('')}</ul><p class="foot">Touchez une idée pour la placer dans le programme.</p></section>` : '';
+
+    return `${pretrip}<header class="dayhead">${before ? hd('calendar', 'Programme du séjour') : ''}
+      <div class="dayrow">
+        <button class="icon-btn" data-step="-1" aria-label="Jour précédent" ${d <= 1 ? 'disabled style="opacity:.35"' : ''}>${I('left', 24)}</button>
+        <div class="titles">${before ? `<h2>${cap(P.dateLong(d))}</h2>` : `<h1>${isToday ? 'Aujourd’hui' : cap(P.dateLong(d))}</h1>`}
+          <p class="sub"><span>${isToday ? cap(P.dateLong(d)) + ' · ' : ''}Jour ${d} sur ${P.TOTAL_DAYS}</span><button class="link" data-act="edit-city" style="min-height:var(--h-dense)">${I('pin', 15)}${esc(et.city)}</button></p></div>
+        <button class="icon-btn" data-step="1" aria-label="Jour suivant" ${d >= P.TOTAL_DAYS ? 'disabled style="opacity:.35"' : ''}>${I('right', 24)}</button>
+      </div>
+      <div class="strip" role="group" aria-label="Semaine">${strip}</div>
+      <div class="tools"><button class="link" data-act="all-days">${I('calendar', 18)}Voir les 21 jours</button>
+        <span class="right"><button class="chip ${S.filter !== 'Tous' ? 'chip-soft' : ''}" data-act="filter" aria-label="${S.filter === 'Tous' ? 'Filtrer par type' : 'Filtre actif : ' + P.catLabel[S.filter] + ', modifier'}">${I('filter', 16)}<span class="lbl">${S.filter === 'Tous' ? 'Filtrer' : P.catLabel[S.filter]}</span></button>${S.filter !== 'Tous' ? `<button class="icon-btn" data-act="filter-clear" aria-label="Retirer le filtre">${I('x', 20)}</button>` : ''}</span></div>
+    </header>${next}${S.filter !== 'Tous' && acts.length === 0 && acts0.length ? `<div class="card empty"><p>Aucune activité « ${esc(P.catLabel[S.filter])} » ce jour-là.</p>${btn('', '', 'Afficher tous les types', 'data-act="filter-clear"')}</div>` : blocks}${acts0.length === 0 ? '<p class="t-small">Journée libre : rien de prévu, et c’est aussi un programme.</p>' : ''}${ideas}`;
+  }
+
+  function todoRow(t) {
+    return `<li class="row ${t.done ? 'done' : ''}" data-tid="${t.id}" style="grid-template-columns:auto minmax(0,1fr)">
+      <button class="toggle" data-act="todo-toggle" aria-pressed="${t.done}" aria-label="${t.done ? 'Décocher' : 'Marquer comme fait'} : ${esc(t.label)}"><span>${I('check', 18)}</span></button>
+      <div class="row-main" style="padding-right:var(--s4)"><span class="row-title">${esc(t.label)}</span><span class="frags">${t.due && !t.done ? `<span class="frag" style="color:var(--neg);font-weight:700">${t.due}</span>` : ''}<span class="frag">${t.cat}</span></span></div></li>`;
+  }
+  function todoScreen() {
+    const total = P.todos.length, done = P.todos.filter((t) => t.done).length;
+    const crit = P.todos.filter((t) => t.prio === 'critique' && !t.done), rest = P.todos.filter((t) => t.prio !== 'critique' && !t.done), dn = P.todos.filter((t) => t.done);
+    return `<div><h1 class="t-large">À faire</h1><p class="t-small" style="margin-top:var(--s1)">${P.scenario === 'before' ? `Départ dans ${P.daysToDeparture} jours` : 'Vous êtes sur place : il reste ce qui sert encore'}</p></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;gap:var(--s3);font-weight:700;margin-bottom:var(--s2)"><span>${done} sur ${total} faits</span><span>${Math.round(done / total * 100)} %</span></div><div class="track"><i style="width:${done / total * 100}%"></i></div></div>
+      ${crit.length ? `<section>${hd('alert', 'Bloque le départ', crit.length)}<ul class="group">${crit.map(todoRow).join('')}</ul></section>` : `<div class="banner banner-pos">${I('shield', 24)}<div><strong>Plus rien ne bloque le départ.</strong></div></div>`}
+      <section>${hd('checklist', 'À préparer', rest.length)}${rest.length ? `<ul class="group">${rest.map(todoRow).join('')}</ul>` : '<p class="t-small">Tout est prêt.</p>'}</section>
+      ${btn('btn-block', 'plus', 'Ajouter une tâche', 'data-act="todo-add"')}
+      <details><summary style="min-height:var(--h-md);display:flex;align-items:center;font:800 var(--t-small)/1 var(--f-head);cursor:pointer">Déjà fait (${dn.length})</summary><ul class="group" style="margin-top:var(--s2)">${dn.map(todoRow).join('')}</ul></details>`;
+  }
+
+  const CATIC = { Hébergement: 'home', Transport: 'train', Restaurant: 'utensils', Formalités: 'shield', Cadeaux: 'gift', Sorties: 'users' };
+  function budgetScreen() {
+    const spent = P.spentXAF(), rem = P.remainingXAF(), pct = Math.min(100, spent / P.budgetXAF() * 100);
+    const cats = {}; P.expenses.forEach((e) => { cats[e.cat] = (cats[e.cat] || 0) + P.toXAF(e); });
+    const catRows = Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<li class="row" style="--inset:64px;grid-template-columns:auto minmax(0,1fr) auto;align-items:center">
+      <span class="row-lead mid"><span class="lead-ic">${I(CATIC[k] || 'wallet', 18)}</span></span>
+      <div class="row-main" style="min-height:0;padding-block:var(--s3);gap:6px"><span class="row-title">${k}</span><div class="track track-accent" style="height:6px"><i style="width:${v / spent * 100}%"></i></div></div>
+      <div class="row-end money" style="padding-top:0;max-width:none">${P.n(v)}&nbsp;FCFA<small>${P.eur(v)}</small></div></li>`).join('');
+    const days = [...new Set(P.expenses.map((e) => e.day))].sort((a, b) => b - a);
+    const ledger = days.map((dd) => `<section>${hd('calendar', dd ? cap(P.dateShort(dd)) : 'Avant le départ')}<ul class="group">${P.expenses.filter((e) => e.day === dd).map((e) => {
+      const x = P.toXAF(e);
+      return `<li class="row" style="--inset:64px;grid-template-columns:auto minmax(0,1fr) auto;align-items:center"><span class="row-lead mid"><span class="lead-ic">${I(CATIC[e.cat] || 'wallet', 18)}</span></span><div class="row-main"><span class="row-title">${esc(e.label)}</span><span class="frags"><span class="frag">${e.cat}</span>${e.currency === 'EUR' ? '<span class="frag">payé en €</span>' : ''}</span></div><div class="row-end money" style="padding-top:0">${P.n(x)}&nbsp;FCFA<small>${P.eur(x)}</small></div></li>`;
+    }).join('')}</ul></section>`).join('');
+    return `<div class="title-row"><h1 class="t-large">Budget</h1><button class="icon-btn icon-btn-add" data-act="exp-add" aria-label="Ajouter une dépense">${I('plus', 24)}</button></div>
+      <div class="card"><p class="t-small">Il vous reste</p><p class="amount-xl">${P.n(rem)}<small>FCFA</small></p><p class="t-small" style="margin:var(--s1) 0 var(--s3)">≈ ${P.eur(rem)}</p><div class="track track-accent" role="img" aria-label="${Math.round(pct)} % du budget dépensé"><i style="width:${pct}%"></i></div>
+        <div class="stats"><div><span class="t-caption">Dépensé</span><b>${P.n(spent)}&nbsp;FCFA</b></div><div><span class="t-caption">Prévu</span><b>${P.n(P.budgetXAF())}&nbsp;FCFA</b></div></div></div>
+      <section>${hd('wallet', 'Par catégorie')}<ul class="group">${catRows}</ul></section>
+      <section><div class="hd"><span class="hd-ic">${I('swap', 16)}</span><h2>Convertisseur</h2><button class="link" style="margin-left:auto" data-act="swap">Inverser</button></div>
+        <div class="group"><label class="form-row" style="--inset:var(--s4)"><span>FCFA</span><input id="cv-x" inputmode="decimal" placeholder="15 000" aria-label="Montant en FCFA"></label><label class="form-row"><span>Euros</span><input id="cv-e" inputmode="decimal" placeholder="22,87" aria-label="Montant en euros"></label></div>
+        <p class="foot">1 € = ${String(P.rate).replace('.', ',')} FCFA, parité fixe.</p></section>
+      ${ledger}`;
+  }
+
+  function contactRow(c) {
+    const n = P.activities.filter((a) => a.contact === c.id).length, open = S.open === c.id;
+    return `<li class="row" data-cid="${c.id}" data-open="${open}" style="align-items:center">
+      <div class="lead"><span class="avatar" aria-hidden="true">${P.initials(c.name)}</span></div>
+      <button class="row-main" data-act="ct-open" aria-expanded="${open}" style="align-content:center"><span class="row-title">${esc(c.name)}</span><span class="frags"><span class="frag">${esc(c.role)}</span><span class="frag">${c.city}</span>${n ? `<span class="frag">${n} activité${n > 1 ? 's' : ''}</span>` : ''}</span></button>
+      <div style="padding-right:var(--s2)">${hasWa(c) ? `<a class="icon-btn icon-btn-pos" href="${P.wa(c)}" target="_blank" rel="noopener" aria-label="WhatsApp ${esc(c.name)}">${I('message', 22)}</a>` : `<span class="icon-btn" style="color:var(--ink-3)" role="img" aria-label="Pas de numéro WhatsApp">${I('phone', 22)}</span>`}</div>
+      <div class="row-detail" style="grid-column:2/4" ${open ? '' : 'hidden'}><div class="actions">${hasWa(c) ? lnk('btn-dense', 'phone', 'Appeler', 'tel:+' + c.phone) + lnk('btn-pos btn-dense', 'message', 'WhatsApp', P.wa(c)) : '<p class="t-small">Pas de numéro enregistré pour l’instant.</p>'}</div></div></li>`;
+  }
+  function contactsScreen(q0) {
+    const q = (q0 || '').trim().toLowerCase();
+    const list = P.contacts.filter((c) => !q || (c.name + c.role + c.city).toLowerCase().includes(q));
+    return `<div><h1 class="t-large">Contacts</h1><p class="t-small" style="margin-top:var(--s1)">Famille, chauffeurs et guides à joindre sur place</p></div>
+      <div class="actions">${btn('btn-primary', 'plus', 'Nouveau', 'data-act="ct-add"')}${btn('', 'download', 'Importer', 'data-act="ct-import"')}</div>
+      <div class="search">${I('search', 20)}<input class="input" id="ct-q" placeholder="Chercher un nom ou une ville" value="${esc(q0 || '')}" aria-label="Chercher un contact"></div>
+      <div id="ct-list">${list.length ? `<ul class="group">${list.map(contactRow).join('')}</ul>` : `<div class="card empty"><p>Personne ne correspond${q ? ' à « ' + esc(q0.trim()) + ' »' : ''}.</p>${q ? btn('btn-primary', 'plus', 'Ajouter ce contact', 'data-act="ct-add-q"') : ''}</div>`}</div>`;
+  }
+
+  function render() {
+    const sc = app.querySelector('.screen'), top = sc ? sc.scrollTop : 0;
+    const body = (S.conflict ? `<button class="banner banner-neg" data-act="save-info">${I('alert', 24)}<div><strong>Conflit de synchronisation</strong><span>Une autre version a été gardée. La vôtre est de côté.</span></div><span>${I('right', 20)}</span></button>` : '') + { plan: planScreen, todo: todoScreen, budget: budgetScreen, contacts: contactsScreen }[S.tab]();
+    app.innerHTML = topbar() + `<main class="screen" id="screen">${body}</main>` + nav() +
+      (S.tab === 'plan' ? `<button class="fab" data-act="add" aria-label="Ajouter une activité">${I('plus', 24)}<span class="lbl">Ajouter</span></button>` : '');
+    app.querySelector('.screen').scrollTop = top;
+    if (S.tab === 'contacts') bindSearch();
+    if (S.tab === 'budget') bindConv();
+  }
+  function bindSearch() {
+    const q = app.querySelector('#ct-q');
+    q.addEventListener('input', () => {
+      const pos = q.selectionStart, sc = app.querySelector('.screen').scrollTop;
+      const tmp = document.createElement('div'); tmp.innerHTML = contactsScreen(q.value);
+      app.querySelector('#ct-list').innerHTML = tmp.querySelector('#ct-list').innerHTML;
+      app.querySelector('.screen').scrollTop = sc; q.setSelectionRange(pos, pos);
+    });
+  }
+  function bindConv() {
+    const x = app.querySelector('#cv-x'), e = app.querySelector('#cv-e');
+    const num = (v) => parseFloat(String(v).replace(/\s/g, '').replace(',', '.'));
+    x.addEventListener('input', () => { const v = num(x.value); e.value = isNaN(v) ? '' : (v / P.rate).toFixed(2).replace('.', ','); });
+    e.addEventListener('input', () => { const v = num(e.value); x.value = isNaN(v) ? '' : P.n(v * P.rate); });
+  }
+
+  /* ---------- feuilles ---------- */
+  const errMsg = (el, msg) => { el.innerHTML = msg ? I('alert', 16) + '<span>' + msg + '</span>' : ''; };
+  function addSheet(block) {
+    const st = { dirtyB: !!block, dirtyC: false };
+    const tpl = ['Dîner entre amis', 'Repas de famille', 'Rdv pro', 'Plage', 'Marché', 'Trajet'];
+    P.sheet(`<h2 class="t-title">Nouvelle activité</h2><p class="sub" id="as-sub"></p>
+      <form id="as-form" novalidate><label class="sr-only" for="as-q">Titre de l’activité</label>
+      <input class="input" id="as-q" placeholder="Quoi ? Ex. Dîner avec @Marie" autocomplete="off" enterkeyhint="done" aria-describedby="as-err">
+      <div class="err" id="as-err" role="alert"></div>
+      <div class="chips" aria-label="Précisions déduites du texte">
+        <label class="chip chip-soft">${I('sun', 16)}<select id="as-block" aria-label="Moment de la journée">${P.blocks.map((b) => `<option value="${b.id}">${b.label}</option>`).join('')}</select></label>
+        <label class="chip chip-soft">${I('message', 16)}<select id="as-contact" aria-label="Avec qui"><option value="">Sans contact</option>${P.contacts.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></label>
+        <label class="chip chip-soft">${I('calendar', 16)}<select id="as-day" aria-label="Jour">${Array.from({ length: 21 }, (_, i) => `<option value="${i + 1}">J${i + 1} · ${P.dateShort(i + 1)}</option>`).join('')}</select></label>
+      </div>
+      <p class="t-caption" style="margin-top:var(--s4)">Modèles</p><div class="chips" style="margin-top:var(--s2)">${tpl.map((t) => `<button type="button" class="chip" data-tpl="${t}"><span class="lbl">${t}</span></button>`).join('')}</div>
+      <div class="sheet-actions">${btn('', 'bulb', 'En idée', 'type="button" id="as-idea"')}${btn('btn-primary', '', 'Ajouter', 'type="submit"')}</div></form>`, (sh) => {
+      const q = sh.querySelector('#as-q'), sb = sh.querySelector('#as-block'), sc = sh.querySelector('#as-contact'), sd = sh.querySelector('#as-day'), sub = sh.querySelector('#as-sub'), er = sh.querySelector('#as-err');
+      sb.value = block || 'unassigned'; sd.value = S.day;
+      const upd = () => { sub.textContent = `Jour ${sd.value} · ${cap(P.dateLong(+sd.value))}`; }; upd();
+      q.addEventListener('input', () => { errMsg(er, ''); const g = P.infer(q.value); if (!st.dirtyB) sb.value = g.block; if (!st.dirtyC) sc.value = g.contact || ''; });
+      sb.addEventListener('change', () => { st.dirtyB = true; }); sc.addEventListener('change', () => { st.dirtyC = true; }); sd.addEventListener('change', upd);
+      sh.querySelectorAll('[data-tpl]').forEach((b) => b.addEventListener('click', () => { q.value = b.dataset.tpl; q.dispatchEvent(new Event('input')); q.focus(); }));
+      const need = () => { const t = P.cleanTitle(q.value); if (!t) { errMsg(er, 'Donnez un titre à l’activité, par exemple « Dîner avec Marie ».'); q.focus(); } return t; };
+      sh.querySelector('#as-idea').addEventListener('click', () => {
+        const t = need(); if (!t) return;
+        const it = { id: P.uid(), title: t, cat: 'Loisir' }; P.ideas.push(it); touch(); P.closeSheet(); render();
+        P.toast('Gardé dans vos idées', () => { P.ideas.splice(P.ideas.indexOf(it), 1); render(); });
+      });
+      sh.querySelector('#as-form').addEventListener('submit', (ev) => {
+        ev.preventDefault(); const t = need(); if (!t) return;
+        const a = { id: P.uid(), day: +sd.value, block: sb.value, time: '', title: t, place: '', cat: 'Loisir', contact: sc.value || null, cost: 0, done: false, note: '' };
+        P.activities.push(a); S.day = a.day; touch(); P.closeSheet(); render();
+        P.toast(`Ajouté : ${P.blockLabel(a.block).toLowerCase()}, jour ${a.day}`, () => { P.activities.splice(P.activities.indexOf(a), 1); render(); });
+      });
+    });
+  }
+  function dayGrid(current, today) {
+    return P.etapes.map((e) => `<div class="dgrid-h">${e.city}<span>jours ${e.from} à ${e.to}</span></div><div class="dgrid">${Array.from({ length: e.to - e.from + 1 }, (_, i) => e.from + i).map((x) => `<button data-pick="${x}" class="${x === current ? 'sel' : ''} ${x === today ? 'today' : ''}" aria-label="Jour ${x}, ${cap(P.dateLong(x))}">${x}</button>`).join('')}</div>`).join('');
+  }
+  function daysSheet() {
+    P.sheet(`<h2 class="t-title">Les 21 jours</h2><p class="sub">Touchez un jour pour l’ouvrir.</p>${dayGrid(S.day, P.today())}`, (sh) => {
+      sh.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => { S.day = +b.dataset.pick; P.closeSheet(); render(); }));
+    });
+  }
+  function moveSheet(id) {
+    const a = P.activities.find((x) => x.id === id);
+    P.sheet(`<h2 class="t-title">Changer de jour</h2><p class="sub clamp-2">${esc(a.title)}</p>${dayGrid(a.day, 0)}`, (sh) => {
+      sh.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
+        const from = a.day; a.day = +b.dataset.pick; S.day = a.day; touch(); P.closeSheet(); render();
+        P.toast(`Déplacé au jour ${a.day}`, () => { a.day = from; S.day = from; render(); });
+      }));
+    });
+  }
+  function placeIdeaSheet(iid) {
+    const it = P.ideas.find((x) => x.id === iid);
+    P.sheet(`<h2 class="t-title">Placer l’idée</h2><p class="sub clamp-2">${esc(it.title)}</p><p class="t-caption">Quel jour ?</p>${dayGrid(S.day, P.today())}`, (sh) => {
+      sh.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
+        const d = +b.dataset.pick; P.ideas.splice(P.ideas.indexOf(it), 1);
+        const na = { id: P.uid(), day: d, block: 'unassigned', time: '', title: it.title, place: '', cat: it.cat, contact: null, cost: 0, done: false, note: '' };
+        P.activities.push(na); S.day = d; touch(); P.closeSheet(); render();
+        P.toast(`Placé au jour ${d}, dans « À caler »`, () => { P.activities.splice(P.activities.indexOf(na), 1); P.ideas.push(it); render(); });
+      }));
+    });
+  }
+  function cityRename() {
+    const et = P.etapeOf(S.day);
+    P.sheet(`<h2 class="t-title">Étape du jour</h2><p class="sub">Jours ${et.from} à ${et.to}. Un renommage s’applique à toute l’étape.</p>
+      <form id="cf"><label class="field"><span>Ville ou lieu</span><input class="input" id="cf-i" value="${esc(et.city)}"></label><div class="sheet-actions">${btn('', '', 'Annuler', 'type="button" data-close')}${btn('btn-primary', '', 'Enregistrer', 'type="submit"')}</div></form>`, (sh) => {
+      sh.querySelector('#cf').addEventListener('submit', (e) => { e.preventDefault(); const v = sh.querySelector('#cf-i').value.trim(); if (v) { et.city = v; touch(); } P.closeSheet(); render(); });
+    });
+  }
+  function expSheet() {
+    const st = { cur: 'XAF', cat: 'Restaurant' };
+    P.sheet(`<h2 class="t-title">Nouvelle dépense</h2><p class="sub">${P.scenario === 'onsite' ? 'Aujourd’hui · ' + cap(P.dateLong(4)) : 'Avant le départ'}</p>
+      <form id="ef" novalidate><div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--s2);align-items:end">
+        <label class="field"><span>Montant</span><input class="input" id="ef-a" inputmode="decimal" placeholder="15 000" aria-describedby="ef-err"></label>
+        <div class="seg" role="group" aria-label="Devise"><button type="button" data-cur="XAF" aria-pressed="true">FCFA</button><button type="button" data-cur="EUR" aria-pressed="false">€</button></div></div>
+      <p class="hint" id="ef-p" aria-live="polite"></p>
+      <label class="field"><span>Pour quoi ?</span><input class="input input-plain" id="ef-l" placeholder="Dîner poissons braisés"></label>
+      <div class="err" id="ef-err" role="alert"></div>
+      <div class="chips" role="group" aria-label="Catégorie" style="margin-top:var(--s2)">${P.expenseCats.map((c) => `<button type="button" class="chip" data-cat="${c}" aria-pressed="${c === st.cat}"><span class="lbl">${c}</span></button>`).join('')}</div>
+      <div class="sheet-actions">${btn('', '', 'Annuler', 'type="button" data-close')}${btn('btn-primary', '', 'Enregistrer', 'type="submit"')}</div></form>`, (sh) => {
+      const a = sh.querySelector('#ef-a'), l = sh.querySelector('#ef-l'), pv = sh.querySelector('#ef-p'), er = sh.querySelector('#ef-err');
+      const num = () => parseFloat(a.value.replace(/\s/g, '').replace(',', '.'));
+      const prev = () => { const v = num(); pv.textContent = isNaN(v) ? '' : st.cur === 'XAF' ? '≈ ' + P.eur(v) : '≈ ' + P.fcfa(v * P.rate); };
+      a.addEventListener('input', () => { errMsg(er, ''); prev(); });
+      l.addEventListener('input', () => { errMsg(er, ''); st.cat = P.guessCat(l.value); sh.querySelectorAll('[data-cat]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cat === st.cat))); });
+      sh.querySelectorAll('[data-cur]').forEach((b) => b.addEventListener('click', () => { st.cur = b.dataset.cur; sh.querySelectorAll('[data-cur]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); prev(); }));
+      sh.querySelectorAll('[data-cat]').forEach((b) => b.addEventListener('click', () => { st.cat = b.dataset.cat; sh.querySelectorAll('[data-cat]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+      sh.querySelector('#ef').addEventListener('submit', (e) => {
+        e.preventDefault(); const v = num();
+        if (isNaN(v) || v <= 0) { errMsg(er, 'Indiquez un montant supérieur à zéro, par exemple 15 000.'); a.focus(); return; }
+        if (!l.value.trim()) { errMsg(er, 'Dites en quelques mots pour quoi, par exemple « Taxi ».'); l.focus(); return; }
+        const ex = { id: P.uid(), label: l.value.trim(), amount: v, currency: st.cur, cat: st.cat, day: P.today() };
+        P.expenses.push(ex); touch(); P.closeSheet(); render();
+        P.toast(`Dépense enregistrée : ${P.fcfa(P.toXAF(ex))}`, () => { P.expenses.splice(P.expenses.indexOf(ex), 1); render(); });
+      });
+    });
+  }
+  function menuSheet() {
+    P.sheet(`<h2 class="t-title">Menu</h2><div class="menu-list">
+      <button data-m="share">${I('share', 22)}<span class="lbl">Partager le programme</span></button>
+      <button data-m="ics">${I('download', 22)}<span class="lbl">Exporter le calendrier (.ics)</span></button>
+      <button data-m="wizard">${I('plus', 22)}<span class="lbl">Nouveau voyage</span></button>
+      <button data-m="setup">${I('sliders', 22)}<span class="lbl">Réglages du voyage</span></button>
+      <button data-m="offline" aria-pressed="${S.offline}">${I('cloudoff', 22)}<span class="lbl">Simuler le mode hors ligne</span><span class="sw"></span></button>
+      <button data-m="conflict">${I('alert', 22)}<span class="lbl">Simuler un conflit de synchro</span></button>
+      <button data-m="exit">${I('compass', 22)}<span class="lbl">Quitter la démo et créer mon compte</span></button></div>`, (sh) => {
+      sh.querySelectorAll('[data-m]').forEach((b) => b.addEventListener('click', () => {
+        const m = b.dataset.m;
+        if (m === 'wizard') { openWizard(); return; }
+        if (m === 'conflict') { S.conflict = true; P.closeSheet(); render(); P.toast('Conflit simulé : touchez le bandeau pour résoudre'); return; }
+        if (m === 'offline') { S.offline = !S.offline; S.pending = 0; P.closeSheet(); render(); P.toast(S.offline ? 'Hors ligne : vos modifications attendent le réseau' : 'De retour en ligne : tout est synchronisé'); return; }
+        P.closeSheet(); P.toast('Prototype : action non branchée');
+      }));
+    });
+  }
+  function simpleForm(title, fields, onOk) {
+    P.sheet(`<h2 class="t-title">${title}</h2><form id="sf" novalidate style="margin-top:var(--s3);display:grid;gap:var(--s3)">${fields.map((f) => `<label class="field"><span>${f.l}</span><input class="input input-plain" id="sf-${f.k}" placeholder="${f.p || ''}" value="${esc(f.v || '')}"></label>`).join('')}<div class="err" id="sf-err" role="alert"></div><div class="sheet-actions" style="margin-top:0">${btn('', '', 'Annuler', 'type="button" data-close')}${btn('btn-primary', '', 'Enregistrer', 'type="submit"')}</div></form>`, (sh) => {
+      sh.querySelector('#sf').addEventListener('submit', (e) => {
+        e.preventDefault(); const v = {}; fields.forEach((f) => { v[f.k] = sh.querySelector('#sf-' + f.k).value.trim(); });
+        const miss = fields.find((f) => f.req && !v[f.k]);
+        if (miss) { errMsg(sh.querySelector('#sf-err'), 'Renseignez « ' + miss.l.toLowerCase() + ' » pour continuer.'); sh.querySelector('#sf-' + miss.k).focus(); return; }
+        onOk(v); P.closeSheet();
+      });
+    });
+  }
+
+  /* ---------- filtre par type ---------- */
+  const CATS = ['Famille', 'Amis', 'Loisir', 'Travail', 'Logistique', 'Santé', 'Autre'];
+  const STATUTS = ['À planifier', 'Confirmé', 'Effectué', 'Annulé'];
+  const hasWa = (c) => !!(c && c.phone);
+  const blockFromTime = (txt, fallback) => {
+    const t = (txt || '').trim().toLowerCase();
+    if (!t) return fallback;
+    const m = t.match(/(\d{1,2})\s*[h:]/);
+    if (m) { const h = +m[1]; return h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening'; }
+    if (/matin/.test(t)) return 'morning';
+    if (/midi|aprem|après/.test(t)) return 'afternoon';
+    if (/soir|nuit/.test(t)) return 'evening';
+    return fallback;
+  };
+
+  function filterSheet() {
+    const counts = {}; dayActs(S.day).forEach((a) => { counts[a.cat] = (counts[a.cat] || 0) + 1; });
+    P.sheet(`<h2 class="t-title">Filtrer par type</h2><p class="sub">Le filtre s’applique à tous les jours du programme.</p>
+      <div class="chips" role="group" aria-label="Type d’activité">${['Tous', ...CATS].map((c) => `<button type="button" class="chip" data-f="${c}" aria-pressed="${S.filter === c}"><span class="lbl">${c === 'Tous' ? 'Tous les types' : P.catLabel[c]}</span>${c !== 'Tous' && counts[c] ? `<span class="n-in">${counts[c]}</span>` : ''}</button>`).join('')}</div>
+      <p class="foot" style="padding:var(--s4) 0 0">Le nombre indique les activités du jour affiché.</p>`, (sh) => {
+      sh.querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { S.filter = b.dataset.f; P.closeSheet(); render(); }));
+    });
+  }
+
+  /* ---------- états de synchronisation (ADR-003) ---------- */
+  function syncSheet() {
+    const st = syncState(), n = S.pending;
+    const blocks = {
+      saved: `<div class="banner banner-pos">${I('cloud', 24)}<div><strong>Tout est enregistré</strong><span>${S.offline ? 'Vous êtes hors ligne : vos prochaines modifications seront gardées sur ce téléphone et envoyées au retour du réseau.' : 'Votre voyage est à jour sur ce téléphone et sur le serveur.'}</span></div></div>`,
+      pending: `<div class="banner">${I('cloudup', 24)}<div><strong>${n} modification${n > 1 ? 's' : ''} en attente</strong><span>Elles partent d’elles-mêmes dès que la connexion revient, avec un nouvel essai toutes les 30 secondes.</span></div></div><div class="sheet-actions" style="grid-template-columns:minmax(0,1fr)">${btn('btn-primary', 'swap', 'Réessayer maintenant', 'data-sy="retry"')}</div>`,
+      conflict: `<div class="banner banner-neg">${I('alert', 24)}<div><strong>Une autre version a été enregistrée</strong><span>Un autre appareil a modifié ce voyage en même temps. Nous avons gardé la version du serveur et mis la vôtre de côté.</span></div></div><div class="sheet-actions" style="grid-template-columns:minmax(0,1fr)">${btn('btn-primary', 'undo', 'Restaurer ma version', 'data-sy="restore"')}${btn('', '', 'Garder celle du serveur', 'data-sy="server"')}</div>`,
+    }[st];
+    P.sheet(`<h2 class="t-title">Synchronisation</h2><p class="sub">Dernière synchro réussie à 13:38.</p>${blocks}`, (sh) => {
+      sh.querySelectorAll('[data-sy]').forEach((b) => b.addEventListener('click', () => {
+        const k = b.dataset.sy;
+        if (k === 'retry') {
+          if (S.offline) { P.toast('Toujours hors ligne : nouvel essai dans 30 secondes'); return; }
+          S.pending = 0; P.closeSheet(); render(); P.toast('Synchronisé');
+        } else if (k === 'restore') {
+          S.conflict = false; S.pending = S.offline ? 1 : 0; P.closeSheet(); render();
+          P.toast(S.offline ? 'Votre version sera envoyée au retour du réseau' : 'Votre version est restaurée');
+        } else { S.conflict = false; P.closeSheet(); render(); P.toast('Version du serveur conservée'); }
+      }));
+    });
+  }
+
+  /* ---------- fiche d'activité ---------- */
+  function activitySheet(id) {
+    const a = P.activities.find((x) => x.id === id); if (!a) return;
+    const snap = JSON.parse(JSON.stringify(a)), idx = P.activities.indexOf(a);
+    const st = { status: a.status || (a.done ? 'Effectué' : 'À planifier'), cat: a.cat, cts: new Set(a.contactIds || (a.contact ? [a.contact] : [])) };
+    const slots = [['08:00', 'Matin'], ['10:00', 'Matin'], ['12:30', 'Midi'], ['15:30', 'Après-midi'], ['19:30', 'Soirée'], ['21:00', 'Soirée']];
+    const ctChips = () => P.contacts.map((c) => `<button type="button" class="chip" data-ct="${c.id}" aria-pressed="${st.cts.has(c.id)}"><span class="lbl">${esc(c.name)}</span></button>`).join('');
+    P.sheet(`<h2 class="t-title">Détail de l’activité</h2><p class="sub">Jour ${a.day} · ${cap(P.dateLong(a.day))}</p>
+      <form id="af" novalidate style="display:grid;gap:var(--s4)">
+        <label class="field"><span>Intitulé</span><input class="input" id="af-t" value="${esc(a.title)}" aria-describedby="af-err"><span class="err" id="af-err" role="alert"></span></label>
+        <div class="field"><span>Statut</span><div class="chips" role="group" aria-label="Statut">${STATUTS.map((s) => `<button type="button" class="chip" data-st="${s}" aria-pressed="${st.status === s}"><span class="lbl">${s}</span></button>`).join('')}</div></div>
+        <div class="field"><span>Jour du séjour</span><div><label class="chip chip-soft">${I('calendar', 16)}<select id="af-day" aria-label="Jour">${Array.from({ length: 21 }, (_, i) => `<option value="${i + 1}" ${i + 1 === a.day ? 'selected' : ''}>J${i + 1} · ${P.dateShort(i + 1)}</option>`).join('')}</select></label></div></div>
+        <div class="field"><span>Horaire ou créneau</span>
+          <div class="chips" id="af-slots">${slots.map(([t, l]) => `<button type="button" class="chip" data-slot="${t}"><span class="lbl">${t} · ${l}</span></button>`).join('')}</div>
+          <input class="input input-plain" id="af-time" value="${esc(a.time)}" placeholder="Ex : 15:30, Matin ou Soirée" style="margin-top:var(--s2)">
+          <p class="hint" id="af-block" aria-live="polite"></p></div>
+        <div class="field"><span>Catégorie</span><div class="chips" role="group" aria-label="Catégorie">${CATS.map((c) => `<button type="button" class="chip" data-cat="${c}" aria-pressed="${st.cat === c}"><span class="lbl">${P.catLabel[c]}</span></button>`).join('')}</div></div>
+        <label class="field"><span>Lieu, ville ou quartier</span><input class="input input-plain" id="af-place" value="${esc(a.place)}" placeholder="Ex : Bonapriso, Douala"></label>
+        <div class="field"><div class="line-between"><span>Avec qui ?</span><button type="button" class="link" id="af-newct">${I('plus', 16)}Nouveau contact</button></div>
+          <div class="card card-flat" id="af-newbox" hidden><div style="display:grid;gap:var(--s3)">
+            <label class="field"><span>Nom de la personne</span><input class="input input-plain" id="af-cn" placeholder="Ex : Cousin Fabrice"></label>
+            <div class="field"><span>Relation</span><div><label class="chip chip-soft"><select id="af-cr" aria-label="Relation"><option>Famille</option><option>Amis</option><option>Pro / Affaires</option><option>Guide / Prestataire</option><option>Autre</option></select></label></div></div>
+            <div class="err" id="af-cerr" role="alert"></div>
+            ${btn('btn-block', 'check', 'Ajouter et cocher', 'type="button" id="af-cadd"')}</div></div>
+          <div class="chips" id="af-cts">${ctChips()}</div></div>
+        <label class="field"><span>Notes et infos pratiques</span><textarea class="input input-plain textarea" id="af-note" rows="3" placeholder="Numéros, adresses, ce qu’il faut apporter…">${esc(a.note)}</textarea></label>
+        <div class="sheet-actions sticky" style="grid-template-columns:auto minmax(0,1fr) minmax(0,1.4fr)"><button type="button" class="icon-btn icon-btn-outline icon-btn-neg" id="af-del" aria-label="Supprimer l’activité">${I('trash', 22)}</button>${btn('', '', 'Annuler', 'type="button" data-close')}${btn('btn-primary', '', 'Enregistrer', 'type="submit"')}</div>
+      </form>`, (sh) => {
+      sh.classList.add('tall');
+      const t = sh.querySelector('#af-t'), time = sh.querySelector('#af-time'), hint = sh.querySelector('#af-block'), er = sh.querySelector('#af-err');
+      const single = (attr, key) => sh.querySelectorAll(`[${attr}]`).forEach((b) => b.addEventListener('click', () => { st[key] = b.getAttribute(attr); sh.querySelectorAll(`[${attr}]`).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+      single('data-st', 'status'); single('data-cat', 'cat');
+      const upHint = () => { const b = blockFromTime(time.value, 'unassigned'); hint.textContent = time.value.trim() ? (b === 'unassigned' ? 'Horaire non reconnu : l’activité reste « À caler ».' : 'Placée dans : ' + P.blockLabel(b) + '.') : 'Sans horaire, l’activité reste « À caler ».'; };
+      upHint(); time.addEventListener('input', upHint);
+      sh.querySelectorAll('[data-slot]').forEach((b) => b.addEventListener('click', () => { time.value = b.dataset.slot; upHint(); }));
+      t.addEventListener('input', () => errMsg(er, ''));
+      const bindCts = () => sh.querySelectorAll('[data-ct]').forEach((b) => b.addEventListener('click', () => { const k = b.dataset.ct; st.cts.has(k) ? st.cts.delete(k) : st.cts.add(k); b.setAttribute('aria-pressed', String(st.cts.has(k))); }));
+      bindCts();
+      const box = sh.querySelector('#af-newbox');
+      sh.querySelector('#af-newct').addEventListener('click', () => { box.hidden = !box.hidden; if (!box.hidden) sh.querySelector('#af-cn').focus(); });
+      sh.querySelector('#af-cadd').addEventListener('click', () => {
+        const nm = sh.querySelector('#af-cn').value.trim(), cerr = sh.querySelector('#af-cerr');
+        if (!nm) { errMsg(cerr, 'Indiquez un nom pour créer le contact.'); sh.querySelector('#af-cn').focus(); return; }
+        const c = { id: P.uid(), name: nm, role: sh.querySelector('#af-cr').value, city: P.etapeOf(+sh.querySelector('#af-day').value).city, phone: '' };
+        P.contacts.push(c); st.cts.add(c.id); sh.querySelector('#af-cts').innerHTML = ctChips(); bindCts(); box.hidden = true; sh.querySelector('#af-cn').value = ''; errMsg(cerr, '');
+      });
+      sh.querySelector('#af-del').addEventListener('click', () => {
+        P.activities.splice(P.activities.indexOf(a), 1); touch(); P.closeSheet(); render();
+        P.toast('Activité supprimée', () => { P.activities.splice(Math.min(idx, P.activities.length), 0, a); render(); });
+      });
+      sh.querySelector('#af').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!t.value.trim()) { errMsg(er, 'Donnez un intitulé à l’activité, par exemple « Dîner avec Marie ».'); t.focus(); return; }
+        a.title = t.value.trim(); a.day = +sh.querySelector('#af-day').value; a.time = time.value.trim(); a.block = blockFromTime(a.time, a.block === 'unassigned' || !a.time ? 'unassigned' : a.block);
+        a.cat = st.cat; a.place = sh.querySelector('#af-place').value.trim(); a.note = sh.querySelector('#af-note').value.trim();
+        a.status = st.status; a.done = st.status === 'Effectué'; a.contactIds = [...st.cts]; a.contact = a.contactIds[0] || null;
+        S.day = a.day; touch(); P.closeSheet(); render();
+        P.toast('Activité enregistrée', () => { Object.keys(a).forEach((k) => delete a[k]); Object.assign(a, snap); render(); });
+      });
+    });
+  }
+
+  /* ---------- assistant de création de voyage ---------- */
+  const COUNTRIES = [
+    { n: 'Cameroun', c: 'CM', cur: 'XAF', cities: ['Douala', 'Yaoundé', 'Kribi', 'Bafoussam', 'Garoua', 'Limbe'] },
+    { n: 'Sénégal', c: 'SN', cur: 'XAF', cities: ['Dakar', 'Saint-Louis', 'Saly', 'Thiès', 'Ziguinchor'] },
+    { n: 'Côte d’Ivoire', c: 'CI', cur: 'XAF', cities: ['Abidjan', 'Yamoussoukro', 'San-Pédro', 'Grand-Bassam'] },
+    { n: 'Canada', c: 'CA', cur: 'CAD', cities: ['Montréal', 'Québec', 'Toronto', 'Vancouver', 'Ottawa'] },
+    { n: 'Chine', c: 'CN', cur: 'CNY', cities: ['Pékin', 'Shanghai', 'Shenzhen', 'Chengdu', 'Hangzhou'] },
+    { n: 'Japon', c: 'JP', cur: 'EUR', cities: ['Tokyo', 'Kyoto', 'Osaka', 'Hiroshima', 'Nara'] },
+    { n: 'France', c: 'FR', cur: 'EUR', cities: ['Paris', 'Lyon', 'Marseille', 'Nice', 'Bordeaux'] },
+    { n: 'Maroc', c: 'MA', cur: 'EUR', cities: ['Marrakech', 'Casablanca', 'Rabat', 'Fès', 'Tanger'] },
+  ];
+  const CURS = [['EUR', 'Euro'], ['XAF', 'Franc CFA'], ['CAD', 'Dollar canadien'], ['CNY', 'Yuan'], ['USD', 'Dollar US']];
+  const PURPOSES = [['Famille', 'Famille', 'Retrouvailles, repas de famille, visites de proches.'], ['Amis', 'Amis et sorties', 'Fêtes, déjeuners, soirées entre amis.'], ['Loisir', 'Loisirs et tourisme', 'Plages, excursions, marchés, visites culturelles.'], ['Travail', 'Pro et affaires', 'Rendez-vous professionnels, réunions, conférences.']];
+  let W = null;
+  const wDays = () => { if (!W.start || !W.end) return null; const d = Math.round((new Date(W.end) - new Date(W.start)) / 86400000) + 1; return d; };
+  function openWizard() {
+    W = { step: 1, custom: false, country: '', city: '', cc: '', start: '', end: '', budget: '', cur: 'EUR', purposes: new Set(['Famille', 'Amis', 'Loisir']), contacts: [] };
+    P.closeSheet(); drawWizard();
+  }
+  function closeWizard() { const w = document.getElementById('device').querySelector('.wizard'); if (w) w.remove(); W = null; }
+  function drawWizard() {
+    const dev = document.getElementById('device');
+    let w = dev.querySelector('.wizard');
+    if (!w) { w = document.createElement('div'); w.className = 'wizard'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true'); w.setAttribute('aria-label', 'Nouveau voyage'); dev.appendChild(w); wizBind(w); }
+    const s = W.step;
+    const sel = COUNTRIES.find((c) => c.n === W.country);
+    const step1 = `<div><h1 class="t-large">Où partez-vous ?</h1><p class="t-small" style="margin-top:var(--s1)">Quatre informations pour bâtir votre calendrier.</p></div>
+      <div class="seg seg-block" role="group" aria-label="Mode de saisie"><button type="button" data-wt="popular" aria-pressed="${!W.custom}">Populaires</button><button type="button" data-wt="custom" aria-pressed="${W.custom}">Saisie libre</button></div>
+      <section>${W.custom ? `<div class="group"><label class="form-row"><span>Pays</span><input id="w-country" value="${esc(W.country)}" placeholder="Japon, Canada…" autocomplete="off"></label><label class="form-row"><span>Ville d’arrivée</span><input id="w-city" value="${esc(W.city)}" placeholder="Tokyo, Dakar…" autocomplete="off"></label></div>`
+        : `<div class="choice-grid" role="group" aria-label="Pays de destination">${COUNTRIES.map((c) => `<button type="button" class="choice" data-co="${c.n}" aria-pressed="${W.country === c.n}"><span class="code">${c.c}</span><span class="clamp-1">${c.n}</span></button>`).join('')}</div>
+        ${sel ? `<p class="t-caption" style="margin-top:var(--s4)">Ville d’arrivée</p><div class="chips" style="margin-top:var(--s2)" role="group" aria-label="Ville d’arrivée">${sel.cities.map((c) => `<button type="button" class="chip" data-ci="${c}" aria-pressed="${W.city === c}"><span class="lbl">${c}</span></button>`).join('')}</div>` : ''}`}
+        <div class="err" id="w-err-dest" role="alert"></div></section>
+      <section><div class="hd"><span class="hd-ic">${I('calendar', 16)}</span><h2>Dates</h2></div>
+        <div class="group"><label class="form-row"><span>Départ</span><input type="date" id="w-start" value="${W.start}"></label><label class="form-row"><span>Retour</span><input type="date" id="w-end" value="${W.end}"></label></div>
+        <p class="foot" id="w-days" aria-live="polite"></p><div class="err" id="w-err-dates" role="alert"></div></section>
+      <section><div class="hd"><span class="hd-ic">${I('wallet', 16)}</span><h2>Budget</h2></div>
+        <div class="group"><label class="form-row"><span>Total prévu (€)</span><input id="w-budget" inputmode="decimal" value="${esc(W.budget)}" placeholder="2 500"></label></div>
+        <div class="err" id="w-err-budget" role="alert"></div>
+        <p class="t-caption" style="margin-top:var(--s3)">Monnaie de destination</p><div class="chips" style="margin-top:var(--s2)" role="group" aria-label="Monnaie">${CURS.map(([k, l]) => `<button type="button" class="chip" data-cu="${k}" aria-pressed="${W.cur === k}"><span class="lbl">${l}</span></button>`).join('')}</div></section>`;
+    const step2 = `<div><h1 class="t-large">Quel profil pour ce voyage ?</h1><p class="t-small" style="margin-top:var(--s1)">Cochez ce qui compte : nous adaptons les catégories et le carnet de contacts.</p></div>
+      <ul class="group">${PURPOSES.map(([k, l, d]) => `<li class="row" style="grid-template-columns:auto minmax(0,1fr)"><button type="button" class="toggle" data-pu="${k}" aria-pressed="${W.purposes.has(k)}" aria-label="${l}"><span>${I('check', 18)}</span></button><button type="button" class="row-main" data-pu="${k}"><span class="row-title">${l}</span><span class="t-small">${d}</span></button></li>`).join('')}</ul>
+      <p class="foot" style="padding:0">Vous pourrez tout changer plus tard.</p>`;
+    const step3 = `<div><h1 class="t-large">Qui retrouverez-vous sur place ?</h1><p class="t-small" style="margin-top:var(--s1)">Facultatif : vous pourrez en ajouter à tout moment.</p></div>
+      <section class="card" style="display:grid;gap:var(--s3)"><label class="field"><span>Nom ou surnom</span><input class="input input-plain" id="w-cn" placeholder="Tante Marie, Oncle Paul…" autocomplete="off"></label>
+        <div class="field"><span>Relation</span><div><label class="chip chip-soft"><select id="w-cr" aria-label="Relation"><option>Famille</option><option>Amis</option><option>Pro / Affaires</option><option>Guide / Chauffeur</option><option>Autre</option></select></label></div></div>
+        <label class="field"><span>Ville</span><input class="input input-plain" id="w-cc" value="${esc(W.city)}" placeholder="Douala" autocomplete="off"></label>
+        <div class="err" id="w-err-ct" role="alert"></div>
+        <div class="actions">${btn('btn-primary', 'plus', 'Ajouter', 'type="button" id="w-cadd"')}${btn('', 'download', 'Importer du répertoire', 'type="button" id="w-cimp"')}</div></section>
+      <section>${hd('users', 'Prêts pour ce voyage', W.contacts.length || 0)}${W.contacts.length ? `<ul class="group">${W.contacts.map((c, i) => `<li class="row" style="--inset:64px;grid-template-columns:auto minmax(0,1fr) auto;align-items:center"><span class="row-lead mid"><span class="avatar" style="width:36px;height:36px;font-size:var(--t-small)">${P.initials(c.name)}</span></span><div class="row-main" style="min-height:0;padding-block:var(--s3)"><span class="row-title">${esc(c.name)}</span><span class="frags"><span class="frag">${esc(c.role)}</span>${c.city ? `<span class="frag">${esc(c.city)}</span>` : ''}</span></div><button type="button" class="icon-btn" data-rm="${i}" aria-label="Retirer ${esc(c.name)}">${I('x', 20)}</button></li>`).join('')}</ul>` : '<p class="t-small">Personne pour l’instant. Ce n’est pas obligatoire.</p>'}</section>`;
+    w.innerHTML = `<div><div class="wz-top">${s > 1 ? `<button type="button" class="icon-btn" data-wz="back" aria-label="Étape précédente">${I('left', 24)}</button>` : '<span style="width:var(--h-md)"></span>'}<span class="mid t-caption" aria-live="polite">Étape ${s} sur 3</span><button type="button" class="link" data-wz="cancel">Annuler</button></div><div class="steps" aria-hidden="true">${[1, 2, 3].map((n) => `<i class="${n <= s ? 'on' : ''}"></i>`).join('')}</div></div>
+      <div class="wz-body" id="wz-body">${[step1, step2, step3][s - 1]}</div>
+      <div class="wz-foot"><div class="wz-foot-in">${btn('btn-primary btn-lg btn-block', '', s === 3 ? 'Créer mon voyage' : 'Continuer', 'type="button" data-wz="next"')}${s === 3 ? `<div class="wz-links"><button type="button" class="link" data-wz="back">Retour</button><button type="button" class="link" data-wz="skip">Passer sans contact</button></div>` : ''}</div></div>`;
+    wizDays(w);
+  }
+  function wizDays(w) {
+    const el = w.querySelector('#w-days'); if (!el) return;
+    const d = wDays();
+    el.textContent = d == null ? 'Choisissez le départ et le retour.' : d > 0 ? `${d} jour${d > 1 ? 's' : ''} de voyage.` : '';
+  }
+  function wizBind(w) {
+    const redraw = () => { const b = w.querySelector('#wz-body'); const top = b.scrollTop; drawWizard(); w.querySelector('#wz-body').scrollTop = top; };
+    const saveInputs = () => {
+      const g = (id) => w.querySelector(id);
+      if (g('#w-country')) { W.country = g('#w-country').value.trim(); W.city = g('#w-city').value.trim(); }
+      if (g('#w-start')) { W.start = g('#w-start').value; W.end = g('#w-end').value; W.budget = g('#w-budget').value.trim(); }
+    };
+    w.addEventListener('click', (e) => {
+      const t = e.target.closest('button'); if (!t || !W) return;
+      if (t.dataset.wt) { saveInputs(); W.custom = t.dataset.wt === 'custom'; W.country = ''; W.city = ''; redraw(); return; }
+      if (t.dataset.co) { saveInputs(); const c = COUNTRIES.find((x) => x.n === t.dataset.co); W.country = c.n; W.city = ''; W.cc = c.c; W.cur = c.cur; redraw(); return; }
+      if (t.dataset.ci) { saveInputs(); W.city = t.dataset.ci; redraw(); return; }
+      if (t.dataset.cu) { saveInputs(); W.cur = t.dataset.cu; redraw(); return; }
+      if (t.dataset.pu) { W.purposes.has(t.dataset.pu) ? W.purposes.delete(t.dataset.pu) : W.purposes.add(t.dataset.pu); redraw(); return; }
+      if (t.dataset.rm) { W.contacts.splice(+t.dataset.rm, 1); redraw(); return; }
+      if (t.id === 'w-cadd') {
+        const nm = w.querySelector('#w-cn').value.trim(), er = w.querySelector('#w-err-ct');
+        if (!nm) { errMsg(er, 'Indiquez un nom pour ajouter cette personne.'); w.querySelector('#w-cn').focus(); return; }
+        W.contacts.push({ name: nm, role: w.querySelector('#w-cr').value, city: w.querySelector('#w-cc').value.trim() }); redraw(); w.querySelector('#w-cn').focus(); return;
+      }
+      if (t.id === 'w-cimp') { P.toast('Prototype : la sélection des contacts du téléphone s’ouvre ici'); return; }
+      const a = t.dataset.wz; if (!a) return;
+      if (a === 'cancel') { closeWizard(); return; }
+      if (a === 'back') { saveInputs(); W.step = Math.max(1, W.step - 1); redraw(); return; }
+      if (a === 'skip' || (a === 'next' && W.step === 3)) { finishWizard(); return; }
+      if (a === 'next' && W.step === 1) {
+        saveInputs();
+        const e1 = w.querySelector('#w-err-dest'), e2 = w.querySelector('#w-err-dates'), e3 = w.querySelector('#w-err-budget');
+        errMsg(e1, ''); errMsg(e2, ''); errMsg(e3, '');
+        let bad = null;
+        if (!W.country || !W.city) { errMsg(e1, W.custom ? 'Indiquez le pays et la ville d’arrivée.' : !W.country ? 'Choisissez un pays de destination.' : 'Choisissez votre ville d’arrivée.'); bad = bad || e1; }
+        const d = wDays();
+        if (!W.start || !W.end) { errMsg(e2, 'Indiquez la date de départ et la date de retour.'); bad = bad || e2; }
+        else if (d < 1) { errMsg(e2, 'Le retour doit être après le départ.'); bad = bad || e2; }
+        const b = parseFloat(W.budget.replace(/\s/g, '').replace(',', '.'));
+        if (isNaN(b) || b <= 0) { errMsg(e3, 'Indiquez un budget supérieur à zéro, par exemple 2 500.'); bad = bad || e3; }
+        if (bad) { bad.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        W.step = 2; redraw(); return;
+      }
+      if (a === 'next' && W.step === 2) { W.step = 3; redraw(); }
+    });
+    w.addEventListener('input', (e) => { if (e.target.id === 'w-start' || e.target.id === 'w-end') { W.start = w.querySelector('#w-start').value; W.end = w.querySelector('#w-end').value; wizDays(w); } });
+    w.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeWizard(); });
+    const first = w.querySelector('.wz-body input, .wz-body button'); if (first && W.step === 3) { /* pas de focus forcé : le clavier mobile s'ouvrirait */ }
+  }
+  function finishWizard() {
+    const title = `${W.country} ${W.start ? W.start.slice(0, 4) : '2026'}`, d = wDays();
+    S.title = title; closeWizard(); render();
+    P.toast(`Voyage créé : ${title}${d ? ', ' + d + ' jours' : ''}`);
+  }
+
+  /* points d'accès pour le banc de test */
+  P.qa = {
+    closeAll() { P.closeSheet(); closeWizard(); S.conflict = false; S.offline = false; S.pending = 0; S.filter = 'Tous'; },
+    sync(state) { S.offline = state === 'pending'; S.pending = state === 'pending' ? 2 : 0; S.conflict = state === 'conflict'; render(); },
+    syncSheet, filterSheet, activity: activitySheet,
+    wizard(step) {
+      openWizard();
+      Object.assign(W, { country: 'Cameroun', city: 'Douala', cc: 'CM', start: '2026-11-01', end: '2026-11-21', budget: '2500', cur: 'XAF', contacts: [{ name: 'Jean-Baptiste Nkoulou-Mbarga', role: 'Famille', city: 'Douala' }] });
+      W.step = step; drawWizard();
+    },
+  };
+
+  /* ---------- événements ---------- */
+  app.addEventListener('click', (e) => {
+    const t = e.target.closest('button, a'); if (!t) return;
+    if (t.dataset.tab) { S.tab = t.dataset.tab; S.open = null; render(); app.querySelector('.screen').scrollTop = 0; return; }
+    if (t.dataset.day) { S.day = +t.dataset.day; S.open = null; render(); return; }
+    if (t.dataset.step) { S.day = Math.min(21, Math.max(1, S.day + +t.dataset.step)); S.open = null; render(); return; }
+    const act = t.dataset.act; if (!act) return;
+    const li = t.closest('[data-id]'), id = li && li.dataset.id, a = id && P.activities.find((x) => x.id === id);
+    if (act === 'toggle' && a) { a.done = !a.done; if (a.status !== 'Annulé') a.status = a.done ? 'Effectué' : 'À planifier'; touch(); render(); P.toast(a.done ? 'Marqué comme fait' : 'Remis à faire', () => { a.done = !a.done; render(); }); }
+    else if (act === 'open') { S.open = S.open === id ? null : id; render(); }
+    else if (act === 'ct-open') { const cid = t.closest('[data-cid]').dataset.cid; S.open = S.open === cid ? null : cid; render(); }
+    else if (act === 'add') addSheet(t.dataset.block);
+    else if (act === 'all-days') daysSheet();
+    else if (act === 'move') moveSheet(id);
+    else if (act === 'edit') activitySheet(id);
+    else if (act === 'filter') filterSheet();
+    else if (act === 'filter-clear') { S.filter = 'Tous'; render(); }
+    else if (act === 'edit-city') cityRename();
+    else if (act === 'menu') menuSheet();
+    else if (act === 'save-info') syncSheet();
+    else if (act === 'place-idea') placeIdeaSheet(t.closest('[data-idea]').dataset.idea);
+    else if (act === 'todo-toggle') { const tt = P.todos.find((x) => x.id === t.closest('[data-tid]').dataset.tid); tt.done = !tt.done; touch(); render(); P.toast(tt.done ? 'Démarche cochée' : 'Remise à faire', () => { tt.done = !tt.done; render(); }); }
+    else if (act === 'todo-add') simpleForm('Nouvelle tâche', [{ k: 'l', l: 'Quoi ?', p: 'Ex. Photocopie du passeport', req: 1 }], (v) => { P.todos.push({ id: P.uid(), label: v.l, cat: 'Valise', prio: 'normal', due: '', done: false }); touch(); render(); P.toast('Tâche ajoutée'); });
+    else if (act === 'exp-add') expSheet();
+    else if (act === 'swap') { const x = app.querySelector('#cv-x'), en = app.querySelector('#cv-e'); const xv = x.value; x.value = en.value; en.value = xv; x.dispatchEvent(new Event('input')); }
+    else if (act === 'ct-add' || act === 'ct-add-q') simpleForm('Nouveau contact', [{ k: 'n', l: 'Nom', req: 1, v: act === 'ct-add-q' ? app.querySelector('#ct-q').value : '' }, { k: 'p', l: 'Numéro WhatsApp', p: '+237 6 …' }, { k: 'r', l: 'Rôle', p: 'Chauffeur, famille…' }], (v) => { P.contacts.push({ id: P.uid(), name: v.n, role: v.r || 'Contact', city: P.etapeOf(S.day).city, phone: v.p.replace(/\D/g, '') || '237600000000' }); render(); P.toast('Contact ajouté'); });
+    else if (act === 'ct-import') P.toast('Prototype : la sélection des contacts du téléphone s’ouvre ici');
+  });
+
+  initDay();
+  render();
+})();
+</script>
+</body>
+</html>

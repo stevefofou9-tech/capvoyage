@@ -12,6 +12,8 @@ const REAL_UI = fileURLToPath(new URL('../../src/ui/', import.meta.url));
 const REAL_DOMAIN = fileURLToPath(new URL('../../src/domain/', import.meta.url));
 const LEGACY = fileURLToPath(new URL('./fixtures/legacy/', import.meta.url));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Nom du cache courant lu dans sw.js : un changement de version du cache ne casse plus ce test.
+const CURRENT_CACHE = 'capvoyage-cache-' + readFileSync(new URL('../../src/ui/sw.js', import.meta.url), 'utf-8').match(/CACHE_PREFIX \+ '(v\d+)'/)[1];
 
 function emptyDir(dir) {
   for (const name of readdirSync(dir)) rmSync(path.join(dir, name), { recursive: true, force: true });
@@ -68,7 +70,7 @@ describe('Suite Mises à jour PWA (TC-PWA, Chrome headless via CDP)', { skip: ch
     // Le nouveau SW s'active, constate que la page ne répond pas au PING et la recharge une fois
     await page.waitFor(`document.getElementById('update-banner') !== null`, 20000);
     assert.equal(await page.evaluate(`document.body.dataset.front === 'legacy'`), false);
-    assert.ok(await page.evaluate(`caches.keys().then(k => k.includes('capvoyage-cache-v9') && !k.includes('capvoyage-cache-v5'))`));
+    assert.ok(await page.evaluate(`caches.keys().then(k => k.includes('${CURRENT_CACHE}') && !k.includes('capvoyage-cache-v5'))`));
   });
 
   test('TC-PWA-002 : nouvelle version détectée → barre « Actualiser », jamais de rechargement pendant une saisie', async () => {
@@ -116,7 +118,7 @@ describe('Suite Mises à jour PWA (TC-PWA, Chrome headless via CDP)', { skip: ch
     await page.goto(server.base + '/health');
     await page.evaluate(`navigator.serviceWorker.register('/sw.js').then(() => true)`);
     await page.until(`navigator.serviceWorker.getRegistration().then(r => r && r.active && r.active.state === 'activated')`, 15000);
-    const cached = await page.evaluate(`caches.open('capvoyage-cache-v9').then(c => c.keys()).then(k => k.length)`);
+    const cached = await page.evaluate(`caches.open('${CURRENT_CACHE}').then(c => c.keys()).then(k => k.length)`);
     assert.equal(cached, assetCount - 1, `précache : ${cached} fichiers sur ${assetCount - 1} attendus`);
   });
 

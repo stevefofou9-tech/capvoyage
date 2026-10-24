@@ -1,49 +1,141 @@
 /* ==========================================================================
-   CAPVOYAGE - DIRECTION ARTISTIQUE OFFICIELLE V5
-   "SURFACE MOBILE ERGONOMIQUE & CARTE SOLAIRE"
-   Spécialisation Outdoor & Plein Soleil • WCAG AAA • Touch-First (>= 48px)
-   Typographie : Public Sans & Atkinson Hyperlegible
+   CAPVOYAGE - DESIGN SYSTEM « SOLEIL » (direction A2, ADR-010)
+   Neutres teintés cuivre, une seule couleur d'action, quatre familles de forme.
+   Règle d'or : aucun composant n'écrit de couleur, de taille ni de rayon en dur.
+   Typographie : Public Sans & Atkinson Hyperlegible, hébergées (hors-ligne garanti).
    ========================================================================== */
 
+/* --- POLICES HÉBERGÉES (sous-ensemble latin, licence SIL OFL, voir fonts/LICENCES.md) --- */
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url('fonts/public-sans-v21-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/atkinson-hyperlegible-v12-latin-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/atkinson-hyperlegible-v12-latin-700.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/atkinson-hyperlegible-v12-latin-400-italic.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
-  /* --- PALETTE SOLAIRE NOMADE & CONTRASTE OUTDOOR (WCAG AAA >= 5.2:1) --- */
-  --primary: #b93807;             /* Orange solaire cuivré profond (Contraste 5.5:1 sur blanc) */
-  --primary-hover: #9a2c04;       /* Survol sombre */
-  --primary-active: #7c2202;      /* Teinte appui tactile */
-  --primary-light: #ffedd5;       /* Pêche ambré clair pour fonds de sélection */
-  --primary-surface: #fff7ed;     /* Voile solaire subtil */
+  /* ======================= JETONS SOLEIL ======================= */
+
+  /* --- Couleur : neutres chauds, un seul accent --- */
+  --paper: #f8f5f0;        /* fond d'écran, mat anti-reflet */
+  --surface: #fffdfa;      /* cartes, listes, feuilles */
+  --sunken: #f0ebe2;       /* champs, pistes, segments */
+  --line: #e7e0d4;         /* filet de séparation (1 px) */
+  --line-strong: #c9bfae;  /* contour de contrôle (1,5 px) */
+  --ink: #1f1a15;          /* texte principal   · 15,9:1 sur paper */
+  --ink-2: #51483d;        /* texte secondaire  · 8,4:1 */
+  --ink-3: #6a5f52;        /* texte discret     · 5,7:1 (jamais pour une info critique) */
+  --accent: #b93807;       /* action principale, jour sélectionné · 5,8:1 sur surface */
+  --accent-press: #94290a;
+  --accent-soft: #fbece1;
+  --accent-ink: #8a2c07;   /* texte sur accent-soft */
+  --on-accent: #ffffff;
+  --pos: #1d6b3a;          /* fait, WhatsApp, solde sain */
+  --pos-soft: #e4f1e7;
+  --pos-ink: #14502b;
+  --warn: #855400;         /* hors ligne, échéance proche */
+  --warn-soft: #fdf0d0;
+  --warn-ink: #5c3a00;
+  --neg: #b3261e;          /* bloquant, erreur */
+  --neg-soft: #fbe7e4;
+  --focus: #1a4fd6;
+
+  /* --- Typographie : échelle fixe de rapport 1,2, graisses 400 / 700 / 800 --- */
+  --f-body: 'Atkinson Hyperlegible', 'Public Sans', system-ui, -apple-system, sans-serif;
+  --f-head: 'Public Sans', system-ui, -apple-system, sans-serif;
+  --t-caption: 13px;       /* minimum absolu */
+  --t-small: 14px;
+  --t-body: 16px;
+  --t-title-s: 18px;
+  --t-title: 22px;
+  --t-headline: 28px;
+  --t-large: 34px;         /* titre d'écran */
+  --t-display: 44px;
+
+  /* --- Espacement : grille de 4 --- */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px;
+  --gutter: 16px;
+
+  /* --- Formes : cercle (avatars, coches, actions icône), pilule (puces, statuts), --r-md (boutons, champs), --r-lg (surfaces) --- */
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-pill: 9999px;
+
+  /* --- Hauteurs de contrôle : trois valeurs --- */
+  --h-dense: 44px;
+  --h-md: 48px;
+  --h-lg: 56px;
+
+  /* --- Élévation : trois niveaux, ombres neutres chaudes --- */
+  --e1: 0 1px 2px rgb(60 40 20 / 0.06), 0 2px 10px -4px rgb(60 40 20 / 0.10);
+  --e2: 0 2px 4px rgb(60 40 20 / 0.08), 0 14px 28px -12px rgb(60 40 20 / 0.30);
+  --e3: 0 -10px 30px -12px rgb(40 25 10 / 0.35);
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ======================= ALIAS (noms historiques) =======================
+     Les composants existants lisent encore ces noms : ils pointent vers les jetons Soleil,
+     toute l'interface adopte donc les neutres chauds et les rayons d'un coup.
+     Les retirer au fur et à mesure que les écrans sont migrés. */
+  --primary: var(--accent);
+  --primary-hover: var(--accent-press);
+  --primary-active: #7c2202;
+  --primary-light: var(--accent-soft);
+  --primary-surface: #fff7ed;
   --primary-focus: rgba(185, 56, 7, 0.28);
 
-  /* --- SURFACES CHAUDES ANTI-REFLETS (ARDOISE CLAIRE & BLANC PUR) --- */
-  --bg-main: #f8fafc;             /* Fond ardoise claire daylight mat anti-éblouissement */
-  --bg-subtle: #f1f5f9;           /* Fond secondaire pour rubans et puits */
-  --bg-card: #ffffff;             /* Fond des tuiles blanches pures haute lisibilité */
-  --bg-card-hover: #f8fafc;       /* Survol carte tactile */
+  --bg-main: var(--paper);
+  --bg-subtle: var(--sunken);
+  --bg-card: var(--surface);
+  --bg-card-hover: var(--paper);
 
-  /* --- BORDURES & STRUCTURE TACTILE NETTE --- */
-  --border-color: #cbd5e1;        /* Liséré ardoise net (1.5px plein soleil) */
-  --border-light: #e2e8f0;        /* Séparateur interne léger */
-  --border-focus: #b93807;        /* Focus d'accessibilité visible */
+  --border-color: var(--line-strong);
+  --border-light: var(--line);
+  --border-focus: var(--accent);
 
-  /* --- TYPOGRAPHIE & CONTRASTE TEXTE RENFORCÉ (RATIO > 14:1) --- */
-  --text-main: #0f172a;           /* Noir ardoise profond (Ratio > 14:1 sur blanc) */
-  --text-muted: #334155;          /* Gris ardoise soutenu (Ratio > 7:1 - WCAG AAA texte courant) */
-  --text-light: #475569;          /* Métadonnées & labels secondaires (Ratio > 5:1 - WCAG AA) */
-  --text-inverse: #ffffff;        /* Texte blanc sur bouton primaire */
+  --text-main: var(--ink);
+  --text-muted: var(--ink-2);
+  --text-light: var(--ink-3);
+  --text-inverse: var(--on-accent);
 
-  /* --- COULEURS SÉMANTIQUES MÉTIER (OUTDOOR LISIBLE) --- */
-  --whatsapp: #15803d;            /* Vert feuille équatorial (WhatsApp direct & validation) */
-  --whatsapp-hover: #166534;
-  --whatsapp-light: #dcfce7;
-  --success: #15803d;
-  --success-light: #dcfce7;
+  --whatsapp: var(--pos);
+  --whatsapp-hover: var(--pos-ink);
+  --whatsapp-light: var(--pos-soft);
+  --success: var(--pos);
+  --success-light: var(--pos-soft);
 
-  --danger: #b91c1c;              /* Rouge vermillon alerte critique (Fièvre jaune, visas) */
-  --danger-hover: #991b1b;
-  --danger-light: #fee2e2;
+  --danger: var(--neg);
+  --danger-hover: #8f1d17;
+  --danger-light: var(--neg-soft);
 
-  --warning: #b45309;             /* Ocre ambré avertissement */
-  --warning-light: #fef3c7;
+  --warning: var(--warn);
+  --warning-light: var(--warn-soft);
 
   --info: #1d4ed8;                /* Bleu cobalt aéronautique & logistique */
   --info-hover: #1e40af;
@@ -52,25 +144,22 @@
   --gold: #b45309;                /* Or devise & taux de change */
   --gold-light: #fef3c7;
 
-  /* --- OMBRES TACTILES NATURELLES (ÉLÉVATION NEUTRE SANS HALO ARTIFICIEL) --- */
-  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.09), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+  --shadow-sm: var(--e1);
+  --shadow-md: var(--e1);
+  --shadow-lg: var(--e2);
 
-  /* --- GÉOMÉTRIE DOUCE & ERGONOMIE DU POUCE --- */
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
+  --radius-sm: var(--r-md);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-lg);
+  --radius-full: var(--r-pill);
 
-  /* --- TYPOGRAPHIE HAUTE LISIBILITÉ --- */
-  --font-display: 'Public Sans', system-ui, -apple-system, sans-serif;
-  --font-body: 'Atkinson Hyperlegible', 'Public Sans', system-ui, -apple-system, sans-serif;
-  --font-sans: var(--font-body);
+  --font-display: var(--f-head);
+  --font-body: var(--f-body);
+  --font-sans: var(--f-body);
 
   /* Cible tactile minimale recommandée pour le confort à une main */
-  --touch-target-min: 48px;
+  --touch-target-min: var(--h-md);
 }
 
 /* ==========================================================================

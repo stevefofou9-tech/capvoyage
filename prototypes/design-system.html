@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design system Soleil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Public+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/ds.css">
+<style>
+body { margin: 0; }
+.doc { max-width: 1060px; margin: 0 auto; padding: var(--s8) var(--s5) 96px; display: grid; gap: var(--s10); }
+.doc > header p { max-width: 62ch; color: var(--ink-2); margin-top: var(--s3); font-size: var(--t-title-s); }
+.doc a.back { color: var(--ink-2); text-decoration: none; font-size: var(--t-small); display: inline-block; margin-bottom: var(--s4); }
+.doc a.back:hover { text-decoration: underline; }
+.sec-t { margin-bottom: var(--s4); }
+.sec-t p { color: var(--ink-2); max-width: 66ch; margin-top: var(--s2); }
+.grid { display: grid; gap: var(--s4); }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.princ { counter-reset: p; display: grid; gap: var(--s3); list-style: none; margin: 0; padding: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.princ li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s4) var(--s5); }
+.princ b { display: block; font: 800 var(--t-title-s)/1.3 var(--f-head); margin-bottom: var(--s1); }
+.princ span { color: var(--ink-2); font-size: var(--t-small); }
+.sw { border-radius: var(--r-lg); border: 1px solid var(--line); overflow: clip; background: var(--surface); }
+.sw .chipc { height: 72px; display: flex; align-items: end; padding: var(--s2) var(--s3); font-weight: 700; font-size: var(--t-small); }
+.sw .meta { padding: var(--s3); display: grid; gap: 2px; font-size: var(--t-small); }
+.sw .meta b { font-size: var(--t-body); }
+.sw .meta code { color: var(--ink-2); }
+.ratio { font-weight: 700; }
+.ratio.ok { color: var(--pos-ink); } .ratio.low { color: var(--neg); }
+.specimen { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--s3) var(--s5); align-items: baseline; padding: var(--s3) 0; border-top: 1px solid var(--line); }
+.specimen code { font-size: var(--t-small); color: var(--ink-2); }
+.scale { display: flex; flex-wrap: wrap; gap: var(--s4); align-items: end; }
+.scale div { display: grid; gap: var(--s2); justify-items: start; font-size: var(--t-small); color: var(--ink-2); }
+.scale i { display: block; background: var(--accent); border-radius: 3px; height: 16px; }
+.shapes { display: flex; flex-wrap: wrap; gap: var(--s6); align-items: end; }
+.shapes figure { margin: 0; display: grid; gap: var(--s2); justify-items: start; font-size: var(--t-small); color: var(--ink-2); max-width: 170px; }
+.shapes figure b { color: var(--ink); }
+.demo { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s5); display: grid; gap: var(--s4); }
+.demo > h3 { font: 800 var(--t-small)/1.3 var(--f-head); color: var(--ink-2); letter-spacing: 0; }
+.demo .line { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
+.elev { display: flex; flex-wrap: wrap; gap: var(--s5); }
+.elev div { width: 150px; height: 90px; border-radius: var(--r-lg); background: var(--surface); display: grid; place-items: center; font-size: var(--t-small); font-weight: 700; text-align: center; }
+.phonecol { width: 100%; max-width: 280px; }
+.vs { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.vs .col { display: grid; gap: var(--s2); align-content: start; }
+.vs .tagrow { font-weight: 800; font-size: var(--t-small); display: flex; gap: var(--s2); align-items: center; }
+.vs .bad { color: var(--neg); } .vs .good { color: var(--pos-ink); }
+.naive { width: 280px; max-width: 100%; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 10px; }
+.naive .r { display: flex; gap: 10px; align-items: center; }
+.naive .t { font-weight: 700; font-size: 17px; white-space: nowrap; }
+.naive .c { font-weight: 700; white-space: nowrap; margin-left: auto; padding-left: 10px; }
+.naive .m { color: #666; font-size: 12px; margin: 2px 0 0 38px; white-space: nowrap; }
+.naive .cb { width: 28px; height: 28px; border: 2px solid #ccc; border-radius: 6px; flex: none; }
+table.rules { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--r-lg); overflow: clip; font-size: var(--t-small); box-shadow: var(--e1); }
+table.rules th, table.rules td { text-align: left; vertical-align: top; padding: var(--s3) var(--s4); border-top: 1px solid var(--line); }
+table.rules thead th { background: var(--ink); color: #fff; border-top: 0; }
+table.rules td:first-child { font-weight: 700; width: 22%; }
+table.rules code { background: var(--sunken); padding: 1px 6px; border-radius: 6px; font-size: 13px; overflow-wrap: anywhere; }
+.nav-demo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s1); max-width: 360px; }
+@media (max-width: 640px) { .specimen { grid-template-columns: 1fr; gap: var(--s1); } table.rules { display: block; overflow-x: auto; } }
+</style>
+</head>
+<body class="ds">
+<div class="doc">
+  <header>
+    <a class="back" href="index.html">← Les directions</a>
+    <h1 class="t-display">Soleil, le design system de CapVoyage</h1>
+    <p>Né de la direction A. Il garde le cuivre et l’exigence de lisibilité en plein soleil, mais remplace les valeurs choisies à l’œil par des jetons, et ajoute des règles qui rendent les erreurs de design impossibles ou visibles tout de suite.</p>
+    <div class="actions" style="margin-top:var(--s5)"><a class="btn btn-primary" href="A2-soleil.html"><span class="lbl">Voir l’application A2</span></a><a class="btn" href="qa-garde-fous.html"><span class="lbl">Lancer le banc de test</span></a></div>
+  </header>
+
+  <section>
+    <div class="sec-t"><h2 class="t-headline">Six principes</h2></div>
+    <ol class="princ">
+      <li><b>Un jeton ou rien</b><span>Aucune couleur, taille ni rayon écrit en dur dans un composant. Changer l’identité, c’est changer un fichier.</span></li>
+      <li><b>Le texte est du contenu, pas du décor</b><span>Un nom, un titre ou un montant peut être très long. Chaque composant décide à l’avance s’il s’abrège, passe à la ligne ou réduit.</span></li>
+      <li><b>Quatre formes, pas une de plus</b><span>Cercle, pilule, rectangle de contrôle, surface. La forme dit le rôle : on reconnaît une coche d’un bouton sans lire.</span></li>
+      <li><b>Trois hauteurs de contrôle</b><span>44, 48, 56 px. Tout est au moins aussi grand qu’un pouce, rien n’est « presque pareil ».</span></li>
+      <li><b>Une seule couleur d’action</b><span>Le cuivre mène à l’action. Le vert dit « fait » et « WhatsApp ». Le rouge dit « bloquant ». Rien d’autre ne colore une interface.</span></li>
+      <li><b>Tout geste est rattrapable</b><span>Annuler après chaque ajout, message d’erreur qui dit quoi faire, état d’enregistrement toujours visible.</span></li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="sec-t"><h2 class="t-headline">Couleurs</h2><p>Neutres teintés vers le cuivre pour un fond mat qui ne brille pas au soleil. Chaque ratio est calculé ici, en direct, sur le fond où la couleur est réellement utilisée.</p></div>
+    <div class="grid g3" id="colors"></div>
+  </section>
+
+  <section>
+    <div class="sec-t"><h2 class="t-headline">Typographie</h2><p>Échelle fixe de rapport 1,2, grands titres d’écran façon iOS, trois graisses (400, 700, 800). Public Sans pour les titres et les chiffres clés, Atkinson Hyperlegible pour tout le reste. Le minimum absolu est 13 px.</p></div>
+    <div class="demo">
+      <div class="specimen"><code>display · 44 / 800</code><span class="t-display">1 388 100</span></div>
+      <div class="specimen"><code>large · 34 / 800</code><span class="t-large">Budget</span></div>
+      <div class="specimen"><code>headline · 28 / 800</code><span class="t-headline">Aujourd’hui</span></div>
+      <div class="specimen"><code>title · 22 / 800</code><span class="t-title">Rendez-vous avec M. Tchoua</span></div>
+      <div class="specimen"><code>title-s · 18 / 700</code><span class="t-title-s">Déjeuner chez Tante Rose</span></div>
+      <div class="specimen"><code>body · 16 / 400</code><span class="t-body">Samuel vous attend au parking, pancarte « Steve ».</span></div>
+      <div class="specimen"><code>small · 14 / 400</code><span class="t-small">Mercredi 4 novembre · Jour 4 sur 21</span></div>
+      <div class="specimen"><code>caption · 13 / 700</code><span class="t-caption">Programme</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t"><h2 class="t-headline">Formes, espacement, hauteurs, relief</h2></div>
+    <div class="grid g2">
+      <div class="demo"><h3>Les quatre formes</h3>
+        <div class="shapes">
+          <figure><span class="avatar">OP</span><b>Cercle</b>avatars, coches, actions icône</figure>
+          <figure><span class="chip chip-soft"><span class="lbl">Soirée</span></span><b>Pilule</b>puces, statuts, bouton flottant, navigation</figure>
+          <figure><span class="btn"><span class="lbl">Enregistrer</span></span><b>14 px</b>boutons, champs</figure>
+          <figure><span style="width:96px;height:56px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);box-shadow:var(--e1)"></span><b>22 px</b>cartes, listes, feuilles</figure>
+        </div>
+        <p class="t-small">Une ligne dans une liste n’a jamais de rayon propre : c’est la surface qui arrondit, les lignes s’y découpent par un filet.</p></div>
+      <div class="demo"><h3>Espacement, grille de 4</h3>
+        <div class="scale" id="space"></div>
+        <h3 style="margin-top:var(--s2)">Hauteurs de contrôle</h3>
+        <div class="line"><span class="btn btn-dense"><span class="lbl">44 dense</span></span><span class="btn"><span class="lbl">48 standard</span></span><span class="btn btn-primary btn-lg"><span class="lbl">56 principal</span></span></div></div>
+    </div>
+    <div class="demo" style="margin-top:var(--s4)"><h3>Relief : trois niveaux, ombres neutres chaudes</h3>
+      <div class="elev"><div style="border:1px solid var(--line)">e0 · à plat<br>lignes</div><div style="box-shadow:var(--e1);border:1px solid var(--line)">e1 · cartes<br>listes</div><div style="box-shadow:var(--e2)">e2 · bouton<br>flottant, toasts</div><div style="box-shadow:var(--e3);border-radius:var(--r-lg) var(--r-lg) 0 0">e3 · feuilles</div></div></div>
+  </section>
+
+  <section>
+    <div class="sec-t"><h2 class="t-headline">Composants</h2><p>Tous vivants. Ils utilisent les mêmes classes que le prototype A2.</p></div>
+    <div class="grid g2">
+      <div class="demo"><h3>Boutons</h3>
+        <div class="line"><button class="btn btn-primary"><span class="lbl">Ajouter</span></button><button class="btn"><span class="lbl">Annuler</span></button><button class="btn btn-pos"><span class="lbl">WhatsApp Marie</span></button></div>
+        <div class="line"><button class="btn btn-pos-solid"><span class="lbl">Écrire à Samuel</span></button><button class="btn" disabled><span class="lbl">Désactivé</span></button><button class="link">Lien d’action</button></div>
+        <div class="line"><button class="icon-btn icon-btn-outline" aria-label="Appeler" id="i-phone"></button><button class="icon-btn icon-btn-pos" aria-label="WhatsApp" id="i-wa"></button><button class="icon-btn" aria-label="Menu" id="i-more"></button></div></div>
+      <div class="demo"><h3>Puces, statuts (icône seule), étiquettes</h3>
+        <div class="line"><span class="chip"><span class="lbl">Famille</span></span><button class="chip" aria-pressed="true"><span class="lbl">Sélectionnée</span></button><span class="chip chip-soft"><span class="lbl">Avec Marie</span></span></div>
+        <div class="line"><span class="pill pill-icon" id="p-ok" role="img" aria-label="Enregistré"></span><span class="pill pill-icon pill-warn" id="p-off" role="img" aria-label="2 modifications en attente"></span><span class="pill pill-icon pill-neg" id="p-conf" role="img" aria-label="Conflit de synchronisation"></span><span class="tag">1 bloquant</span></div>
+        <div class="line"><div class="seg"><button aria-pressed="true">FCFA</button><button aria-pressed="false">€</button></div></div></div>
+      <div class="demo"><h3>Ligne de liste, le composant central</h3>
+        <ul class="group" id="rowdemo"></ul></div>
+      <div class="demo"><h3>Montant et bandeaux</h3>
+        <div class="card" style="box-shadow:none"><p class="t-small">Il vous reste</p><p class="amount-xl">1 388 100<small>FCFA</small></p><div class="track track-accent" style="margin-top:var(--s3)"><i style="width:14%"></i></div></div>
+        <div class="banner" id="b-warn"></div><div class="banner banner-pos" id="b-pos"></div></div>
+      <div class="demo"><h3>Champs et erreur</h3>
+        <label class="field"><span>Montant</span><input class="input" value="" placeholder="15 000"></label>
+        <div class="err" id="e-demo"></div>
+        <label class="field"><span>Pour quoi ?</span><input class="input input-plain" placeholder="Dîner poissons braisés"></label></div>
+      <div class="demo"><h3>Liste groupée façon iOS</h3>
+        <ul class="group" id="iosdemo"></ul>
+        <p class="foot" style="padding:0">Filets qui démarrent après l’icône, chevron de disclosure, légende en pied de liste.</p></div>
+      <div class="demo"><h3>Synchronisation : trois états</h3>
+        <div class="banner banner-pos" id="sy-ok"></div><div class="banner" id="sy-pend"></div><div class="banner banner-neg" id="sy-conf"></div>
+        <p class="t-small">Un conflit n’est jamais signalé par l’icône seule : bandeau en tête d’écran et feuille avec « Restaurer ma version ».</p></div>
+      <div class="demo"><h3>Filtre, choix, étapes</h3>
+        <div class="line"><button class="chip" id="f-off"></button><span class="right" style="display:inline-flex;align-items:center;gap:4px"><button class="chip chip-soft" id="f-on"></button><button class="icon-btn" aria-label="Retirer le filtre" id="f-x"></button></span></div>
+        <div class="steps" style="padding:0"><i class="on"></i><i class="on"></i><i></i></div>
+        <div class="choice-grid"><button class="choice" aria-pressed="true"><span class="code">CM</span><span class="clamp-1">Cameroun</span></button><button class="choice" aria-pressed="false"><span class="code">SN</span><span class="clamp-1">Sénégal</span></button></div>
+        <div class="seg seg-block"><button aria-pressed="true">Populaires</button><button aria-pressed="false">Saisie libre</button></div></div>
+      <div class="demo"><h3>Navigation basse, libellés courts</h3>
+        <div class="nav-demo" id="navdemo"></div>
+        <p class="t-small">« Préparatifs » devient « À faire » : le mot le plus long de la barre fait 9 lettres, il tient dès 320 px.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t"><h2 class="t-headline">Le même contenu, avec et sans garde-fous</h2><p>Un titre de 80 caractères et un montant de sept chiffres dans une colonne de 280 px, la largeur utile d’un petit téléphone.</p></div>
+    <div class="vs">
+      <div class="col"><div class="tagrow bad" id="vs-bad-t"></div>
+        <div class="naive"><div class="r"><span class="cb"></span><span class="t">Déjeuner de retrouvailles avec toute la famille…</span><span class="c">1 250 000 FCFA</span></div><div class="m">Quartier New Bell, derrière le grand marché central · Jean-Baptiste Nkoulou-Mbarga</div></div></div>
+      <div class="col"><div class="tagrow good" id="vs-good-t"></div>
+        <div class="phonecol"><ul class="group" id="vs-good"></ul></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-t"><h2 class="t-headline">Garde-fous</h2><p>Chaque erreur de design repérée dans la direction A a une règle, un mécanisme dans le code, et un test qui la vérifie.</p></div>
+    <table class="rules">
+      <thead><tr><th>Erreur évitée</th><th>Règle</th><th>Mécanisme</th><th>Vérifié par</th></tr></thead>
+      <tbody>
+        <tr><td>Page plus large que l’écran</td><td>Aucune boîte ne force sa largeur.</td><td><code>.ds * { min-width: 0 }</code> et colonnes <code>minmax(0, 1fr)</code></td><td>Banc de test, 320 à 430 px</td></tr>
+        <tr><td>Titre qui casse la mise en page</td><td>2 lignes au maximum, texte complet au toucher.</td><td><code>.row-title</code> avec <code>line-clamp: 2</code> et <code>overflow-wrap: anywhere</code></td><td>Textes très longs injectés</td></tr>
+        <tr><td>Ligne d’infos coupée en plein milieu</td><td>L’info se découpe par morceaux entiers.</td><td><code>.frags</code> (flex wrap) et <code>.frag</code> (nowrap, ellipse)</td><td>Banc de test, « coupé »</td></tr>
+        <tr><td>Montant qui sort de sa carte</td><td>Le gros chiffre rétrécit avec sa carte.</td><td><code>.amount-xl</code> : <code>clamp(28px, 11cqi, 40px)</code></td><td>Montant à 7 chiffres</td></tr>
+        <tr><td>Coût qui écrase le titre</td><td>Sous 340 px, le coût passe dans la ligne d’infos.</td><td>Requête de conteneur sur <code>.group</code></td><td>Banc de test à 320 px</td></tr>
+        <tr><td>Barre haute trop large</td><td>Le statut se réduit à son icône sur petit écran.</td><td><code>@container app (max-width: 359px)</code></td><td>Banc de test à 320 px</td></tr>
+        <tr><td>Formes disparates</td><td>4 familles de forme, 3 rayons, 3 hauteurs.</td><td>Jetons <code>--r-*</code> et <code>--h-*</code> uniquement</td><td>Revue : aucun rayon ni hauteur en dur</td></tr>
+        <tr><td>Cibles trop petites</td><td>44 px minimum, 48 par défaut.</td><td><code>--h-dense</code> est le plancher</td><td>Banc de test, « cible »</td></tr>
+        <tr><td>Texte illisible au soleil</td><td>13 px minimum, ratios documentés.</td><td>Échelle <code>--t-*</code>, couleurs appairées</td><td>Banc de test, « texte »</td></tr>
+        <tr><td>Erreur de saisie silencieuse</td><td>Le message dit le problème et la marche à suivre.</td><td><code>.err</code> avec <code>role="alert"</code> sous le champ</td><td>Parcours « champ vide » du prototype</td></tr>
+        <tr><td>Geste involontaire</td><td>Tout ajout, coche ou déplacement est annulable.</td><td>Toast avec Annuler, 5 secondes</td><td>Parcours du prototype</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="sec-t"><h2 class="t-headline">Passage à l’application réelle</h2><p>Rien n’est modifié aujourd’hui. Voici ce que le passage au design system changerait dans <code>style.css</code>.</p></div>
+    <div class="grid g2">
+      <div class="demo"><h3>Ce qui reste</h3><ul style="margin:0;padding-left:1.1rem;display:grid;gap:var(--s2)"><li>Cuivre <code>#b93807</code>, Public Sans et Atkinson Hyperlegible.</li><li>Vert WhatsApp, rouge d’alerte, jaune d’avertissement : mêmes rôles.</li><li>Cibles de 48 px et barre de navigation basse.</li></ul></div>
+      <div class="demo"><h3>Ce qui change</h3><ul style="margin:0;padding-left:1.1rem;display:grid;gap:var(--s2)"><li>Neutres froids (ardoise) remplacés par des neutres chauds.</li><li>Rayons 8, 14, 18, 24 et 9999 ramenés à 14, 22 et pilule.</li><li>Bordures de 1,5 px partout : 1 px sur les surfaces, 1,5 px sur les contrôles.</li><li>Un fichier de jetons, et des composants qui n’écrivent plus de valeurs en dur.</li></ul></div>
+    </div>
+  </section>
+</div>
+
+<script src="shared/icons.js"></script>
+<script>
+const I = window.PROTO.icon;
+const ink = '#1f1a15';
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+const lum = (h) => { const [r, g, b] = hex(h).map((v) => (v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4))); return .2126 * r + .7152 * g + .0722 * b; };
+const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+const C = [
+  ['paper', '#f8f5f0', 'Fond d’écran', ink], ['surface', '#fffdfa', 'Cartes, listes, feuilles', ink], ['sunken', '#f0ebe2', 'Pistes, segments', ink],
+  ['ink', '#1f1a15', 'Texte principal', '#f8f5f0'], ['ink-2', '#51483d', 'Texte secondaire', '#f8f5f0'], ['ink-3', '#6a5f52', 'Texte discret, jamais critique', '#f8f5f0'],
+  ['accent', '#b93807', 'Action, jour sélectionné', '#ffffff'], ['accent-soft', '#fbece1', 'Fond de puce, carte « ensuite »', '#8a2c07'],
+  ['pos', '#1d6b3a', 'Fait, WhatsApp', '#ffffff'], ['pos-soft', '#e4f1e7', 'Fond WhatsApp', '#14502b'],
+  ['warn', '#855400', 'Hors ligne, échéance', '#fdf0d0'], ['neg', '#b3261e', 'Bloquant, erreur', '#fffdfa'],
+];
+document.getElementById('colors').innerHTML = C.map(([n, h, role, onto]) => {
+  const bg = ['ink', 'ink-2', 'ink-3', 'warn'].includes(n) ? null : h;
+  const r = n === 'ink' || n === 'ink-2' || n === 'ink-3' ? ratio(h, '#f8f5f0') : n === 'warn' ? ratio(h, '#fdf0d0') : n === 'neg' ? ratio(h, '#fffdfa') : ratio(h, onto);
+  const label = n === 'ink' || n === 'ink-2' || n === 'ink-3' ? 'sur paper' : n === 'warn' ? 'sur warn-soft' : n === 'neg' ? 'sur surface' : 'texte sur ce fond';
+  const sample = ['ink', 'ink-2', 'ink-3'].includes(n) ? `background:#f8f5f0;color:${h}` : n === 'warn' ? `background:#fdf0d0;color:${h}` : n === 'neg' ? `background:#fffdfa;color:${h}` : `background:${h};color:${onto}`;
+  return `<div class="sw"><div class="chipc" style="${sample}">Aa Texte</div><div class="meta"><b>--${n}</b><code>${h}</code><span>${role}</span><span class="ratio ${r >= 4.5 ? 'ok' : 'low'}">${r.toFixed(1).replace('.', ',')} : 1 ${r >= 7 ? '· AAA' : r >= 4.5 ? '· AA' : '· insuffisant'}</span><span class="t-small">${label}</span></div></div>`;
+}).join('');
+document.getElementById('space').innerHTML = [4, 8, 12, 16, 20, 24, 32, 40].map((v, i) => `<div><i style="width:${v}px"></i>s${[1, 2, 3, 4, 5, 6, 8, 10][i]} · ${v}</div>`).join('');
+const put = (id, html) => { document.getElementById(id).innerHTML = html; };
+put('i-phone', I('phone', 22)); put('i-wa', I('message', 22)); put('i-more', I('more', 22));
+put('sy-ok', I('cloud', 24) + '<div><strong>Tout est enregistré</strong><span>Votre voyage est à jour.</span></div>'); put('sy-pend', I('cloudup', 24) + '<div><strong>2 modifications en attente</strong><span>Elles partent dès que le réseau revient.</span></div>'); put('sy-conf', I('alert', 24) + '<div><strong>Une autre version a été enregistrée</strong><span>La vôtre est mise de côté.</span></div>');
+put('f-off', I('filter', 16) + '<span class="lbl">Filtrer</span>'); put('f-on', I('filter', 16) + '<span class="lbl">Famille</span>'); put('f-x', I('x', 20));
+put('p-ok', I('cloud', 20)); put('p-off', I('cloudup', 20) + '<span class="n">2</span>'); put('p-conf', I('alert', 20));
+put('b-warn', I('alert', 24) + '<div><strong>Départ dans 9 jours</strong><span>1 démarche bloquante : visa</span></div>' + I('right', 20));
+put('b-pos', I('shield', 24) + '<div><strong>Plus rien ne bloque le départ.</strong></div>');
+put('e-demo', I('alert', 16) + '<span>Indiquez un montant supérieur à zéro, par exemple 15 000.</span>');
+put('navdemo', [['calendar', 'Programme', 1], ['checklist', 'À faire'], ['wallet', 'Budget'], ['users', 'Contacts']].map(([ic, l, cur]) => `<button style="display:grid;justify-items:center;gap:2px;min-height:58px;border:0;background:transparent;color:${cur ? 'var(--accent-ink)' : 'var(--ink-2)'};font-size:13px;font-weight:700;padding:6px 2px 0"><span class="ind" style="width:56px;height:30px;border-radius:999px;display:grid;place-items:center;${cur ? 'background:var(--accent-soft)' : ''}">${I(ic, 22)}</span><span>${l}</span></button>`).join(''));
+const demoRow = (done) => `<li class="row ${done ? 'done' : ''}"><button class="toggle" aria-pressed="${done}" aria-label="Fait"><span>${I('check', 18)}</span></button><button class="row-main"><span class="row-title">Déjeuner de retrouvailles avec toute la famille élargie chez Tante Rose à New Bell</span><span class="frags"><span class="frag" style="color:var(--ink);font-weight:700">12:30</span><span class="frag">Quartier New Bell, derrière le grand marché central</span><span class="frag who">${I('message', 14)}Jean-Baptiste Nkoulou-Mbarga</span><span class="frag cost-inline">1 250 000&nbsp;FCFA</span></span></button><div class="row-end money">1 250 000&nbsp;FCFA<small>1 905 €</small></div></li>`;
+put('iosdemo', ['Monter au mont Fébé|Découverte', 'Goûter le koki chez Mama Titi|Amis et sorties'].map((x) => { const [t, c] = x.split('|'); return `<li><button class="disclosure"><span class="row-lead mid"><span class="lead-ic">${I('bulb', 18)}</span></span><span class="row-main" style="padding-block:var(--s3)"><span class="row-title">${t}</span><span class="frags"><span class="frag">${c}</span></span></span><span class="chev">${I('right', 20)}</span></button></li>`; }).join(''));
+put('rowdemo', demoRow(false) + demoRow(true).replace('Déjeuner de retrouvailles avec toute la famille élargie chez Tante Rose à New Bell', 'Carte SIM locale').replace('Quartier New Bell, derrière le grand marché central', 'Akwa'));
+put('vs-good', demoRow(false));
+put('vs-bad-t', I('x', 18) + 'Sans garde-fous : le titre est coupé, le montant pousse, la ligne d’infos sort du cadre');
+put('vs-good-t', I('check', 18) + 'Avec Soleil : 2 lignes, infos par morceaux, coût replié dans la ligne');
+document.querySelectorAll('.demo .row-main').forEach((b) => b.addEventListener('click', () => b.closest('.row').setAttribute('data-open', b.closest('.row').getAttribute('data-open') === 'true' ? 'false' : 'true')));
+</script>
+</body>
+</html>
