@@ -37,6 +37,22 @@ export class BudgetEngine {
     return SUPPORTED_CURRENCIES.find(c => c.code === clean) || null;
   }
   /**
+   * Garantit que la devise figure dans trip.currencies (ajoutée avec son taux par défaut sinon).
+   * Sans cela, une dépense en CAD/CNY/USD sur un voyage créé pour le FCFA échouait ou était ignorée.
+   */
+  static ensureCurrency(trip, code) {
+    const clean = String(code || '').trim().toUpperCase();
+    if (!trip.currencies) trip.currencies = [];
+    const existing = trip.currencies.find(c => c.code.toUpperCase() === clean);
+    if (existing) return existing;
+    const known = BudgetEngine.findCurrency(clean);
+    if (!known) throw new Error(`Devise non supportée : ${code}`);
+    const added = { ...known };
+    trip.currencies.push(added);
+    return added;
+  }
+
+  /**
    * Convertit un montant d'une devise source vers une devise cible
    */
   static convert({ amount, fromCode, toCode, currencies, baseCurrency = 'EUR' }) {
@@ -93,6 +109,8 @@ export class BudgetEngine {
     }
 
     const currCode = currency.toUpperCase();
+    BudgetEngine.ensureCurrency(trip, currCode);
+    BudgetEngine.ensureCurrency(trip, trip.baseCurrency || 'EUR');
     const convertedBaseAmount = BudgetEngine.convert({
       amount: numericAmount,
       fromCode: currCode,
@@ -146,6 +164,7 @@ export class BudgetEngine {
 
     if (updates.currency !== undefined) {
       expense.currency = updates.currency.toUpperCase();
+      BudgetEngine.ensureCurrency(trip, expense.currency);
     }
 
     if (updates.category !== undefined) {
@@ -161,6 +180,7 @@ export class BudgetEngine {
     }
 
     // Recalcul du montant converti
+    BudgetEngine.ensureCurrency(trip, expense.currency);
     expense.convertedBaseAmount = BudgetEngine.convert({
       amount: expense.amount,
       fromCode: expense.currency,
@@ -220,15 +240,21 @@ export class BudgetEngine {
   }
 
   /**
+   * Devise locale de référence : celle de la destination, premier code différent de la base.
+   */
+  static getLocalCurrency(trip) {
+    const baseCode = trip.baseCurrency || 'EUR';
+    return (trip.currencies || []).find(c => c.code !== baseCode)
+      || { code: 'XAF', symbol: 'FCFA', rateToBase: 655.957 };
+  }
+
+  /**
    * Calcule le bilan synthétique du budget (totaux, soldes, répartition)
    */
   static calculateSummary(trip) {
     const totalBudget = Number(trip.totalBudget) || 0;
     const baseCode = trip.baseCurrency || 'EUR';
-    const localCurr = (trip.currencies || []).find(c => c.code !== baseCode) || {
-      code: 'XAF',
-      rateToBase: 655.957
-    };
+    const localCurr = BudgetEngine.getLocalCurrency(trip);
 
     let totalSpentBase = 0;
     const categoryTotals = {};
@@ -265,6 +291,8 @@ export class BudgetEngine {
     return {
       baseCurrency: baseCode,
       localCurrency: localCurr.code,
+      localSymbol: localCurr.symbol || localCurr.code,
+      baseSymbol: (trip.currencies || []).find(c => c.code === baseCode)?.symbol || baseCode,
       localRate: localCurr.rateToBase,
       totalBudgetBase: totalBudget,
       totalBudgetLocal,

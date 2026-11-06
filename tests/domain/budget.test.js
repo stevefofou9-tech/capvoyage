@@ -167,3 +167,38 @@ describe('Suite 5 : Budget & Multi-Devises (TC-BUD)', () => {
   });
 });
 
+
+describe('Devises manquantes et modification de dépense', () => {
+  const makeTrip = () => TripService.createTrip({
+    country: 'Cameroun', startDate: '2026-12-01', endDate: '2026-12-10', totalBudget: 1000
+  });
+
+  test('une dépense en CAD/USD/CNY est acceptée même absente de trip.currencies', () => {
+    const trip = makeTrip();
+    for (const code of ['CAD', 'USD', 'CNY']) {
+      const e = BudgetEngine.addExpense(trip, { label: code, amount: 100, currency: code });
+      assert.ok(e.convertedBaseAmount > 0);
+      assert.ok(trip.currencies.some(c => c.code === code));
+    }
+  });
+
+  test('updateExpense change montant et devise et recalcule la conversion', () => {
+    const trip = makeTrip();
+    const e = BudgetEngine.addExpense(trip, { label: 'Taxi', amount: 6559.57, currency: 'XAF' });
+    assert.equal(e.convertedBaseAmount, 10);
+    BudgetEngine.updateExpense(trip, e.id, { amount: 20, currency: 'USD', label: 'Taxi aéroport' });
+    assert.equal(e.currency, 'USD');
+    assert.equal(e.label, 'Taxi aéroport');
+    assert.equal(e.convertedBaseAmount, Number((20 / 1.08).toFixed(2)));
+  });
+
+  test('devise inconnue rejetée proprement', () => {
+    assert.throws(() => BudgetEngine.addExpense(makeTrip(), { label: 'x', amount: 1, currency: 'ZZZ' }), /non supportée/);
+  });
+
+  test('la devise locale reste celle de la destination après ajout d\'autres devises', () => {
+    const trip = makeTrip();
+    BudgetEngine.addExpense(trip, { label: 'x', amount: 5, currency: 'CAD' });
+    assert.equal(BudgetEngine.calculateSummary(trip).localCurrency, 'XAF');
+  });
+});

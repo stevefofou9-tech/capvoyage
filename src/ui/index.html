@@ -580,7 +580,7 @@
           <div class="converter-header">
             <h3><span class="ic-slot" data-icon="swap" aria-hidden="true"></span> Convertisseur Rapide de Poche</h3>
             <div class="rate-indicator">
-              Taux officiel : <strong>1 EUR = <span id="current-rate-display">655.957</span> XAF</strong>
+              Taux officiel : <strong>1 <span id="rate-base-code">EUR</span> = <span id="current-rate-display">655.957</span> <span id="rate-local-code">XAF</span></strong>
               <button class="btn-link" id="btn-edit-rate">Modifier manuellement</button>
               <button class="btn-link" id="btn-sync-rates" style="margin-left: 0.5rem; font-weight: 600;"><span class="ic-slot" data-icon="swap" aria-hidden="true"></span> Actualiser devises en direct</button>
               <span id="sync-rates-badge" class="sync-status-badge" style="display: none;"></span>
@@ -588,12 +588,12 @@
           </div>
           <div class="converter-fields">
             <div class="converter-input-group">
-              <label for="conv-eur">Montant en Euros (€)</label>
+              <label for="conv-eur" id="conv-base-label">Montant en Euros (€)</label>
               <input type="number" id="conv-eur" placeholder="Ex: 50" step="any" />
             </div>
             <div class="converter-arrow"><span class="ic-slot" data-icon="swap" aria-hidden="true"></span></div>
             <div class="converter-input-group">
-              <label for="conv-xaf">Montant en FCFA (XAF)</label>
+              <label for="conv-xaf" id="conv-local-label">Montant en FCFA (XAF)</label>
               <input type="number" id="conv-xaf" placeholder="Ex: 32798" step="any" />
             </div>
           </div>
@@ -847,10 +847,11 @@
   <dialog id="dialog-add-expense" class="app-dialog">
     <div class="dialog-content">
       <div class="dialog-header">
-        <h3>Enregistrer une dépense</h3>
+        <h3 id="expense-dialog-title">Enregistrer une dépense</h3>
         <button class="dialog-close" id="btn-close-expense-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
       </div>
       <form id="form-add-expense" class="dialog-form">
+        <input type="hidden" id="expense-id" />
         <div class="form-group">
           <label for="expense-label">Libellé de la dépense *</label>
           <input type="text" id="expense-label" placeholder="Ex: Restaurant Youpwé poissons braisés" required />
@@ -863,7 +864,8 @@
           <div class="form-group">
             <label for="expense-currency">Devise</label>
             <select id="expense-currency">
-              <option value="XAF" selected>FCFA (XAF / XOF)</option>
+              <option value="XAF" selected>FCFA (XAF)</option>
+              <option value="XOF">FCFA (XOF)</option>
               <option value="EUR">Euros (€)</option>
               <option value="CAD">Dollar Canadien ($ CA)</option>
               <option value="CNY">Yuan Chinois (¥)</option>
@@ -892,7 +894,7 @@
         </div>
         <div class="dialog-actions">
           <button type="button" class="btn btn-secondary" id="btn-cancel-expense">Annuler</button>
-          <button type="submit" class="btn btn-primary">Ajouter la dépense</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-expense">Ajouter la dépense</button>
         </div>
       </form>
     </div>
@@ -1208,7 +1210,7 @@
       <form id="form-edit-rate" class="dialog-form">
         <p class="subtitle" style="margin-bottom:1rem;">Définissez la valeur exacte de 1 EUR dans la devise locale de référence.</p>
         <div class="form-group">
-          <label for="input-edit-rate-value">1 EUR = [Montant en monnaie locale] *</label>
+          <label for="input-edit-rate-value" id="edit-rate-label">1 EUR = [Montant en monnaie locale] *</label>
           <input type="number" id="input-edit-rate-value" step="any" min="0.0001" placeholder="Ex: 655.957" required />
         </div>
         <div class="dialog-actions space-between">

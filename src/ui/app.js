@@ -245,6 +245,9 @@ const elements = {
   btnCancelBudgetEdit: document.getElementById('btn-cancel-budget-edit'),
   dialogAddExpense: document.getElementById('dialog-add-expense'),
   formAddExpense: document.getElementById('form-add-expense'),
+  expenseId: document.getElementById('expense-id'),
+  expenseDialogTitle: document.getElementById('expense-dialog-title'),
+  btnSubmitExpense: document.getElementById('btn-submit-expense'),
   expenseLabel: document.getElementById('expense-label'),
   expenseAmount: document.getElementById('expense-amount'),
   expenseCurrency: document.getElementById('expense-currency'),
@@ -1522,17 +1525,35 @@ const EXPENSE_ICONS = {
   'Santé/Formalités': 'shield', 'Formalités': 'shield', 'Cadeaux': 'gift', 'Sorties': 'users', 'Loisirs': 'sun'
 };
 
+// Ouvre la modale de dépense : création (sans argument) ou modification d'une dépense existante
+function openExpenseDialog(exp = null) {
+  elements.formAddExpense.reset();
+  const local = BudgetEngine.getLocalCurrency(state.trip).code;
+  elements.expenseId.value = exp ? exp.id : '';
+  elements.expenseDialogTitle.textContent = exp ? 'Modifier la dépense' : 'Enregistrer une dépense';
+  elements.btnSubmitExpense.textContent = exp ? 'Enregistrer les modifications' : 'Ajouter la dépense';
+  elements.expenseLabel.value = exp ? exp.label : '';
+  elements.expenseAmount.value = exp ? exp.amount : '';
+  elements.expenseCurrency.value = exp ? exp.currency : local;
+  if (!elements.expenseCurrency.value) elements.expenseCurrency.value = 'EUR';
+  elements.expenseCategory.value = exp ? exp.category : 'Nourriture/Resto';
+  elements.expenseDate.value = exp ? exp.date : new Date().toISOString().split('T')[0];
+  openAccessibleDialog(elements.dialogAddExpense);
+}
+
 function renderBudget() {
   const summary = BudgetEngine.calculateSummary(state.trip);
 
-  elements.kpiTotalBudget.textContent = `${formatNumber(summary.totalBudgetBase)} €`;
-  elements.kpiTotalBudgetXaf.textContent = `~${formatNumber(summary.totalBudgetLocal)} FCFA`;
+  const bs = summary.baseSymbol;
+  const ls = summary.localSymbol;
+  elements.kpiTotalBudget.textContent = `${formatNumber(summary.totalBudgetBase)} ${bs}`;
+  elements.kpiTotalBudgetXaf.textContent = `~${formatNumber(summary.totalBudgetLocal)} ${ls}`;
 
-  elements.kpiTotalSpent.textContent = `${formatNumber(summary.totalSpentBase)} €`;
-  elements.kpiTotalSpentXaf.textContent = `~${formatNumber(summary.totalSpentLocal)} FCFA`;
+  elements.kpiTotalSpent.textContent = `${formatNumber(summary.totalSpentBase)} ${bs}`;
+  elements.kpiTotalSpentXaf.textContent = `~${formatNumber(summary.totalSpentLocal)} ${ls}`;
 
-  elements.kpiRemaining.textContent = `${formatNumber(summary.remainingBudgetBase)} €`;
-  elements.kpiRemainingXaf.textContent = `~${formatNumber(summary.remainingBudgetLocal)} FCFA`;
+  elements.kpiRemaining.textContent = `${formatNumber(summary.remainingBudgetBase)} ${bs}`;
+  elements.kpiRemainingXaf.textContent = `~${formatNumber(summary.remainingBudgetLocal)} ${ls}`;
 
   if (summary.isOverBudget) {
     elements.kpiRemainingCard.className = 'kpi-card overbudget';
@@ -1541,6 +1562,10 @@ function renderBudget() {
   }
 
   elements.currentRateDisplay.textContent = summary.localRate;
+  document.getElementById('rate-base-code').textContent = summary.baseCurrency;
+  document.getElementById('rate-local-code').textContent = summary.localCurrency;
+  document.getElementById('conv-base-label').textContent = `Montant en ${summary.baseCurrency} (${bs})`;
+  document.getElementById('conv-local-label').textContent = `Montant en ${summary.localCurrency} (${ls})`;
 
   // Répartition par catégorie
   const breakdownList = elements.budgetBreakdownList;
@@ -1554,7 +1579,7 @@ function renderBudget() {
       item.innerHTML = `
         <div class="breakdown-meta">
           <span>${escapeHtml(b.category)}</span>
-          <span>${formatNumber(b.amountBase)} € (${formatNumber(b.amountLocal)} FCFA) • <strong>${b.percentage}%</strong></span>
+          <span>${formatNumber(b.amountBase)} ${bs} (${formatNumber(b.amountLocal)} ${ls}) • <strong>${b.percentage}%</strong></span>
         </div>
         <div class="breakdown-bar-bg">
           <div class="breakdown-bar-fill" style="width: ${b.percentage}%;"></div>
@@ -1584,11 +1609,14 @@ function renderBudget() {
         <div class="expense-amount-col">
           <div>
             <div class="expense-main-val">${formatNumber(exp.amount)} ${exp.currency}</div>
-            <div class="expense-sub-val">≈ ${formatNumber(exp.convertedBaseAmount)} €</div>
+            <div class="expense-sub-val">≈ ${formatNumber(exp.convertedBaseAmount)} ${bs}</div>
           </div>
+          <button type="button" class="icon-action-btn btn-edit-expense" title="Modifier" aria-label="Modifier ${escapeHtml(exp.label)}">${icon('pencil', 18)}</button>
           <button type="button" class="icon-action-btn btn-del-expense" title="Supprimer" aria-label="Supprimer ${escapeHtml(exp.label)}">${icon('trash', 18)}</button>
         </div>
       `;
+
+      row.querySelector('.btn-edit-expense').addEventListener('click', () => openExpenseDialog(exp));
 
       row.querySelector('.btn-del-expense').addEventListener('click', () => {
         const deletedExp = { ...exp };
@@ -2366,40 +2394,28 @@ function setupEventListeners() {
   elements.btnCloseBudgetDialog.addEventListener('click', () => elements.dialogEditBudget.close());
   elements.btnCancelBudgetEdit.addEventListener('click', () => elements.dialogEditBudget.close());
 
-  // Convertisseur Rapide de Devises
+  // Convertisseur Rapide de Devises (base <-> devise locale du voyage)
+  const convert = (amount, from, to) => BudgetEngine.convert({ amount, fromCode: from, toCode: to, currencies: state.trip.currencies });
   elements.convEur.addEventListener('input', () => {
     const val = parseFloat(elements.convEur.value);
-    if (isNaN(val)) {
-      elements.convXaf.value = '';
-      return;
-    }
-    elements.convXaf.value = BudgetEngine.convert({
-      amount: val,
-      fromCode: 'EUR',
-      toCode: 'XAF',
-      currencies: state.trip.currencies
-    });
+    if (isNaN(val)) { elements.convXaf.value = ''; return; }
+    const { baseCurrency, localCurrency } = BudgetEngine.calculateSummary(state.trip);
+    elements.convXaf.value = convert(val, baseCurrency, localCurrency);
   });
 
   elements.convXaf.addEventListener('input', () => {
     const val = parseFloat(elements.convXaf.value);
-    if (isNaN(val)) {
-      elements.convEur.value = '';
-      return;
-    }
-    elements.convEur.value = BudgetEngine.convert({
-      amount: val,
-      fromCode: 'XAF',
-      toCode: 'EUR',
-      currencies: state.trip.currencies
-    });
+    if (isNaN(val)) { elements.convEur.value = ''; return; }
+    const { baseCurrency, localCurrency } = BudgetEngine.calculateSummary(state.trip);
+    elements.convEur.value = convert(val, localCurrency, baseCurrency);
   });
 
-  // Modification manuelle du Taux (remplace prompt())
+  // Modification manuelle du Taux de la devise locale (remplace prompt())
   elements.btnEditRate.addEventListener('click', () => {
-    const currentRate = (state.trip.currencies || []).find(c => c.code === 'XAF')?.rateToBase || 655.957;
     if (!elements.dialogEditRate) return;
-    elements.inputEditRateValue.value = currentRate;
+    const { baseCurrency, localCurrency, localRate } = BudgetEngine.calculateSummary(state.trip);
+    document.getElementById('edit-rate-label').textContent = `1 ${baseCurrency} = [Montant en ${localCurrency}] *`;
+    elements.inputEditRateValue.value = localRate;
     openAccessibleDialog(elements.dialogEditRate);
     setTimeout(() => elements.inputEditRateValue.focus(), 50);
   });
@@ -2409,11 +2425,12 @@ function setupEventListeners() {
       e.preventDefault();
       const parsed = parseFloat(elements.inputEditRateValue.value);
       if (!isNaN(parsed) && parsed > 0) {
-        BudgetEngine.setCurrencyRate(state.trip, 'XAF', parsed);
+        const { baseCurrency, localCurrency } = BudgetEngine.calculateSummary(state.trip);
+        BudgetEngine.setCurrencyRate(state.trip, localCurrency, parsed);
         saveTripData();
         closeAccessibleDialog(elements.dialogEditRate);
         renderAll();
-        showToast(`Taux actualisé : 1 EUR = ${parsed} XAF`, { type: 'success' });
+        showToast(`Taux actualisé : 1 ${baseCurrency} = ${parsed} ${localCurrency}`, { type: 'success' });
       }
     });
   }
@@ -2424,25 +2441,30 @@ function setupEventListeners() {
     elements.btnCloseEditRateDialog.addEventListener('click', () => closeAccessibleDialog(elements.dialogEditRate));
   }
 
-  // Ajout Dépense
-  elements.btnOpenAddExpense.addEventListener('click', () => {
-    elements.formAddExpense.reset();
-    elements.expenseDate.value = new Date().toISOString().split('T')[0];
-    openAccessibleDialog(elements.dialogAddExpense);
-  });
+  // Ajout / modification d'une dépense
+  elements.btnOpenAddExpense.addEventListener('click', () => openExpenseDialog());
 
   elements.formAddExpense.addEventListener('submit', (e) => {
     e.preventDefault();
-    BudgetEngine.addExpense(state.trip, {
+    const fields = {
       label: elements.expenseLabel.value,
       amount: parseFloat(elements.expenseAmount.value),
       currency: elements.expenseCurrency.value,
       category: elements.expenseCategory.value,
       date: elements.expenseDate.value
-    });
-    elements.dialogAddExpense.close();
+    };
+    const editingId = elements.expenseId.value;
+    try {
+      if (editingId) BudgetEngine.updateExpense(state.trip, editingId, fields);
+      else BudgetEngine.addExpense(state.trip, fields);
+    } catch (err) {
+      showToast(err.message, { type: 'error' });
+      return;
+    }
+    closeAccessibleDialog(elements.dialogAddExpense);
     saveTripData();
     renderAll();
+    showToast(editingId ? 'Dépense modifiée.' : 'Dépense ajoutée.', { type: 'success' });
   });
 
   elements.btnCloseExpenseDialog.addEventListener('click', () => elements.dialogAddExpense.close());
