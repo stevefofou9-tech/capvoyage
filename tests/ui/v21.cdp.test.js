@@ -212,6 +212,8 @@ describe('Suite Ergonomie v2.1 (TC-UX, TC-IDEA, TC-QS, TC-CTX, TC-NOW, Chrome he
 
   test('TC-CTX-UI2 : sélecteur de contacts avec recherche et création', async () => {
     const page = await openDemo();
+    await page.waitFor(`document.querySelector('.day-pill')`);
+    await page.evaluate(`[...document.querySelectorAll('.day-pill')].find(p => p.getAttribute('aria-label').startsWith('Jour 1, ')).click(); true`);
     await page.waitFor(`document.querySelector('.activity-card')`);
     await page.evaluate(`document.querySelector('.activity-card').click(); true`);
     await page.waitFor(`document.getElementById('dialog-activity-enrich').open`);

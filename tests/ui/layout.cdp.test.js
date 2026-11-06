@@ -94,6 +94,8 @@ describe('Suite Mise en page Soleil (TC-LAY, Chrome headless via CDP)', { skip: 
 
       // Fenêtres : fiche d'activité (le texte le plus long), dépense, contact
       await goTab(page, width, 'tab-planning');
+      // L'activité de test est au jour 1 : on y va explicitement (l'app s'ouvre sur le jour courant)
+      await page.evaluate(`[...document.querySelectorAll('.day-pill')].find(p => p.getAttribute('aria-label').startsWith('Jour 1, ')).click(); true`);
       await page.evaluate(`[...document.querySelectorAll('.activity-card')].find(c => c.textContent.includes('retrouvailles')).click(); true`);
       await page.waitFor(`document.getElementById('dialog-activity-enrich').open`);
       await sleep(250); await check('Fiche d’activité');
