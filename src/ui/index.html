@@ -159,15 +159,16 @@
           <!-- Budget & Devises étendues V3 -->
           <div class="form-row">
             <div class="form-group">
-              <label for="wiz-budget">Budget prévisionnel global (€) *</label>
+              <label for="wiz-budget" id="wiz-budget-label">Budget prévisionnel global (€) *</label>
               <input type="number" id="wiz-budget" placeholder="Ex: 2500" min="1" step="any" required />
             </div>
 
             <div class="form-group">
-              <label for="wiz-currency">Monnaie de destination / référence</label>
+              <label for="wiz-currency">Monnaie du budget</label>
               <select id="wiz-currency">
-                <option value="EUR">Euros (€ - EUR)</option>
-                <option value="XAF" selected>Franc CFA (FCFA - XAF / XOF)</option>
+                <option value="EUR" selected>Euros (€ - EUR)</option>
+                <option value="XAF">Franc CFA (FCFA - XAF)</option>
+                <option value="XOF">Franc CFA (FCFA - XOF)</option>
                 <option value="CAD">Dollar Canadien ($ CA - CAD)</option>
                 <option value="CNY">Yuan Chinois (¥ - CNY)</option>
                 <option value="USD">Dollars Américains ($ - USD)</option>
@@ -709,10 +710,24 @@
         <button class="dialog-close" id="btn-close-budget-dialog" aria-label="Fermer la boîte de dialogue">&times;</button>
       </div>
       <form id="form-update-budget" class="dialog-form">
-        <div class="form-group">
-          <label for="edit-budget-amount">Montant du Budget (€) *</label>
-          <input type="number" id="edit-budget-amount" step="any" min="1" required />
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-budget-amount">Montant du budget *</label>
+            <input type="number" id="edit-budget-amount" step="any" min="0.01" required />
+          </div>
+          <div class="form-group">
+            <label for="edit-budget-currency">Devise</label>
+            <select id="edit-budget-currency">
+              <option value="EUR">Euros (€)</option>
+              <option value="XAF">FCFA (XAF)</option>
+              <option value="XOF">FCFA (XOF)</option>
+              <option value="CAD">Dollar Canadien ($ CA)</option>
+              <option value="CNY">Yuan Chinois (¥)</option>
+              <option value="USD">Dollar Américain ($)</option>
+            </select>
+          </div>
         </div>
+        <p class="subtitle">Les dépenses déjà saisies sont reconverties dans cette devise.</p>
         <div class="dialog-actions">
           <button type="button" class="btn btn-secondary" id="btn-cancel-budget-edit">Annuler</button>
           <button type="submit" class="btn btn-primary">Mettre à jour le Budget</button>
@@ -883,6 +898,7 @@
               <option value="Activités/Sorties">Activités & Sorties</option>
               <option value="Achats/Cadeaux">Achats & Cadeaux</option>
               <option value="Santé/Formalités">Santé & Formalités</option>
+              <option value="Connexion internet">Connexion internet</option>
               <option value="Frais bancaires & Change">Frais bancaires & Change</option>
               <option value="Autre">Autre</option>
             </select>

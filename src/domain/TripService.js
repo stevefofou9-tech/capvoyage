@@ -1,6 +1,6 @@
 import { GeographyData } from './GeographyData.js';
 import { ContactService } from './ContactService.js';
-import { SUPPORTED_CURRENCIES } from './BudgetEngine.js';
+import { BudgetEngine } from './BudgetEngine.js';
 
 const generateId = () => globalThis.crypto.randomUUID();
 
@@ -36,28 +36,15 @@ export class TripService {
 
     const days = TripService.generateDays(startDate, endDate);
 
-    // Initialisation des devises par défaut selon la destination
-    const currencies = [
-      { code: baseCurrency, name: baseCurrency === 'EUR' ? 'Euro' : baseCurrency, symbol: baseCurrency === 'EUR' ? '€' : baseCurrency, rateToBase: 1.0 }
-    ];
-
+    // Devises du voyage : EUR (pivot, taux = 1), la devise du budget et celle de la destination.
+    // Tous les taux sont exprimés pour 1 EUR.
+    const currencies = [];
     const targetLocalCode = GeographyData.getDefaultCurrencyForCountry(country) || 'XAF';
-    if (targetLocalCode !== baseCurrency) {
-      const matchCurr = SUPPORTED_CURRENCIES.find(c => c.code === targetLocalCode) || {
-        code: 'XAF',
-        name: 'Franc CFA (BEAC)',
-        symbol: 'FCFA',
-        rateToBase: 655.957
-      };
-      currencies.push({ ...matchCurr });
-    } else if (baseCurrency === 'EUR') {
-      currencies.push({
-        code: 'XAF',
-        name: 'Franc CFA (BEAC)',
-        symbol: 'FCFA',
-        rateToBase: 655.957
-      });
+    const trip = { country: country.trim(), baseCurrency, currencies };
+    for (const code of ['EUR', baseCurrency, targetLocalCode]) {
+      try { BudgetEngine.ensureCurrency(trip, code); } catch { /* devise non supportée : ignorée */ }
     }
+    if (currencies.length < 2) BudgetEngine.ensureCurrency(trip, 'XAF');
 
     return {
       id: generateId(),
